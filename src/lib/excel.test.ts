@@ -70,6 +70,7 @@ describe("mapeamento do Excel para lançamento", () => {
         valor: 218.4,
         descricao: "Mercado",
         data_registro: "2026-09-01",
+        situacao: "pago",
         responsavel: null,
         observacao: null,
       },

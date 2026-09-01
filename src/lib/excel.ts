@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { lerData, lerNumero, type LinhaCru } from "@/lib/csv";
+import { mapearLancamentos, type LinhaCru } from "@/lib/csv";
 
 /**
  * Leitura nativa de .xlsx / .xls.
@@ -61,31 +61,9 @@ export function lerExcel(dados: ArrayBuffer): LinhaCru[] {
   });
 }
 
-/** Mesmas regras do CSV, para o resultado ser idêntico nos dois caminhos. */
-export function mapearDoExcel(linhas: LinhaCru[]) {
-  const saida = [];
-
-  for (const l of linhas) {
-    const data = lerData(l["data"] ?? l["data registro"] ?? "");
-    const valor = lerNumero(l["valor"] ?? "");
-    const descricao = (l["descricao"] ?? l["descrição"] ?? "").trim();
-    if (!data || valor === null || valor === 0 || !descricao) continue;
-
-    const tipoTexto = (l["tipo"] ?? "").toLowerCase();
-    const tipo =
-      tipoTexto.includes("receita") || (!tipoTexto && valor > 0)
-        ? "receita"
-        : "despesa";
-
-    saida.push({
-      tipo: tipo as "receita" | "despesa",
-      valor: Math.abs(valor),
-      descricao,
-      data_registro: data,
-      responsavel: (l["responsavel"] ?? "").trim() || null,
-      observacao: (l["observacao"] ?? "").trim() || null,
-    });
-  }
-
-  return saida;
-}
+/**
+ * Mesmas regras do CSV. Reusa a função em vez de repetir: quando a leitura
+ * de data ganhou suporte a hora junto, os dois caminhos foram corrigidos de
+ * uma vez só.
+ */
+export const mapearDoExcel = mapearLancamentos;

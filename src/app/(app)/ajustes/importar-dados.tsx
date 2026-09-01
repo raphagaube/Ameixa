@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Botao } from "@/components/ui/botao";
 import { Campo } from "@/components/ui/campo";
-import { lerCsv, mapearLancamentos } from "@/lib/csv";
+import { diagnosticar, explicarFalha, lerCsv, mapearLancamentos } from "@/lib/csv";
 import { importarLancamentos } from "./importar";
 import { importarDoGoogle } from "./importar-planilha";
 
@@ -33,12 +33,19 @@ export function ImportarDados() {
 
     const nome = arquivo.name.toLowerCase();
     let linhas: unknown[] = [];
+    let porQue: string | null = null;
 
     try {
       if (nome.endsWith(".xlsx") || nome.endsWith(".xls")) {
         // O leitor do Excel é pesado; só carrega quando alguém escolhe um.
         const { lerExcel, mapearDoExcel } = await import("@/lib/excel");
-        linhas = mapearDoExcel(lerExcel(await arquivo.arrayBuffer()));
+        const brutas = lerExcel(await arquivo.arrayBuffer());
+        linhas = mapearDoExcel(brutas);
+        if (linhas.length === 0)
+          porQue = explicarFalha(
+            diagnosticar(brutas),
+            brutas.length > 0 ? Object.keys(brutas[0]) : [],
+          );
       } else if (nome.endsWith(".json")) {
         const json = JSON.parse(await arquivo.text());
         const brutos = Array.isArray(json) ? json : (json.lancamentos ?? []);
@@ -51,7 +58,13 @@ export function ImportarDados() {
           responsavel: l.responsavel ?? null,
         }));
       } else {
-        linhas = mapearLancamentos(lerCsv(await arquivo.text()));
+        const brutas = lerCsv(await arquivo.text());
+        linhas = mapearLancamentos(brutas);
+        if (linhas.length === 0)
+          porQue = explicarFalha(
+            diagnosticar(brutas),
+            brutas.length > 0 ? Object.keys(brutas[0]) : [],
+          );
       }
     } catch {
       setMsg({
@@ -66,6 +79,7 @@ export function ImportarDados() {
       setMsg({
         tipo: "erro",
         texto:
+          porQue ??
           "Não achei lançamentos. A primeira linha precisa ter as colunas Data, Descrição e Valor.",
       });
       e.target.value = "";

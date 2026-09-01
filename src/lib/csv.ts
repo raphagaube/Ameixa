@@ -54,18 +54,32 @@ export function lerNumero(texto: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Data em dd/mm/aaaa ou aaaa-mm-dd. */
+/**
+ * Data em dd/mm/aaaa ou aaaa-mm-dd.
+ *
+ * A hora que vier depois é ignorada: planilha de banco e de controle
+ * financeiro costuma gravar "01/07/2025 12:00:00", e exigir a data
+ * terminando ali descartava a linha inteira.
+ */
 export function lerData(texto: string): string | null {
   const t = texto.trim();
 
-  const br = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  const br = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?=$|[\s,T])/);
   if (br) {
     const [, d, m, a] = br;
+    const dn = Number(d);
+    const mn = Number(m);
+    if (dn < 1 || dn > 31 || mn < 1 || mn > 12) return null;
     return `${a}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
 
-  const iso = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return iso[0];
+  const iso = t.match(/^(\d{4})-(\d{2})-(\d{2})(?=$|[\s,T])/);
+  if (iso) {
+    const mn = Number(iso[2]);
+    const dn = Number(iso[3]);
+    if (dn < 1 || dn > 31 || mn < 1 || mn > 12) return null;
+    return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  }
 
   return null;
 }
@@ -103,6 +117,26 @@ export function lerCsv(texto: string): LinhaCru[] {
  * Converte as linhas cruas no formato que a importação espera.
  * Reconhece os cabeçalhos que a nossa própria exportação gera.
  */
+/** Por que uma linha foi descartada — vira mensagem de erro útil. */
+export type Diagnostico = {
+  total: number;
+  semData: number;
+  semValor: number;
+  semDescricao: number;
+};
+
+/** Traduz a coluna Status da planilha para a situação do lançamento. */
+function lerSituacao(
+  bruto: string,
+  tipo: "receita" | "despesa",
+): "pago" | "a_pagar" | "recebido" | "a_receber" {
+  const s = bruto.trim().toLowerCase();
+  if (tipo === "receita") {
+    return s.startsWith("receb") ? "recebido" : s ? "a_receber" : "recebido";
+  }
+  return s.startsWith("pag") ? "pago" : s ? "a_pagar" : "pago";
+}
+
 export function mapearLancamentos(linhas: LinhaCru[]) {
   const saida = [];
 
@@ -113,20 +147,68 @@ export function mapearLancamentos(linhas: LinhaCru[]) {
     if (!data || valor === null || valor === 0 || !descricao) continue;
 
     const tipoTexto = (l["tipo"] ?? "").toLowerCase();
-    const tipo =
+    const tipo: "receita" | "despesa" =
       tipoTexto.includes("receita") || (!tipoTexto && valor > 0)
         ? "receita"
         : "despesa";
 
     saida.push({
-      tipo: tipo as "receita" | "despesa",
+      tipo,
       valor: Math.abs(valor),
       descricao,
       data_registro: data,
+      situacao: lerSituacao(l["status"] ?? "", tipo),
       responsavel: (l["responsavel"] ?? "").trim() || null,
-      observacao: (l["observacao"] ?? "").trim() || null,
+      // A categoria da planilha vira observação: o nome dela não bate com o
+      // das categorias do app, e o vínculo é por código interno.
+      observacao:
+        [l["observacao"], l["categoria"]]
+          .map((x) => (x ?? "").trim())
+          .filter(Boolean)
+          .join(" · ")
+          .slice(0, 2000) || null,
     });
   }
 
   return saida;
+}
+
+/** Conta por que as linhas caíram, para o erro não ser só "não achei nada". */
+export function diagnosticar(linhas: LinhaCru[]): Diagnostico {
+  const d: Diagnostico = {
+    total: linhas.length,
+    semData: 0,
+    semValor: 0,
+    semDescricao: 0,
+  };
+
+  for (const l of linhas) {
+    if (!lerData(l["data"] ?? l["data registro"] ?? "")) d.semData++;
+    const v = lerNumero(l["valor"] ?? "");
+    if (v === null || v === 0) d.semValor++;
+    if (!(l["descricao"] ?? l["descrição"] ?? "").trim()) d.semDescricao++;
+  }
+
+  return d;
+}
+
+/** Mensagem em português explicando o que impediu a importação. */
+export function explicarFalha(d: Diagnostico, colunas: string[]): string {
+  if (d.total === 0) {
+    return "O arquivo não tem linhas além do cabeçalho.";
+  }
+
+  const achadas = `Colunas encontradas: ${colunas.join(", ")}.`;
+
+  if (d.semData === d.total) {
+    return `Li ${d.total} linhas, mas nenhuma tinha data reconhecível. Aceito 01/07/2025 ou 2025-07-01. ${achadas}`;
+  }
+  if (d.semValor === d.total) {
+    return `Li ${d.total} linhas, mas nenhuma tinha valor. ${achadas}`;
+  }
+  if (d.semDescricao === d.total) {
+    return `Li ${d.total} linhas, mas todas estão sem descrição. ${achadas}`;
+  }
+
+  return `Li ${d.total} linhas, mas nenhuma tinha data, valor e descrição ao mesmo tempo. ${achadas}`;
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { lerCsv, mapearLancamentos } from "@/lib/csv";
+import { diagnosticar, explicarFalha, lerCsv, mapearLancamentos } from "@/lib/csv";
 import { linkParaCsv, pareceHtml } from "@/lib/planilha-google";
 import { importarLancamentos } from "./importar";
 
@@ -53,12 +53,13 @@ export async function importarDoGoogle(link: string): Promise<ResultadoPlanilha>
     };
   }
 
-  const linhas = mapearLancamentos(lerCsv(texto));
+  const brutas = lerCsv(texto);
+  const linhas = mapearLancamentos(brutas);
+
   if (linhas.length === 0) {
-    return {
-      ok: false,
-      erro: "Li a planilha, mas não achei lançamentos. Ela precisa ter as colunas Data, Descrição e Valor na primeira linha.",
-    };
+    // Dizer "não achei nada" não ajuda ninguém a consertar a planilha.
+    const colunas = brutas.length > 0 ? Object.keys(brutas[0]) : [];
+    return { ok: false, erro: explicarFalha(diagnosticar(brutas), colunas) };
   }
 
   return importarLancamentos(linhas);

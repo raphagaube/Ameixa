@@ -35,7 +35,7 @@ export async function importarLancamentos(
   if (!Array.isArray(linhas) || linhas.length === 0) {
     return { ok: false, erro: "O arquivo não tem lançamentos para importar." };
   }
-  if (linhas.length > 5000) {
+  if (linhas.length > 20000) {
     return { ok: false, erro: "Arquivo grande demais. Divida em partes menores." };
   }
 
@@ -61,29 +61,44 @@ export async function importarLancamentos(
     };
   }
 
-  const { error } = await supabase.from("lancamentos").insert(
-    validas.map((l) => ({
-      user_id: user.id,
-      tipo: l.tipo,
-      valor: l.valor,
-      descricao: l.descricao,
-      data_registro: l.data_registro,
-      situacao: l.situacao ?? (l.tipo === "receita" ? "recebido" : "pago"),
-      observacao: l.observacao ?? null,
-      responsavel: l.responsavel ?? null,
-      importado: true,
-      // Sem categoria e sem conta: entra como pendência para você completar.
-      incompleto: true,
-    })),
-  );
+  const paraGravar = validas.map((l) => ({
+    user_id: user.id,
+    tipo: l.tipo,
+    valor: l.valor,
+    descricao: l.descricao,
+    data_registro: l.data_registro,
+    situacao: l.situacao ?? (l.tipo === "receita" ? "recebido" : "pago"),
+    observacao: l.observacao ?? null,
+    responsavel: l.responsavel ?? null,
+    importado: true,
+    // Sem categoria e sem conta: entra como pendência para você completar.
+    incompleto: true,
+  }));
 
-  if (error) {
-    return { ok: false, erro: "Não deu para importar. Confira o arquivo e tente de novo." };
+  // Em blocos: uma planilha de anos tem milhares de linhas, e mandar tudo
+  // numa requisição só estoura o limite de tamanho do PostgREST.
+  const TAMANHO_BLOCO = 400;
+  let gravados = 0;
+
+  for (let i = 0; i < paraGravar.length; i += TAMANHO_BLOCO) {
+    const bloco = paraGravar.slice(i, i + TAMANHO_BLOCO);
+    const { error } = await supabase.from("lancamentos").insert(bloco);
+
+    if (error) {
+      return {
+        ok: false,
+        erro:
+          gravados > 0
+            ? `Importei ${gravados} lançamentos e parei num erro. Os que entraram estão em Pendências.`
+            : "Não deu para importar. Confira o arquivo e tente de novo.",
+      };
+    }
+    gravados += bloco.length;
   }
 
   for (const p of ["/", "/extrato", "/pendencias", "/relatorios"]) {
     revalidatePath(p);
   }
 
-  return { ok: true, criados: validas.length, ignorados };
+  return { ok: true, criados: gravados, ignorados };
 }

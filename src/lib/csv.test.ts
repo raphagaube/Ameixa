@@ -73,8 +73,32 @@ describe("data", () => {
     expect(lerData("2026-09-01")).toBe("2026-09-01");
   });
 
+  /**
+   * Regressão de caso real: a planilha de controle financeiro do usuário
+   * grava "01/07/2025 12:00:00". Exigir a data terminando ali descartava
+   * as 1.154 linhas do arquivo, com a mensagem inútil "não achei
+   * lançamentos".
+   */
+  it("ignora a hora que vier depois da data", () => {
+    expect(lerData("01/07/2025 12:00:00")).toBe("2025-07-01");
+    expect(lerData("01/07/2025 12:00")).toBe("2025-07-01");
+    expect(lerData("2025-07-01 12:00:00")).toBe("2025-07-01");
+    expect(lerData("2025-07-01T12:00:00Z")).toBe("2025-07-01");
+  });
+
   it("rejeita o que não é data", () => {
     expect(lerData("ontem")).toBeNull();
+  });
+
+  it("rejeita dia e mês fora da faixa", () => {
+    expect(lerData("32/01/2025")).toBeNull();
+    expect(lerData("01/13/2025")).toBeNull();
+    expect(lerData("2025-13-01")).toBeNull();
+  });
+
+  /** Data grudada em outro número não é data. */
+  it("não aceita lixo colado logo depois", () => {
+    expect(lerData("01/07/20251")).toBeNull();
   });
 });
 
@@ -112,6 +136,7 @@ describe("mapeamento para lançamento", () => {
         valor: 218.4,
         descricao: "Mercado",
         data_registro: "2026-09-01",
+        situacao: "pago",
         responsavel: null,
         observacao: null,
       },
