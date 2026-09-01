@@ -10,8 +10,11 @@ import Link from "next/link";
 import { AlternarTema } from "@/components/alternar-tema";
 import { LogoAmeixa } from "@/components/logo-ameixa";
 import { perfilDoUsuario } from "@/lib/dados/perfil";
+import { usuarioAtual } from "@/lib/supabase/servidor";
 import { EscolhaAcento } from "./escolha-acento";
 import { ExportarDados } from "./exportar-dados";
+import { ImportarDados } from "./importar-dados";
+import { MinhaConta } from "./minha-conta";
 import { BotaoSair } from "./botao-sair";
 
 export const metadata = { title: "Ajustes · Ameixa" };
@@ -25,7 +28,7 @@ const ATALHOS = [
 ];
 
 export default async function Ajustes() {
-  const perfil = await perfilDoUsuario();
+  const [perfil, usuario] = await Promise.all([perfilDoUsuario(), usuarioAtual()]);
 
   return (
     <div className="flex flex-col" style={{ gap: 22, paddingTop: 22 }}>
@@ -66,23 +69,15 @@ export default async function Ajustes() {
       <section className="flex flex-col" style={{ gap: 12 }}>
         <h2 style={{ fontSize: 17 }}>Dados</h2>
         <ExportarDados />
+        <ImportarDados />
       </section>
 
       <section className="flex flex-col" style={{ gap: 12 }}>
         <h2 style={{ fontSize: 17 }}>Conta</h2>
-        <div
-          style={{
-            borderRadius: "var(--r)",
-            border: "1px solid var(--ln2)",
-            background: "var(--sf)",
-            padding: 14,
-          }}
-        >
-          <p className="rotulo">Seu nome</p>
-          <p style={{ fontSize: 17, fontWeight: 600, marginTop: 2 }}>
-            {perfil?.nome ?? "—"}
-          </p>
-        </div>
+        <MinhaConta
+          nomeAtual={perfil?.nome ?? ""}
+          emailAtual={usuario?.email ?? ""}
+        />
         <BotaoSair />
       </section>
 
