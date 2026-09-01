@@ -126,6 +126,22 @@ button {
   border-radius: 0;
 }
 
+/* Entrada da folha inferior: sobe 14px com fade, 180ms. */
+@keyframes folha-sobe {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.folha-entra {
+  animation: folha-sobe 180ms ease-out;
+}
+
 /* Aviso de pendências: halo pulsante para o olho não passar batido. */
 @keyframes pulso-halo {
   0%,
