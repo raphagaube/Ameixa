@@ -283,12 +283,20 @@ export function PainelExtrato({
           style={estiloSelect}
         />
 
-        <Botao variante="contorno" onClick={limparBusca}>
-          <span className="flex items-center justify-center" style={{ gap: 6 }}>
-            <X size={16} strokeWidth={2} aria-hidden />
-            Limpar filtros
-          </span>
-        </Botao>
+        <div className="flex" style={{ gap: 8 }}>
+          <Botao
+            variante="contorno"
+            onClick={() => router.push(`/extrato/repetidos?de=${de}&ate=${ate}`)}
+          >
+            Buscar repetidos
+          </Botao>
+          <Botao variante="contorno" onClick={limparBusca}>
+            <span className="flex items-center justify-center" style={{ gap: 6 }}>
+              <X size={16} strokeWidth={2} aria-hidden />
+              Limpar
+            </span>
+          </Botao>
+        </div>
       </section>
 
       <select

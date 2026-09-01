@@ -4,20 +4,31 @@ import { CreditCard, Landmark } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CabecalhoVoltar } from "@/components/cabecalho-voltar";
+import { CartaoFatura } from "@/components/cartao-fatura";
+import { SeletorMes } from "@/components/seletor-mes";
 import { Botao } from "@/components/ui/botao";
 import { type Cartao, type Conta, meiosDaConta, ROTULO_TIPO_CONTA } from "@/lib/tipos/contas";
 import { moeda } from "@/lib/formato";
+import type { Fatura } from "@/lib/dados/faturas";
 import { FolhaCartao } from "./folha-cartao";
 import { FolhaConta } from "./folha-conta";
 
-export function PainelCartoes({ contas }: { contas: Conta[] }) {
+export function PainelCartoes({
+  contas,
+  faturas,
+  totalDespesasDoMes,
+  ano,
+  mes,
+}: {
+  contas: Conta[];
+  faturas: Fatura[];
+  totalDespesasDoMes: number;
+  ano: number;
+  mes: number;
+}) {
   const router = useRouter();
   const [conta, setConta] = useState<Conta | "nova" | null>(null);
   const [cartao, setCartao] = useState<Cartao | "novo" | null>(null);
-
-  const cartoes = contas.flatMap((c) =>
-    c.cartoes.map((k) => ({ ...k, banco: c.nome })),
-  );
 
   function fechar(salvou: boolean) {
     setConta(null);
@@ -29,69 +40,24 @@ export function PainelCartoes({ contas }: { contas: Conta[] }) {
     <div className="flex flex-col" style={{ gap: 22 }}>
       <CabecalhoVoltar titulo="Cartões e contas" />
 
-      <section className="flex flex-col" style={{ gap: 12 }}>
-        <h2 style={{ fontSize: 17 }}>Cartões de crédito</h2>
+      <SeletorMes ano={ano} mes={mes} />
 
-        {cartoes.length === 0 ? (
+      <section className="flex flex-col" style={{ gap: 12 }}>
+        <h2 style={{ fontSize: 17 }}>Faturas do mês</h2>
+
+        {faturas.length === 0 ? (
           <p style={{ fontSize: 14, color: "var(--mut)" }}>
             Nenhum cartão cadastrado ainda.
           </p>
         ) : (
           <ul className="flex flex-col" style={{ gap: 12 }}>
-            {cartoes.map((k) => (
-              <li
-                key={k.id}
-                className="overflow-hidden"
-                style={{ borderRadius: "var(--r)", border: "1px solid var(--ln2)" }}
-              >
-                <div
-                  className="flex items-center justify-between"
-                  style={{ gap: 10, background: k.cor, padding: "12px 14px" }}
-                >
-                  <div>
-                    <p style={{ fontSize: 15, fontWeight: 700, color: "#ffffff" }}>
-                      {k.nome}
-                    </p>
-                    <p style={{ fontSize: 12, color: "rgba(255,255,255,.82)" }}>
-                      {k.bandeira}
-                      {k.final ? ` · final ${k.final}` : ""}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setCartao(k)}
-                    style={{
-                      minHeight: 32,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: "#ffffff",
-                      background: "rgba(0,0,0,.24)",
-                      borderRadius: 999,
-                      padding: "5px 12px",
-                    }}
-                  >
-                    Editar
-                  </button>
-                </div>
-
-                <div style={{ background: "var(--sf)", padding: "13px 14px" }}>
-                  <p style={{ fontSize: 12, color: "var(--mut)" }}>{k.banco}</p>
-                  <div className="grid grid-cols-3" style={{ gap: 10, marginTop: 10 }}>
-                    <div>
-                      <p className="rotulo">Fechamento</p>
-                      <p style={{ fontSize: 14, fontWeight: 600 }}>dia {k.dia_fechamento}</p>
-                    </div>
-                    <div>
-                      <p className="rotulo">Vencimento</p>
-                      <p style={{ fontSize: 14, fontWeight: 600 }}>dia {k.dia_vencimento}</p>
-                    </div>
-                    <div>
-                      <p className="rotulo">Limite</p>
-                      <p style={{ fontSize: 14, fontWeight: 600 }}>{moeda(k.limite)}</p>
-                    </div>
-                  </div>
-                </div>
-              </li>
+            {faturas.map((f) => (
+              <CartaoFatura
+                key={f.cartao.id}
+                fatura={f}
+                totalDespesasDoMes={totalDespesasDoMes}
+                aoEditar={() => setCartao(f.cartao)}
+              />
             ))}
           </ul>
         )}
