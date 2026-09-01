@@ -57,6 +57,11 @@ export async function proxy(req: NextRequest) {
 export const config = {
   matcher: [
     // Tudo, menos estáticos e imagens.
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    //
+    // sw.js e offline.html precisam ficar de fora: o service worker é
+    // buscado sem sessão, e se o proxy responder com o redirecionamento
+    // para o login, o navegador recebe HTML no lugar do JavaScript e o
+    // registro falha — o app deixa de ser instalável.
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|offline.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Open_Sans } from "next/font/google";
 import "./globals.css";
 import { ProvedorTema, scriptAntiFlash } from "@/components/provedor-tema";
+import { RegistrarSW } from "@/components/registrar-sw";
 
 const openSans = Open_Sans({
   variable: "--fonte-open-sans",
@@ -47,6 +48,7 @@ export default function RootLayout({
       </head>
       <body>
         <ProvedorTema>{children}</ProvedorTema>
+        <RegistrarSW />
       </body>
     </html>
   );

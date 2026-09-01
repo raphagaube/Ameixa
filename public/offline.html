@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sem conexão · Ameixa</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f4f4f3;
+        --sf: #ffffff;
+        --tx: #1c1e20;
+        --mut: #7b7f83;
+        --deep: #2f6b47;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #000000;
+          --sf: #131313;
+          --tx: #f4f4f4;
+          --mut: #8a8a8a;
+          --deep: #93c9a8;
+        }
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--tx);
+        font: 15px/1.5 "Open Sans", system-ui, sans-serif;
+        text-align: center;
+      }
+      h1 {
+        font-size: 28px;
+        margin: 16px 0 8px;
+      }
+      p {
+        color: var(--mut);
+        margin: 0 0 20px;
+        max-width: 30ch;
+      }
+      button {
+        font: inherit;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 14px 24px;
+        border: none;
+        border-radius: 12px;
+        background: var(--deep);
+        color: var(--bg);
+        cursor: pointer;
+      }
+      img {
+        width: 64px;
+        height: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <img src="/icone-192.png" alt="" />
+      <h1>Sem conexão</h1>
+      <p>
+        A Ameixa precisa de internet para mostrar suas contas — assim os
+        valores são sempre os de agora, nunca os de ontem.
+      </p>
+      <button onclick="location.reload()">Tentar de novo</button>
+    </div>
+  </body>
+</html>
