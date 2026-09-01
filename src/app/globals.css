@@ -157,6 +157,50 @@ button {
   animation: pulso-halo 2.4s ease-in-out infinite;
 }
 
+/* ── Impressão: o "Baixar PDF" é o próprio print do navegador ────── */
+@media print {
+  /* Fora tudo que é navegação: abas, botão flutuante, botões de ação. */
+  nav,
+  .nao-imprimir {
+    display: none !important;
+  }
+
+  :root {
+    --color-bg: #ffffff;
+    --sf: #ffffff;
+    --color-text: #000000;
+    --mut: #555555;
+    --ln: rgba(0, 0, 0, 0.2);
+    --ln2: rgba(0, 0, 0, 0.1);
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  main {
+    max-width: none !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* Uma seção não deve começar no fim de uma página e continuar na outra. */
+  section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* As cores dos gráficos precisam sair na impressão. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  img {
+    mix-blend-mode: multiply !important;
+    filter: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
