@@ -1,15 +1,22 @@
+import { redirect } from "next/navigation";
 import { BarraAbas } from "@/components/barra-abas";
 import { BotaoRegistroFacil } from "@/components/botao-registro-facil";
+import { perfilDoUsuario } from "@/lib/dados/perfil";
 
 /**
  * Casca das telas do app: conteúdo centralizado em 430px, com respiro embaixo
  * para não colidir com o botão flutuante nem com a barra de abas.
  */
-export default function LayoutApp({
+export default async function LayoutApp({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // O middleware já barra quem não está logado; isto cobre o caso do perfil
+  // que sumiu do banco, para não renderizar tela quebrada.
+  const perfil = await perfilDoUsuario();
+  if (!perfil) redirect("/entrar");
+
   return (
     <>
       <main

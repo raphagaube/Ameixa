@@ -52,14 +52,25 @@ export function ProvedorTema({ children }: { children: React.ReactNode }) {
   const [montado, setMontado] = useState(false);
 
   useEffect(() => {
-    const salvoModo = localStorage.getItem(CHAVE_MODO) as Modo | null;
-    const salvoAcento = localStorage.getItem(CHAVE_ACENTO);
+    // Leitura única na montagem. O servidor não tem localStorage, então o
+    // valor real só existe aqui — não dá para inicializar o useState com ele
+    // sem quebrar a hidratação. É um efeito de inicialização, não um laço.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    let salvoModo: Modo | null = null;
+    let salvoAcento: string | null = null;
+    try {
+      salvoModo = localStorage.getItem(CHAVE_MODO) as Modo | null;
+      salvoAcento = localStorage.getItem(CHAVE_ACENTO);
+    } catch {
+      // Janela anônima ou armazenamento bloqueado: cai no tema do sistema.
+    }
     const doSistema = window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";
     setModo(salvoModo ?? doSistema);
     if (salvoAcento) setAcento(salvoAcento);
     setMontado(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   // Aplica os tokens no <html> sempre que modo ou acento mudam.

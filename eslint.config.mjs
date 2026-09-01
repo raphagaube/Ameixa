@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Pacote de design do Claude Design: referência, não código nosso.
+    "design_handoff_ameixa/**",
   ]),
 ]);
 

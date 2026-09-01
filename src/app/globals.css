@@ -126,6 +126,21 @@ button {
   border-radius: 0;
 }
 
+/* Aviso de pendências: halo pulsante para o olho não passar batido. */
+@keyframes pulso-halo {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(192, 85, 79, 0.34);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(192, 85, 79, 0);
+  }
+}
+
+.pulso-pendencia {
+  animation: pulso-halo 2.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
