@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   ChevronRight,
   CreditCard,
   ListTree,
@@ -10,6 +11,7 @@ import { AlternarTema } from "@/components/alternar-tema";
 import { LogoAmeixa } from "@/components/logo-ameixa";
 import { perfilDoUsuario } from "@/lib/dados/perfil";
 import { EscolhaAcento } from "./escolha-acento";
+import { ExportarDados } from "./exportar-dados";
 import { BotaoSair } from "./botao-sair";
 
 export const metadata = { title: "Ajustes · Ameixa" };
@@ -19,6 +21,7 @@ const ATALHOS = [
   { href: "/orcamentos", rotulo: "Orçamentos", Icone: PiggyBank },
   { href: "/categorias", rotulo: "Categorias", Icone: ListTree },
   { href: "/pendencias", rotulo: "Pendências", Icone: TriangleAlert },
+  { href: "/conciliacao", rotulo: "Conciliação bancária (OFX)", Icone: ArrowLeftRight },
 ];
 
 export default async function Ajustes() {
@@ -58,6 +61,11 @@ export default async function Ajustes() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="flex flex-col" style={{ gap: 12 }}>
+        <h2 style={{ fontSize: 17 }}>Dados</h2>
+        <ExportarDados />
       </section>
 
       <section className="flex flex-col" style={{ gap: 12 }}>
