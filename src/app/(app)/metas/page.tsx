@@ -1,12 +1,22 @@
+import { contasDoUsuario } from "@/lib/dados/contas";
+import { metasDoUsuario } from "@/lib/dados/metas";
+import { perfilDoUsuario } from "@/lib/dados/perfil";
+import { PainelMetas } from "./painel-metas";
+
 export const metadata = { title: "Metas · Ameixa" };
 
-export default function Pagina() {
+export default async function Metas() {
+  const [metas, contas, perfil] = await Promise.all([
+    metasDoUsuario(),
+    contasDoUsuario(),
+    perfilDoUsuario(),
+  ]);
+
   return (
-    <div style={{ paddingTop: 22 }}>
-      <h1 style={{ fontSize: 30 }}>Metas</h1>
-      <p style={{ fontSize: 14, color: "var(--mut)", marginTop: 12 }}>
-        Em construção.
-      </p>
-    </div>
+    <PainelMetas
+      metas={metas}
+      contas={contas}
+      destaque={perfil?.meta_destaque ?? null}
+    />
   );
 }

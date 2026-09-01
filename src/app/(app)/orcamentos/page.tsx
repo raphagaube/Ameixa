@@ -1,12 +1,31 @@
+import { categoriasDoUsuario } from "@/lib/dados/categorias";
+import { mesReferencia, orcamentosDoMes } from "@/lib/dados/orcamentos";
+import { PainelOrcamentos } from "./painel-orcamentos";
+
 export const metadata = { title: "Orçamentos · Ameixa" };
 
-export default function Pagina() {
+export default async function Orcamentos({
+  searchParams,
+}: {
+  searchParams: Promise<{ ano?: string; mes?: string }>;
+}) {
+  const p = await searchParams;
+  const hoje = new Date();
+  const ano = Number(p.ano) || hoje.getFullYear();
+  const mes = p.mes !== undefined ? Number(p.mes) : hoje.getMonth();
+
+  const [orcamentos, categorias] = await Promise.all([
+    orcamentosDoMes(ano, mes),
+    categoriasDoUsuario(),
+  ]);
+
   return (
-    <div style={{ paddingTop: 22 }}>
-      <h1 style={{ fontSize: 30 }}>Orçamentos</h1>
-      <p style={{ fontSize: 14, color: "var(--mut)", marginTop: 12 }}>
-        Em construção.
-      </p>
-    </div>
+    <PainelOrcamentos
+      orcamentos={orcamentos}
+      categorias={categorias.filter((c) => c.tipo === "despesa")}
+      ano={ano}
+      mes={mes}
+      mesIso={mesReferencia(ano, mes)}
+    />
   );
 }
