@@ -1,5 +1,6 @@
 import "server-only";
-import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { cache } from "react";
+import { criarClienteServidor, usuarioAtual } from "@/lib/supabase/servidor";
 import { ACENTO_PADRAO, type Modo } from "@/lib/theme";
 
 export type Perfil = {
@@ -12,39 +13,23 @@ export type Perfil = {
 };
 
 /**
- * Carrega o perfil do usuário logado e, no primeiro acesso, semeia as
- * categorias, subcategorias e formas de pagamento padrão.
+ * Perfil do usuário logado.
  *
- * O perfil em si já nasce com o usuário — quem cria é o trigger
- * `on_auth_user_created` no banco.
+ * A semeadura do primeiro acesso NÃO mora mais aqui: ela exigia uma contagem
+ * de categorias a cada carregamento de tela, e isso é uma ida ao banco por
+ * navegação para checar algo que só acontece uma vez na vida. Quem cuida
+ * disso agora é `dadosDeApoio`, que já busca as categorias de qualquer jeito.
  */
-export async function perfilDoUsuario(): Promise<Perfil | null> {
-  const supabase = await criarClienteServidor();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export const perfilDoUsuario = cache(async (): Promise<Perfil | null> => {
+  const user = await usuarioAtual();
   if (!user) return null;
 
+  const supabase = await criarClienteServidor();
   const { data: perfil } = await supabase
     .from("perfis")
     .select("id, nome, tema, cor_acento, cor_pessoal, meta_destaque")
     .eq("id", user.id)
     .maybeSingle();
-
-  // Sem categoria nenhuma significa primeiro acesso: semeia os padrões.
-  const { count } = await supabase
-    .from("categorias")
-    .select("id", { count: "exact", head: true });
-
-  if (count === 0) {
-    await supabase.rpc("semear_usuario", { p_user: user.id });
-    // O seed do handoff cria quatro bancos de exemplo (Nubank, Inter, Caixa,
-    // Dinheiro). O app é entregue vazio: banco é do usuário, não nosso.
-    // Aqui é seguro apagar tudo — este ramo só roda no primeiro acesso,
-    // quando o usuário ainda não cadastrou conta nenhuma.
-    await supabase.from("contas").delete().eq("user_id", user.id);
-  }
 
   if (!perfil) return null;
 
@@ -53,4 +38,4 @@ export async function perfilDoUsuario(): Promise<Perfil | null> {
     tema: perfil.tema === "dark" ? "dark" : "light",
     cor_acento: perfil.cor_acento || ACENTO_PADRAO,
   } as Perfil;
-}
+});

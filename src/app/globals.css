@@ -142,6 +142,21 @@ button {
   animation: folha-sobe 180ms ease-out;
 }
 
+/* Esqueleto de carregamento */
+@keyframes pulsar {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.pulsando {
+  animation: pulsar 1.4s ease-in-out infinite;
+}
+
 /* Aviso de pendências: halo pulsante para o olho não passar batido. */
 @keyframes pulso-halo {
   0%,

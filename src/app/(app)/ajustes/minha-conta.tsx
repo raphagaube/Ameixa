@@ -101,16 +101,19 @@ export function MinhaConta({
           onChange={(e) => setNome(e.target.value)}
           maxLength={60}
         />
-        <p style={{ fontSize: 12, color: "var(--mut)" }}>
-          Aparece na saudação do Início e no cabeçalho dos relatórios.
-        </p>
+        {/* O botão vem logo abaixo do campo: quando ficava depois do texto
+            de ajuda, o botão flutuante do Registro Fácil o cobria e ninguém
+            achava onde salvar. */}
         <Botao
-          variante="contorno"
           onClick={salvarNome}
+          carregando={salvando}
           disabled={salvando || nome.trim() === nomeAtual}
         >
           Salvar nome
         </Botao>
+        <p style={{ fontSize: 12, color: "var(--mut)" }}>
+          Aparece na saudação do Início e no cabeçalho dos relatórios.
+        </p>
       </div>
 
       <div style={caixa}>

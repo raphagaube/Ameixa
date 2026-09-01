@@ -1,12 +1,49 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 
 /**
  * Botão flutuante "Registro fácil". Fica acima da barra de abas e aparece em
  * todas as telas do app.
+ *
+ * Some enquanto um campo está em foco: por ser fixo na tela, ele cobria
+ * botões de formulário logo abaixo — foi assim que o "Salvar nome" dos
+ * Ajustes ficou invisível. Some também quando o teclado do celular sobe.
  */
 export function BotaoRegistroFacil({ onClick }: { onClick?: () => void }) {
+  const [digitando, setDigitando] = useState(false);
+
+  useEffect(() => {
+    const ehCampo = (alvo: EventTarget | null) => {
+      const el = alvo as HTMLElement | null;
+      if (!el?.tagName) return false;
+      const t = el.tagName.toLowerCase();
+      return (
+        t === "input" ||
+        t === "textarea" ||
+        t === "select" ||
+        el.isContentEditable
+      );
+    };
+
+    const aoFocar = (e: FocusEvent) => {
+      if (ehCampo(e.target)) setDigitando(true);
+    };
+    const aoDesfocar = (e: FocusEvent) => {
+      if (ehCampo(e.target)) setDigitando(false);
+    };
+
+    document.addEventListener("focusin", aoFocar);
+    document.addEventListener("focusout", aoDesfocar);
+    return () => {
+      document.removeEventListener("focusin", aoFocar);
+      document.removeEventListener("focusout", aoDesfocar);
+    };
+  }, []);
+
+  if (digitando) return null;
+
   return (
     <div
       className="pointer-events-none fixed inset-x-0 z-50 flex justify-center"

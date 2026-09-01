@@ -13,12 +13,13 @@ export default async function LayoutApp({
 }: {
   children: React.ReactNode;
 }) {
-  // O middleware já barra quem não está logado; isto cobre o caso do perfil
-  // que sumiu do banco, para não renderizar tela quebrada.
-  const perfil = await perfilDoUsuario();
-  if (!perfil) redirect("/entrar");
+  // Em paralelo: antes eram dois awaits em fila, e o segundo só começava
+  // depois que o primeiro voltasse do banco.
+  const [perfil, dados] = await Promise.all([perfilDoUsuario(), dadosDeApoio()]);
 
-  const dados = await dadosDeApoio();
+  // O proxy já barra quem não está logado; isto cobre o perfil que sumiu do
+  // banco, para não renderizar tela quebrada.
+  if (!perfil) redirect("/entrar");
 
   return (
     <CascaLancamentos dados={dados}>
