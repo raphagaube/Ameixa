@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { BarraAbas } from "@/components/barra-abas";
-import { BotaoRegistroFacil } from "@/components/botao-registro-facil";
+import { CascaLancamentos } from "@/components/casca-lancamentos";
+import { dadosDeApoio } from "@/lib/dados/apoio";
 import { perfilDoUsuario } from "@/lib/dados/perfil";
 
 /**
@@ -17,8 +18,10 @@ export default async function LayoutApp({
   const perfil = await perfilDoUsuario();
   if (!perfil) redirect("/entrar");
 
+  const dados = await dadosDeApoio();
+
   return (
-    <>
+    <CascaLancamentos dados={dados}>
       <main
         className="mx-auto w-full"
         style={{
@@ -30,8 +33,7 @@ export default async function LayoutApp({
       >
         {children}
       </main>
-      <BotaoRegistroFacil />
       <BarraAbas />
-    </>
+    </CascaLancamentos>
   );
 }

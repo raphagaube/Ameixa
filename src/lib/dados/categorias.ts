@@ -1,17 +1,6 @@
 import "server-only";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
-
-export type Subcategoria = { id: string; nome: string };
-
-export type Categoria = {
-  id: string;
-  nome: string;
-  tipo: "despesa" | "receita";
-  cor: string;
-  cor_texto: string;
-  ordem: number;
-  subcategorias: Subcategoria[];
-};
+import type { Categoria } from "@/lib/tipos/categorias";
 
 /** Categorias do usuário com as subcategorias já aninhadas. */
 export async function categoriasDoUsuario(): Promise<Categoria[]> {

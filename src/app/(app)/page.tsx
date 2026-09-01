@@ -1,8 +1,10 @@
 import { CircleAlert, PartyPopper } from "lucide-react";
 import Link from "next/link";
 import { AlternarTema } from "@/components/alternar-tema";
+import { LinhaLancamento } from "@/components/linha-lancamento";
 import { SeletorMes } from "@/components/seletor-mes";
 import { perfilDoUsuario } from "@/lib/dados/perfil";
+import { ultimosLancamentos } from "@/lib/dados/lancamentos";
 import { resumoDoMes } from "@/lib/dados/resumo-mes";
 import { mesAno, moeda } from "@/lib/formato";
 
@@ -17,9 +19,10 @@ export default async function Inicio({
   const mes = p.mes !== undefined ? Number(p.mes) : hoje.getMonth();
   const referencia = new Date(ano, mes, 1);
 
-  const [perfil, resumo] = await Promise.all([
+  const [perfil, resumo, ultimos] = await Promise.all([
     perfilDoUsuario(),
     resumoDoMes(ano, mes),
+    ultimosLancamentos(4),
   ]);
 
   const primeiroNome = (perfil?.nome ?? "").split(" ")[0];
@@ -109,6 +112,23 @@ export default async function Inicio({
           <p style={{ fontSize: 14 }}>Não há lançamentos pendentes! 🥳</p>
         </section>
       )}
+
+      <section className="flex flex-col" style={{ gap: 4 }}>
+        <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
+          <h2 style={{ fontSize: 17 }}>Últimos lançamentos</h2>
+          <Link href="/extrato" style={{ fontSize: 13, color: "var(--deep)", fontWeight: 600 }}>
+            ver tudo
+          </Link>
+        </div>
+
+        {ultimos.length === 0 ? (
+          <p style={{ fontSize: 14, color: "var(--mut)", paddingTop: 8 }}>
+            Nada lançado ainda. Toque em Registro Fácil para começar.
+          </p>
+        ) : (
+          ultimos.map((l) => <LinhaLancamento key={l.id} l={l} mostrarData />)
+        )}
+      </section>
     </div>
   );
 }

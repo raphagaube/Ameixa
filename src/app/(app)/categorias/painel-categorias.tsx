@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CabecalhoVoltar } from "@/components/cabecalho-voltar";
 import { Botao } from "@/components/ui/botao";
-import type { Categoria } from "@/lib/dados/categorias";
+import type { Categoria } from "@/lib/tipos/categorias";
 import { FolhaCategoria } from "./folha-categoria";
 
 export function PainelCategorias({ categorias }: { categorias: Categoria[] }) {

@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { Botao } from "@/components/ui/botao";
 import { Campo } from "@/components/ui/campo";
 import { Folha } from "@/components/ui/folha";
-import type { Categoria } from "@/lib/dados/categorias";
+import type { Categoria } from "@/lib/tipos/categorias";
 import { tintaSobreAcento } from "@/lib/theme";
 import { excluirCategoria, salvarCategoria } from "./acoes";
 
