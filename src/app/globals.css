@@ -1,26 +1,137 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------
+   Ameixa — design tokens
+   Fonte: design_handoff_ameixa/README.md › "Design tokens"
+   As cores de acento (--ac, --on-ac, --deep, --tint, --chart2) NÃO
+   ficam aqui: são derivadas de um único hex em src/lib/theme.ts e
+   injetadas no <html> pelo ProvedorTema.
+   --------------------------------------------------------------- */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-bg: #f4f4f3;
+  --sf: #ffffff;
+  --color-text: #1c1e20;
+  --mut: #7b7f83;
+  --ln: rgba(28, 30, 32, 0.16);
+  --ln2: rgba(28, 30, 32, 0.08);
+  --ok: #3f8a5f;
+  --warn: #b8862a;
+  --bad: #c0554f;
+
+  /* Raio — cartões 16, botões e campos 12, folhas 20 no topo */
+  --r: 16px;
+  --rs: 12px;
+  --rf: 20px;
+
+  /* Largura máxima do conteúdo e respiro para o botão flutuante + abas */
+  --largura: 430px;
+  --pad-lateral: 16px;
+  --pad-inferior: 156px;
+}
+
+:root[data-mode="dark"] {
+  --color-bg: #000000;
+  --sf: #131313;
+  --color-text: #f4f4f4;
+  --mut: #8a8a8a;
+  --ln: rgba(255, 255, 255, 0.18);
+  --ln2: rgba(255, 255, 255, 0.09);
+  --ok: #7fc79c;
+  --warn: #e0b45f;
+  --bad: #e5867f;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--color-bg);
+  --color-sf: var(--sf);
+  --color-text: var(--color-text);
+  --color-mut: var(--mut);
+  --color-ln: var(--ln);
+  --color-ln2: var(--ln2);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --color-ac: var(--ac);
+  --color-on-ac: var(--on-ac);
+  --color-deep: var(--deep);
+  --color-tint: var(--tint);
+  --color-chart2: var(--chart2);
+  --font-sans: var(--fonte-open-sans), system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--fonte-open-sans), system-ui, sans-serif;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  /* Evita o "puxa e balança" do iOS por cima das folhas inferiores */
+  overscroll-behavior-y: none;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+/* Rótulo de campo: 11px maiúsculo com letter-spacing largo */
+.rotulo {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--mut);
+}
+
+/* Alvos de toque nunca menores que 44px */
+button,
+a[role="button"],
+input,
+select {
+  min-height: 44px;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Foco visível — acessibilidade, e o handoff pede explicitamente */
+:focus-visible {
+  outline: 2px solid var(--deep);
+  outline-offset: 2px;
+}
+
+/* Hairline: lista de células com gap 1px sobre fundo --ln */
+.celulas {
+  display: grid;
+  gap: 1px;
+  background: var(--ln);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+
+.celulas > * {
+  background: var(--sf);
+  border-radius: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
