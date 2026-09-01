@@ -39,6 +39,11 @@ export async function perfilDoUsuario(): Promise<Perfil | null> {
 
   if (count === 0) {
     await supabase.rpc("semear_usuario", { p_user: user.id });
+    // O seed do handoff cria quatro bancos de exemplo (Nubank, Inter, Caixa,
+    // Dinheiro). O app é entregue vazio: banco é do usuário, não nosso.
+    // Aqui é seguro apagar tudo — este ramo só roda no primeiro acesso,
+    // quando o usuário ainda não cadastrou conta nenhuma.
+    await supabase.from("contas").delete().eq("user_id", user.id);
   }
 
   if (!perfil) return null;
