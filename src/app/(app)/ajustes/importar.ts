@@ -2,14 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { criarClienteServidor, usuarioAtual } from "@/lib/supabase/servidor";
 
 /**
- * Restauração de backup.
+ * Gravação da importação.
  *
- * Restaura só os lançamentos: contas, cartões e categorias do arquivo teriam
- * ids de outro usuário e as chaves estrangeiras quebrariam. Cada lançamento
- * entra como pendência para você reassociar categoria e conta.
+ * Contas, cartões e categorias do arquivo não são recriados: os códigos
+ * internos seriam de outro usuário e as chaves estrangeiras quebrariam. O
+ * assistente resolve isso de outro jeito — escolhe uma conta para o lote e
+ * casa a categoria pelo nome, no navegador, antes de mandar para cá.
  */
 
 const linha = z.object({
@@ -17,32 +18,32 @@ const linha = z.object({
   valor: z.number().positive(),
   descricao: z.string().trim().min(1).max(200),
   data_registro: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  situacao: z
-    .enum(["pago", "a_pagar", "recebido", "a_receber"])
-    .optional(),
+  situacao: z.enum(["pago", "a_pagar", "recebido", "a_receber"]).optional(),
+  categoria_id: z.string().uuid().nullable().optional(),
+  conta_id: z.string().uuid().nullable().optional(),
   observacao: z.string().max(2000).nullable().optional(),
   responsavel: z.string().max(60).nullable().optional(),
 });
 
 export type LinhaImportada = z.input<typeof linha>;
 export type ResultadoImport =
-  | { ok: true; criados: number; ignorados: number }
+  | { ok: true; criados: number; ignorados: number; pendentes: number }
   | { ok: false; erro: string };
 
 export async function importarLancamentos(
   linhas: unknown[],
 ): Promise<ResultadoImport> {
   if (!Array.isArray(linhas) || linhas.length === 0) {
-    return { ok: false, erro: "O arquivo não tem lançamentos para importar." };
+    return { ok: false, erro: "Não há lançamentos para importar." };
   }
   if (linhas.length > 20000) {
-    return { ok: false, erro: "Arquivo grande demais. Divida em partes menores." };
+    return {
+      ok: false,
+      erro: "São muitas linhas de uma vez. Divida em partes menores.",
+    };
   }
 
-  const supabase = await criarClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await usuarioAtual();
   if (!user) return { ok: false, erro: "Sessão expirada. Entre de novo." };
 
   const validas: z.output<typeof linha>[] = [];
@@ -57,7 +58,7 @@ export async function importarLancamentos(
   if (validas.length === 0) {
     return {
       ok: false,
-      erro: "Nenhuma linha do arquivo tinha o formato esperado (tipo, valor, descrição e data).",
+      erro: "Nenhuma linha tinha data, valor e descrição ao mesmo tempo.",
     };
   }
 
@@ -68,15 +69,20 @@ export async function importarLancamentos(
     descricao: l.descricao,
     data_registro: l.data_registro,
     situacao: l.situacao ?? (l.tipo === "receita" ? "recebido" : "pago"),
+    categoria_id: l.categoria_id ?? null,
+    conta_id: l.conta_id ?? null,
     observacao: l.observacao ?? null,
     responsavel: l.responsavel ?? null,
     importado: true,
-    // Sem categoria e sem conta: entra como pendência para você completar.
-    incompleto: true,
+    // Só vira pendência o que ficou sem categoria — com ela, o lançamento já
+    // nasce completo e não engorda a lista de coisas a fazer.
+    incompleto: !l.categoria_id,
   }));
 
-  // Em blocos: uma planilha de anos tem milhares de linhas, e mandar tudo
-  // numa requisição só estoura o limite de tamanho do PostgREST.
+  const supabase = await criarClienteServidor();
+
+  // Em blocos: milhares de linhas numa requisição só estouram o limite de
+  // tamanho do PostgREST.
   const TAMANHO_BLOCO = 400;
   let gravados = 0;
 
@@ -89,16 +95,21 @@ export async function importarLancamentos(
         ok: false,
         erro:
           gravados > 0
-            ? `Importei ${gravados} lançamentos e parei num erro. Os que entraram estão em Pendências.`
-            : "Não deu para importar. Confira o arquivo e tente de novo.",
+            ? `Importei ${gravados} lançamentos e parei num erro. Os que entraram já estão no app.`
+            : "Não deu para importar. Tente de novo em instantes.",
       };
     }
     gravados += bloco.length;
   }
 
-  for (const p of ["/", "/extrato", "/pendencias", "/relatorios"]) {
+  for (const p of ["/", "/extrato", "/pendencias", "/relatorios", "/orcamentos"]) {
     revalidatePath(p);
   }
 
-  return { ok: true, criados: gravados, ignorados };
+  return {
+    ok: true,
+    criados: gravados,
+    ignorados,
+    pendentes: paraGravar.filter((l) => l.incompleto).length,
+  };
 }

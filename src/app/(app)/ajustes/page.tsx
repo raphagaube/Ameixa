@@ -5,6 +5,7 @@ import {
   ListTree,
   PiggyBank,
   TriangleAlert,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { AlternarTema } from "@/components/alternar-tema";
@@ -13,7 +14,6 @@ import { perfilDoUsuario } from "@/lib/dados/perfil";
 import { usuarioAtual } from "@/lib/supabase/servidor";
 import { EscolhaAcento } from "./escolha-acento";
 import { ExportarDados } from "./exportar-dados";
-import { ImportarDados } from "./importar-dados";
 import { MinhaConta } from "./minha-conta";
 import { BotaoSair } from "./botao-sair";
 
@@ -24,6 +24,7 @@ const ATALHOS = [
   { href: "/orcamentos", rotulo: "Orçamentos", Icone: PiggyBank },
   { href: "/categorias", rotulo: "Categorias", Icone: ListTree },
   { href: "/pendencias", rotulo: "Pendências", Icone: TriangleAlert },
+  { href: "/importar", rotulo: "Importar planilha", Icone: Upload },
   { href: "/conciliacao", rotulo: "Conciliação bancária (OFX)", Icone: ArrowLeftRight },
 ];
 
@@ -69,7 +70,6 @@ export default async function Ajustes() {
       <section className="flex flex-col" style={{ gap: 12 }}>
         <h2 style={{ fontSize: 17 }}>Dados</h2>
         <ExportarDados />
-        <ImportarDados />
       </section>
 
       <section className="flex flex-col" style={{ gap: 12 }}>
@@ -87,6 +87,9 @@ export default async function Ajustes() {
       >
         <LogoAmeixa tamanho={30} />
         <p style={{ fontSize: 12, color: "var(--mut)" }}>Ameixa · v1.0</p>
+        <p style={{ fontSize: 11, color: "var(--mut)", textAlign: "center" }}>
+          © {new Date().getFullYear()} Rapha. Todos os direitos reservados.
+        </p>
       </footer>
     </div>
   );

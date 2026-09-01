@@ -338,6 +338,9 @@ export function DocumentoRelatorio({
         <p style={{ fontSize: 11, color: "var(--mut)" }}>
           Ameixa · gerado em {dataBr(new Date())}
         </p>
+        <p style={{ fontSize: 10, color: "var(--mut)" }}>
+          © {new Date().getFullYear()} Rapha. Todos os direitos reservados.
+        </p>
       </footer>
     </div>
   );

@@ -247,6 +247,17 @@ export function FormularioEntrada() {
           </Botao>
         )}
       </div>
+
+      <p
+        style={{
+          fontSize: 11,
+          color: "var(--mut)",
+          textAlign: "center",
+          paddingTop: 8,
+        }}
+      >
+        © {new Date().getFullYear()} Rapha. Todos os direitos reservados.
+      </p>
     </div>
   );
 }
