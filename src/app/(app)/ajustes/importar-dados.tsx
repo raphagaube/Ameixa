@@ -1,30 +1,46 @@
 "use client";
 
-import { Upload } from "lucide-react";
+import { Link2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { Botao } from "@/components/ui/botao";
+import { Campo } from "@/components/ui/campo";
 import { lerCsv, mapearLancamentos } from "@/lib/csv";
 import { importarLancamentos } from "./importar";
+import { importarDoGoogle } from "./importar-planilha";
 
-/** Importa lançamentos de um CSV (ou planilha salva como CSV) ou de um backup JSON. */
+type Msg = { tipo: "ok" | "erro"; texto: string } | null;
+
+/** Importa de arquivo (CSV, Excel ou backup JSON) ou de Planilhas Google. */
 export function ImportarDados() {
   const router = useRouter();
-  const [msg, setMsg] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(
-    null,
-  );
+  const [msg, setMsg] = useState<Msg>(null);
+  const [link, setLink] = useState("");
   const [processando, iniciar] = useTransition();
 
-  async function aoEscolher(e: React.ChangeEvent<HTMLInputElement>) {
+  function contar(criados: number, ignorados: number) {
+    return `${criados} lançamento${criados === 1 ? "" : "s"} importado${criados === 1 ? "" : "s"}${
+      ignorados > 0
+        ? ` · ${ignorados} linha${ignorados === 1 ? "" : "s"} sem o formato esperado ficaram de fora`
+        : ""
+    }. Estão em Pendências, esperando categoria e conta.`;
+  }
+
+  async function aoEscolherArquivo(e: React.ChangeEvent<HTMLInputElement>) {
     const arquivo = e.target.files?.[0];
     if (!arquivo) return;
     setMsg(null);
 
-    const texto = await arquivo.text();
+    const nome = arquivo.name.toLowerCase();
     let linhas: unknown[] = [];
 
     try {
-      if (arquivo.name.toLowerCase().endsWith(".json")) {
-        const json = JSON.parse(texto);
+      if (nome.endsWith(".xlsx") || nome.endsWith(".xls")) {
+        // O leitor do Excel é pesado; só carrega quando alguém escolhe um.
+        const { lerExcel, mapearDoExcel } = await import("@/lib/excel");
+        linhas = mapearDoExcel(lerExcel(await arquivo.arrayBuffer()));
+      } else if (nome.endsWith(".json")) {
+        const json = JSON.parse(await arquivo.text());
         const brutos = Array.isArray(json) ? json : (json.lancamentos ?? []);
         linhas = (brutos as Record<string, unknown>[]).map((l) => ({
           tipo: l.tipo,
@@ -35,12 +51,12 @@ export function ImportarDados() {
           responsavel: l.responsavel ?? null,
         }));
       } else {
-        linhas = mapearLancamentos(lerCsv(texto));
+        linhas = mapearLancamentos(lerCsv(await arquivo.text()));
       }
     } catch {
       setMsg({
         tipo: "erro",
-        texto: "Não consegui ler esse arquivo. Use o CSV exportado pelo app ou um backup JSON.",
+        texto: "Não consegui ler esse arquivo. Aceito Excel (.xlsx), CSV e backup JSON.",
       });
       e.target.value = "";
       return;
@@ -50,7 +66,7 @@ export function ImportarDados() {
       setMsg({
         tipo: "erro",
         texto:
-          "Não achei lançamentos. O arquivo precisa ter as colunas Data, Descrição e Valor.",
+          "Não achei lançamentos. A primeira linha precisa ter as colunas Data, Descrição e Valor.",
       });
       e.target.value = "";
       return;
@@ -58,21 +74,32 @@ export function ImportarDados() {
 
     iniciar(async () => {
       const r = await importarLancamentos(linhas);
-      if (r.ok) {
-        setMsg({
-          tipo: "ok",
-          texto: `${r.criados} lançamento${r.criados === 1 ? "" : "s"} importado${r.criados === 1 ? "" : "s"}${r.ignorados > 0 ? ` · ${r.ignorados} linha${r.ignorados === 1 ? "" : "s"} sem o formato esperado ficaram de fora` : ""}. Estão em Pendências, esperando categoria e conta.`,
-        });
-        router.refresh();
-      } else {
-        setMsg({ tipo: "erro", texto: r.erro });
-      }
+      setMsg(
+        r.ok
+          ? { tipo: "ok", texto: contar(r.criados, r.ignorados) }
+          : { tipo: "erro", texto: r.erro },
+      );
+      if (r.ok) router.refresh();
       e.target.value = "";
     });
   }
 
+  function importarLink() {
+    setMsg(null);
+    iniciar(async () => {
+      const r = await importarDoGoogle(link);
+      if (r.ok) {
+        setMsg({ tipo: "ok", texto: contar(r.criados, r.ignorados) });
+        setLink("");
+        router.refresh();
+      } else {
+        setMsg({ tipo: "erro", texto: r.erro });
+      }
+    });
+  }
+
   return (
-    <div className="flex flex-col" style={{ gap: 8 }}>
+    <div className="flex flex-col" style={{ gap: 12 }}>
       <label
         className="flex items-center justify-center"
         style={{
@@ -89,15 +116,47 @@ export function ImportarDados() {
         }}
       >
         <Upload size={18} strokeWidth={1.5} aria-hidden />
-        {processando ? "Importando…" : "Importar CSV ou backup JSON"}
+        {processando ? "Importando…" : "Importar Excel, CSV ou backup"}
         <input
           type="file"
-          accept=".csv,.json,text/csv,application/json"
-          onChange={aoEscolher}
+          accept=".xlsx,.xls,.csv,.json"
+          onChange={aoEscolherArquivo}
           disabled={processando}
           style={{ display: "none" }}
         />
       </label>
+
+      <div
+        className="flex flex-col"
+        style={{
+          gap: 10,
+          border: "1px solid var(--ln2)",
+          borderRadius: "var(--r)",
+          padding: 14,
+        }}
+      >
+        <Campo
+          rotulo="Planilhas Google"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          placeholder="Cole o link da planilha"
+          inputMode="url"
+        />
+        <p style={{ fontSize: 12, color: "var(--mut)" }}>
+          Abra a planilha, copie o endereço da barra do navegador e cole aqui.
+          Ela precisa estar compartilhada como “Qualquer pessoa com o link”.
+        </p>
+        <Botao
+          variante="contorno"
+          onClick={importarLink}
+          disabled={processando || !link.trim()}
+        >
+          <span className="flex items-center justify-center" style={{ gap: 8 }}>
+            <Link2 size={18} strokeWidth={1.5} aria-hidden />
+            Importar do link
+          </span>
+        </Botao>
+      </div>
 
       <p style={{ fontSize: 12, color: "var(--mut)" }}>
         Traz os lançamentos. Contas, cartões e categorias não vêm junto — os
