@@ -1,11 +1,15 @@
 import "server-only";
-import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { paraIso } from "@/lib/formato";
+import { calcularSaldos } from "@/lib/saldo";
+import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 export type ResumoMes = {
+  /** Quanto você tem: saldo inicial das contas mais tudo até o fim do mês. */
+  acumulado: number;
+  /** Quanto sobrou ou faltou no mês escolhido. */
+  resultado: number;
   receitas: number;
   despesas: number;
-  saldo: number;
   pendentes: number;
 };
 
@@ -18,35 +22,39 @@ export function limitesDoMes(ano: number, mes: number) {
 }
 
 /**
- * Receitas, despesas e saldo do mês.
+ * Saldo acumulado e resultado do mês.
  *
- * Regra inviolável: aportes em meta NÃO entram aqui. Eles movem dinheiro da
+ * Regra inviolável: aportes em meta NÃO entram. Eles movem dinheiro da
  * conta para a meta e ficam fora de receita, despesa, saldo e relatórios.
  */
 export async function resumoDoMes(ano: number, mes: number): Promise<ResumoMes> {
   const supabase = await criarClienteServidor();
   const { de, ate } = limitesDoMes(ano, mes);
 
-  const { data, error } = await supabase
-    .from("lancamentos")
-    .select("tipo, valor, incompleto")
-    .gte("data_registro", de)
-    .lte("data_registro", ate);
+  const [{ data: ateOFim }, { data: doMes }, { data: contas }] = await Promise.all([
+    // Tudo até o último dia do mês: é o que faz o saldo carregar de um mês
+    // para o outro em vez de recomeçar do zero.
+    supabase.from("lancamentos").select("tipo, valor").lte("data_registro", ate),
+    supabase
+      .from("lancamentos")
+      .select("tipo, valor, incompleto")
+      .gte("data_registro", de)
+      .lte("data_registro", ate),
+    supabase.from("contas").select("saldo_inicial").eq("arquivada", false),
+  ]);
 
-  if (error || !data) {
-    return { receitas: 0, despesas: 0, saldo: 0, pendentes: 0 };
-  }
+  const saldoInicial = (contas ?? []).reduce(
+    (s, c) => s + Number(c.saldo_inicial),
+    0,
+  );
 
-  let receitas = 0;
-  let despesas = 0;
-  let pendentes = 0;
+  const s = calcularSaldos(saldoInicial, ateOFim ?? [], doMes ?? []);
 
-  for (const l of data) {
-    if (l.incompleto) pendentes += 1;
-    // 'aporte' cai fora de propósito — ver regra acima.
-    if (l.tipo === "receita") receitas += Number(l.valor);
-    else if (l.tipo === "despesa") despesas += Number(l.valor);
-  }
-
-  return { receitas, despesas, saldo: receitas - despesas, pendentes };
+  return {
+    acumulado: s.acumulado,
+    resultado: s.resultadoDoMes,
+    receitas: s.receitasDoMes,
+    despesas: s.despesasDoMes,
+    pendentes: (doMes ?? []).filter((l) => l.incompleto).length,
+  };
 }

@@ -63,21 +63,43 @@ export default async function Inicio({
           padding: "15px 14px",
         }}
       >
-        <p className="rotulo">Saldo total · {mesAno(referencia)}</p>
-        <p style={{ fontSize: 44, fontWeight: 700, lineHeight: 1.1, marginTop: 6 }}>
-          {moeda(resumo.saldo)}
+        <p className="rotulo">Saldo total · até {mesAno(referencia)}</p>
+        <p
+          style={{
+            fontSize: 44,
+            fontWeight: 700,
+            lineHeight: 1.1,
+            marginTop: 6,
+            color: resumo.acumulado < 0 ? "var(--bad)" : undefined,
+          }}
+        >
+          {moeda(resumo.acumulado)}
         </p>
-        <div className="grid grid-cols-2" style={{ gap: 12, marginTop: 12 }}>
+
+        <div className="grid grid-cols-3" style={{ gap: 10, marginTop: 14 }}>
           <div>
             <p className="rotulo">Receitas</p>
-            <p style={{ fontSize: 20, fontWeight: 600, color: "var(--ok)" }}>
+            <p style={{ fontSize: 17, fontWeight: 600, color: "var(--ok)" }}>
               {moeda(resumo.receitas)}
             </p>
           </div>
           <div>
             <p className="rotulo">Despesas</p>
-            <p style={{ fontSize: 20, fontWeight: 600, color: "var(--bad)" }}>
+            <p style={{ fontSize: 17, fontWeight: 600, color: "var(--bad)" }}>
               {moeda(resumo.despesas)}
+            </p>
+          </div>
+          <div>
+            <p className="rotulo">No mês</p>
+            <p
+              style={{
+                fontSize: 17,
+                fontWeight: 600,
+                color: resumo.resultado < 0 ? "var(--bad)" : "var(--ok)",
+              }}
+            >
+              {resumo.resultado > 0 ? "+" : ""}
+              {moeda(resumo.resultado)}
             </p>
           </div>
         </div>

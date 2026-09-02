@@ -152,7 +152,15 @@ export function FolhaConta({
           </div>
         </div>
 
-        <CampoValor rotulo="Saldo atual" valor={saldo} aoMudar={setSaldo} />
+        <div className="flex flex-col" style={{ gap: 6 }}>
+          <CampoValor rotulo="Saldo inicial" valor={saldo} aoMudar={setSaldo} />
+          <p style={{ fontSize: 12, color: "var(--mut)" }}>
+            Quanto havia nesta conta <strong>antes</strong> do primeiro
+            lançamento que você registrou. O app soma os lançamentos por cima
+            deste valor para chegar ao saldo de hoje — se você puser o saldo
+            atual aqui, o dinheiro conta duas vezes.
+          </p>
+        </div>
 
         <EscolhaCor cor={cor} aoEscolher={setCor} atalhos={CORES_BANCO} />
 
