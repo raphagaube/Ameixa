@@ -3,10 +3,12 @@
 import { useState, useTransition } from "react";
 import { Botao } from "@/components/ui/botao";
 import { Campo } from "@/components/ui/campo";
+import { CampoData } from "@/components/ui/campo-data";
 import { CampoValor } from "@/components/ui/campo-valor";
 import { Folha } from "@/components/ui/folha";
 import { EscolhaCor, Segmentos } from "@/components/ui/segmentos";
 import type { Conta, TipoConta } from "@/lib/tipos/contas";
+import { dataBr, paraIso } from "@/lib/formato";
 import { escreverValor, lerValor } from "@/lib/valor";
 import { excluirConta, salvarConta } from "./acoes";
 
@@ -39,6 +41,7 @@ export function FolhaConta({
   const [tipo, setTipo] = useState<TipoConta>(conta?.tipo ?? "corrente");
   const [cor, setCor] = useState(conta?.cor ?? CORES_BANCO[0]);
   const [saldo, setSaldo] = useState(escreverValor(conta?.saldo_inicial ?? 0));
+  const [conferidoEm, setConferidoEm] = useState(conta?.saldo_conferido_em ?? "");
   const [varias, setVarias] = useState(conta?.varias ?? false);
   const [qtd, setQtd] = useState(String(conta?.qtd_contas ?? 1));
   const [debito, setDebito] = useState(conta?.tem_debito ?? true);
@@ -61,6 +64,7 @@ export function FolhaConta({
         tipo,
         cor,
         saldo_inicial: n,
+        saldo_conferido_em: conferidoEm || null,
         varias,
         qtd_contas: Number(qtd) || 1,
         tem_debito: debito,
@@ -152,14 +156,53 @@ export function FolhaConta({
           </div>
         </div>
 
-        <div className="flex flex-col" style={{ gap: 6 }}>
-          <CampoValor rotulo="Saldo inicial" valor={saldo} aoMudar={setSaldo} />
-          <p style={{ fontSize: 12, color: "var(--mut)" }}>
-            Quanto havia nesta conta <strong>antes</strong> do primeiro
-            lançamento que você registrou. O app soma os lançamentos por cima
-            deste valor para chegar ao saldo de hoje — se você puser o saldo
-            atual aqui, o dinheiro conta duas vezes.
-          </p>
+        <div
+          className="flex flex-col"
+          style={{
+            gap: 12,
+            border: "1px solid var(--ln)",
+            borderRadius: "var(--r)",
+            padding: 14,
+          }}
+        >
+          <CampoValor rotulo="Saldo" valor={saldo} aoMudar={setSaldo} />
+
+          <CampoData
+            rotulo="Conferido em"
+            valor={conferidoEm}
+            aoMudar={setConferidoEm}
+            opcional
+          />
+
+          {conferidoEm ? (
+            <p style={{ fontSize: 12, color: "var(--mut)" }}>
+              O app conta só os lançamentos <strong>depois</strong> de{" "}
+              {dataBr(conferidoEm)}. O que veio antes continua nos relatórios,
+              mas não mexe neste saldo. Use quando você tem o saldo de hoje mas
+              não tem o histórico completo de entradas.
+            </p>
+          ) : (
+            <>
+              <p style={{ fontSize: 12, color: "var(--mut)" }}>
+                Sem data, este valor vale como o saldo <strong>antes</strong> do
+                primeiro lançamento, e o app soma tudo por cima dele.
+              </p>
+              <button
+                type="button"
+                onClick={() => setConferidoEm(paraIso(new Date()))}
+                style={{
+                  minHeight: 36,
+                  alignSelf: "flex-start",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--deep)",
+                  background: "transparent",
+                }}
+              >
+                Este é o meu saldo de hoje
+              </button>
+            </>
+          )}
         </div>
 
         <EscolhaCor cor={cor} aoEscolher={setCor} atalhos={CORES_BANCO} />

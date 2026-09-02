@@ -9,11 +9,12 @@ const conta = (id: string, nome: string, inicial: number) => ({
   saldo_inicial: inicial,
 });
 
-const mov = (conta_id: string | null, tipo: string, valor: number) => ({
-  conta_id,
-  tipo,
-  valor,
-});
+const mov = (
+  conta_id: string | null,
+  tipo: string,
+  valor: number,
+  data = "2026-09-01",
+) => ({ conta_id, tipo, valor, data });
 
 describe("saldo de cada conta", () => {
   /** O problema relatado: a tela mostrava só o inicial e mentia. */
@@ -114,5 +115,84 @@ describe("dinheiro sem conta escolhida", () => {
 
   it("aporte sem conta também fica de fora", () => {
     expect(valorSemConta([mov(null, "aporte", 100)])).toBe(0);
+  });
+});
+
+describe("data de corte do saldo", () => {
+  /**
+   * Caso real do dono: importou anos de despesas mas não tem as receitas do
+   * mesmo período. Sem o corte, o saldo apareceria muito mais negativo do
+   * que a realidade.
+   */
+  it("ignora o que aconteceu antes da data conferida", () => {
+    const contas = [
+      { ...conta("a", "Pag Bank", 4562.93), saldo_conferido_em: "2026-09-02" },
+    ];
+    const r = saldosPorConta(contas, [
+      mov("a", "despesa", 9999, "2025-07-01"),
+      mov("a", "despesa", 100, "2026-09-05"),
+    ]);
+    expect(r[0].saldo).toBe(4462.93);
+  });
+
+  it("conta quantos ficaram de fora, para a tela poder avisar", () => {
+    const contas = [
+      { ...conta("a", "A", 1000), saldo_conferido_em: "2026-09-02" },
+    ];
+    const r = saldosPorConta(contas, [
+      mov("a", "despesa", 50, "2025-01-01"),
+      mov("a", "despesa", 50, "2025-02-01"),
+      mov("a", "receita", 200, "2026-09-10"),
+    ]);
+    expect(r[0].ignorados).toBe(2);
+    expect(r[0].saldo).toBe(1200);
+  });
+
+  /** O saldo informado já inclui o próprio dia da conferência. */
+  it("lançamento do mesmo dia do corte não é somado de novo", () => {
+    const contas = [
+      { ...conta("a", "A", 1000), saldo_conferido_em: "2026-09-02" },
+    ];
+    const r = saldosPorConta(contas, [mov("a", "despesa", 100, "2026-09-02")]);
+    expect(r[0].saldo).toBe(1000);
+    expect(r[0].ignorados).toBe(1);
+  });
+
+  it("o dia seguinte ao corte já conta", () => {
+    const contas = [
+      { ...conta("a", "A", 1000), saldo_conferido_em: "2026-09-02" },
+    ];
+    const r = saldosPorConta(contas, [mov("a", "despesa", 100, "2026-09-03")]);
+    expect(r[0].saldo).toBe(900);
+  });
+
+  it("sem data de corte, tudo continua contando como antes", () => {
+    const r = saldosPorConta(
+      [conta("a", "A", 1000)],
+      [mov("a", "despesa", 100, "2020-01-01")],
+    );
+    expect(r[0].saldo).toBe(900);
+    expect(r[0].ignorados).toBe(0);
+  });
+
+  /** Cada conta tem a sua data; o corte de uma não vale para a outra. */
+  it("o corte de uma conta não afeta a outra", () => {
+    const contas = [
+      { ...conta("a", "A", 1000), saldo_conferido_em: "2026-09-02" },
+      conta("b", "B", 1000),
+    ];
+    const r = saldosPorConta(contas, [
+      mov("a", "despesa", 500, "2025-01-01"),
+      mov("b", "despesa", 500, "2025-01-01"),
+    ]);
+    expect(r[0].saldo).toBe(1000);
+    expect(r[1].saldo).toBe(500);
+  });
+
+  it("guarda a data conferida para a tela mostrar", () => {
+    const contas = [
+      { ...conta("a", "A", 100), saldo_conferido_em: "2026-09-02" },
+    ];
+    expect(saldosPorConta(contas, [])[0].conferidoEm).toBe("2026-09-02");
   });
 });

@@ -28,16 +28,19 @@ export async function panoramaDasContas(): Promise<PanoramaDasContas> {
   const [{ data: contas }, { data: movimentos }] = await Promise.all([
     supabase
       .from("contas")
-      .select("id, nome, cor, tipo, saldo_inicial")
+      .select("id, nome, cor, tipo, saldo_inicial, saldo_conferido_em")
       .eq("arquivada", false)
       .order("nome", { ascending: true }),
     supabase
       .from("lancamentos")
-      .select("conta_id, tipo, valor")
+      .select("conta_id, tipo, valor, data_registro")
       .lte("data_registro", hoje),
   ]);
 
-  const comSaldo = saldosPorConta(contas ?? [], movimentos ?? []);
+  const comSaldo = saldosPorConta(
+    contas ?? [],
+    (movimentos ?? []).map((m) => ({ ...m, data: m.data_registro })),
+  );
 
   return {
     contas: comSaldo,
@@ -48,6 +51,8 @@ export async function panoramaDasContas(): Promise<PanoramaDasContas> {
     guardado: comSaldo
       .filter((c) => !DISPONIVEIS.has(c.tipo))
       .reduce((s, c) => s + c.saldo, 0),
-    semConta: valorSemConta(movimentos ?? []),
+    semConta: valorSemConta(
+      (movimentos ?? []).map((m) => ({ ...m, data: m.data_registro })),
+    ),
   };
 }

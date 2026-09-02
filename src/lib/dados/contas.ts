@@ -8,7 +8,7 @@ export async function contasDoUsuario(): Promise<Conta[]> {
   const { data, error } = await supabase
     .from("contas")
     .select(
-      "id, nome, tipo, cor, saldo_inicial, varias, qtd_contas, tem_debito, tem_credito, tem_pix, cartoes(id, conta_id, nome, bandeira, final, cor, limite, dia_fechamento, dia_vencimento)",
+      "id, nome, tipo, cor, saldo_inicial, saldo_conferido_em, varias, qtd_contas, tem_debito, tem_credito, tem_pix, cartoes(id, conta_id, nome, bandeira, final, cor, limite, dia_fechamento, dia_vencimento)",
     )
     .eq("arquivada", false)
     .order("nome", { ascending: true });

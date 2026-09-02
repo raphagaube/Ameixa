@@ -1,7 +1,7 @@
 import { TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import type { PanoramaDasContas } from "@/lib/dados/saldos";
-import { moeda } from "@/lib/formato";
+import { dataBr, moeda } from "@/lib/formato";
 import { ROTULO_TIPO_CONTA, type TipoConta } from "@/lib/tipos/contas";
 
 /**
@@ -134,7 +134,9 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
                   {ROTULO_TIPO_CONTA[c.tipo as TipoConta] ?? c.tipo}
                 </span>
                 <span style={{ color: "var(--mut)", flexShrink: 0 }}>
-                  {semMovimento ? (
+                  {c.conferidoEm ? (
+                    `conferido em ${dataBr(c.conferidoEm)}`
+                  ) : semMovimento ? (
                     `inicial ${moeda(c.saldoInicial)} · sem movimento`
                   ) : (
                     <>
@@ -149,6 +151,13 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
                   )}
                 </span>
               </div>
+
+              {c.conferidoEm && c.ignorados > 0 ? (
+                <p style={{ fontSize: 11, color: "var(--mut)", marginTop: 4 }}>
+                  {c.ignorados} lançamento{c.ignorados > 1 ? "s" : ""} anterior
+                  {c.ignorados > 1 ? "es" : ""} ficaram fora deste saldo
+                </p>
+              ) : null}
             </li>
           );
         })}

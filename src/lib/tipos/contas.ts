@@ -33,6 +33,8 @@ export type Conta = {
   tipo: TipoConta;
   cor: string;
   saldo_inicial: number;
+  /** Data em que o saldo foi conferido; nula quando é saldo de origem. */
+  saldo_conferido_em: string | null;
   varias: boolean;
   qtd_contas: number;
   tem_debito: boolean;

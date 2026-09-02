@@ -12,6 +12,10 @@ const esquemaConta = z.object({
   tipo: z.enum(["corrente", "poupanca", "investimento", "dinheiro"]),
   cor: z.string().regex(HEX, "Cor inválida."),
   saldo_inicial: z.number().finite(),
+  saldo_conferido_em: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable(),
   varias: z.boolean(),
   qtd_contas: z.number().int().min(1).max(99),
   tem_debito: z.boolean(),
