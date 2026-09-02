@@ -24,10 +24,13 @@
   --rs: 12px;
   --rf: 20px;
 
-  /* Largura máxima do conteúdo e respiro para o botão flutuante + abas */
+  /* Largura máxima do conteúdo e respiro para o botão flutuante + abas
+     Conta: 56 da barra de abas + 16 de folga + 52 do botão = 124. O resto é
+     respiro para o último elemento da página passar por cima do botão ao
+     rolar — sem isso, um botão no fim da tela fica coberto para sempre. */
   --largura: 430px;
   --pad-lateral: 16px;
-  --pad-inferior: 156px;
+  --pad-inferior: calc(184px + env(safe-area-inset-bottom));
 }
 
 :root[data-mode="dark"] {
