@@ -4,6 +4,7 @@ import { ArrowUpRight } from "lucide-react";
 import { useFormularioLancamento } from "@/components/casca-lancamentos";
 import { dataBr, moeda } from "@/lib/formato";
 import { ROTULO_SITUACAO, type LancamentoNaLista } from "@/lib/tipos/lancamentos";
+import { Dinheiro } from "@/components/dinheiro";
 
 /** Uma linha da lista do extrato. Clicar abre o formulário de edição. */
 export function LinhaLancamento({
@@ -88,7 +89,7 @@ export function LinhaLancamento({
 
       <span style={{ fontSize: 16, fontWeight: 600, color: cor, flexShrink: 0 }}>
         {sinal}
-        {moeda(l.valor)}
+        <Dinheiro>{moeda(l.valor)}</Dinheiro>
       </span>
     </button>
   );

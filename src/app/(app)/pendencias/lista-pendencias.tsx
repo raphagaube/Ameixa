@@ -7,6 +7,7 @@ import { useFormularioLancamento } from "@/components/casca-lancamentos";
 import { Botao } from "@/components/ui/botao";
 import { dataBr, moeda } from "@/lib/formato";
 import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
+import { Dinheiro } from "@/components/dinheiro";
 
 /** O que falta preencher num lançamento vindo do Registro Fácil. */
 function faltando(l: LancamentoNaLista): string[] {
@@ -56,7 +57,7 @@ export function ListaPendencias({ lista }: { lista: LancamentoNaLista[] }) {
         >
           <p style={{ fontSize: 24, fontWeight: 700 }}>
             {l.tipo === "receita" ? "+" : "−"}
-            {moeda(l.valor)}
+            <Dinheiro>{moeda(l.valor)}</Dinheiro>
           </p>
           <p style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>
             {dataBr(l.data_registro)}

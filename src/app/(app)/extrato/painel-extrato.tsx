@@ -13,6 +13,7 @@ import type { Ordem } from "@/lib/dados/lancamentos";
 import type { Categoria } from "@/lib/tipos/categorias";
 import { ROTULO_SITUACAO, type LancamentoNaLista } from "@/lib/tipos/lancamentos";
 import type { Periodo } from "./page";
+import { Dinheiro } from "@/components/dinheiro";
 
 const ORDENS: { valor: Ordem; texto: string }[] = [
   { valor: "recentes", texto: "Mais novos primeiro" },
@@ -325,7 +326,7 @@ export function PainelExtrato({
           {lancamentos.length === 1 ? "lançamento" : "lançamentos"} ·{" "}
           <span style={{ color: total < 0 ? "var(--bad)" : "var(--ok)" }}>
             {total < 0 ? "−" : "+"}
-            {moeda(Math.abs(total))}
+            <Dinheiro>{moeda(Math.abs(total))}</Dinheiro>
           </span>
         </span>
       </div>
@@ -361,7 +362,7 @@ export function PainelExtrato({
                     }}
                   >
                     {totalDia < 0 ? "−" : "+"}
-                    {moeda(Math.abs(totalDia))}
+                    <Dinheiro>{moeda(Math.abs(totalDia))}</Dinheiro>
                   </span>
                 </div>
                 {itens.map((l) => (

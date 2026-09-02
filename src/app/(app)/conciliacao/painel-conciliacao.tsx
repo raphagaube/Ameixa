@@ -17,6 +17,7 @@ import {
 import type { Conta } from "@/lib/tipos/contas";
 import { aplicarConciliacao } from "./acoes";
 import { lancamentosParaCasar } from "./buscar-lancamentos";
+import { Dinheiro } from "@/components/dinheiro";
 
 type AcaoLinha = "conciliar" | "criar" | "ignorar";
 
@@ -287,7 +288,7 @@ export function PainelConciliacao({ contas }: { contas: Conta[] }) {
                       }}
                     >
                       {s.movimento.saida ? "−" : "+"}
-                      {moeda(s.movimento.valor)}
+                      <Dinheiro>{moeda(s.movimento.valor)}</Dinheiro>
                     </p>
                   </div>
 
@@ -363,7 +364,7 @@ export function PainelConciliacao({ contas }: { contas: Conta[] }) {
                       {l.descricao}
                     </span>
                     <span style={{ fontSize: 13, color: "var(--mut)", flexShrink: 0 }}>
-                      {dataBr(l.data)} · {moeda(l.valor)}
+                      {dataBr(l.data)} · <Dinheiro>{moeda(l.valor)}</Dinheiro>
                     </span>
                   </li>
                 ))}

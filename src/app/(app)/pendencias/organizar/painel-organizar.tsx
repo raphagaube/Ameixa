@@ -11,6 +11,7 @@ import {
   type GrupoPendencia,
 } from "@/lib/organizar";
 import { organizarPendencias, type Decisao } from "./acoes";
+import { Dinheiro } from "@/components/dinheiro";
 
 type Cat = { id: string; nome: string; tipo: "despesa" | "receita" };
 
@@ -166,7 +167,7 @@ export function PainelOrganizar({
                   <p style={{ fontSize: 15, fontWeight: 600 }}>{g.nome}</p>
                   <p style={{ fontSize: 12, color: "var(--mut)" }}>
                     {g.ids.length} lançamento{g.ids.length > 1 ? "s" : ""} ·{" "}
-                    {moeda(g.soma)} · {g.tipo === "receita" ? "receita" : "despesa"}
+                    <Dinheiro>{moeda(g.soma)}</Dinheiro> · {g.tipo === "receita" ? "receita" : "despesa"}
                   </p>
                 </div>
                 {e.modo === "criar" ? (

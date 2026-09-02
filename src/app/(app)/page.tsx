@@ -18,6 +18,8 @@ import {
   percentualDoOrcamento,
 } from "@/lib/tipos/orcamentos";
 import { mesAno, moeda } from "@/lib/formato";
+import { Dinheiro } from "@/components/dinheiro";
+import { BotaoPrivacidade } from "@/components/botao-privacidade";
 
 export default async function Inicio({
   searchParams,
@@ -54,7 +56,10 @@ export default async function Inicio({
             Olá, {primeiroNome}
           </h1>
         </div>
-        <AlternarTema />
+        <div className="flex items-center" style={{ gap: 8 }}>
+          <BotaoPrivacidade />
+          <AlternarTema />
+        </div>
       </header>
 
       <SeletorMes ano={ano} mes={mes} />
@@ -76,7 +81,7 @@ export default async function Inicio({
             color: panorama.disponivel < 0 ? "var(--bad)" : undefined,
           }}
         >
-          {moeda(panorama.disponivel)}
+          <Dinheiro>{moeda(panorama.disponivel)}</Dinheiro>
         </p>
         <p style={{ fontSize: 12, color: "var(--mut)" }}>
           contas correntes e dinheiro
@@ -86,13 +91,13 @@ export default async function Inicio({
           <div>
             <p className="rotulo">Receitas</p>
             <p style={{ fontSize: 17, fontWeight: 600, color: "var(--ok)" }}>
-              {moeda(resumo.receitas)}
+              <Dinheiro>{moeda(resumo.receitas)}</Dinheiro>
             </p>
           </div>
           <div>
             <p className="rotulo">Despesas</p>
             <p style={{ fontSize: 17, fontWeight: 600, color: "var(--bad)" }}>
-              {moeda(resumo.despesas)}
+              <Dinheiro>{moeda(resumo.despesas)}</Dinheiro>
             </p>
           </div>
           <div>
@@ -105,7 +110,7 @@ export default async function Inicio({
               }}
             >
               {resumo.resultado > 0 ? "+" : ""}
-              {moeda(resumo.resultado)}
+              <Dinheiro>{moeda(resumo.resultado)}</Dinheiro>
             </p>
           </div>
         </div>
@@ -182,7 +187,7 @@ export default async function Inicio({
                     <span
                       style={{ fontSize: 12, fontWeight: 600, color: COR_ESTADO[estado] }}
                     >
-                      {moeda(o.gasto)} de {moeda(o.limite)}
+                      <Dinheiro>{moeda(o.gasto)}</Dinheiro> de <Dinheiro>{moeda(o.limite)}</Dinheiro>
                     </span>
                   </div>
                   <div style={{ marginTop: 6 }}>

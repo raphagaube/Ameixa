@@ -13,6 +13,7 @@ import type { Fatura } from "@/lib/dados/faturas";
 import type { ContaComSaldo } from "@/lib/saldo-conta";
 import { FolhaCartao } from "./folha-cartao";
 import { FolhaConta } from "./folha-conta";
+import { Dinheiro } from "@/components/dinheiro";
 
 export function PainelCartoes({
   contas,
@@ -144,13 +145,13 @@ export function PainelCartoes({
                         : undefined,
                   }}
                 >
-                  {moeda(saldoDe.get(c.id)?.saldo ?? c.saldo_inicial)}
+                  <Dinheiro>{moeda(saldoDe.get(c.id)?.saldo ?? c.saldo_inicial)}</Dinheiro>
                 </p>
                 <p style={{ fontSize: 12, color: "var(--mut)" }}>
                   {ROTULO_TIPO_CONTA[c.tipo]}
                   {c.varias ? ` · ${c.qtd_contas} contas` : ""}
                   {" · inicial "}
-                  {moeda(c.saldo_inicial)}
+                  <Dinheiro>{moeda(c.saldo_inicial)}</Dinheiro>
                 </p>
 
                 <ul className="flex flex-wrap" style={{ gap: 6, marginTop: 8 }}>

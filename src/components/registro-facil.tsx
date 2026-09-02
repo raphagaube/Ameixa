@@ -10,6 +10,7 @@ import { moeda } from "@/lib/formato";
 import { acaoDaTecla } from "@/lib/teclado-valor";
 import type { Conta } from "@/lib/tipos/contas";
 import { salvarRapido } from "@/app/(app)/lancamentos/acoes";
+import { Dinheiro } from "@/components/dinheiro";
 
 const TECLAS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ",", "0", "apagar"];
 
@@ -156,7 +157,7 @@ export function RegistroFacil({
               color: valor > 0 ? "var(--color-text)" : "var(--mut)",
             }}
           >
-            {moeda(valor)}
+            <Dinheiro>{moeda(valor)}</Dinheiro>
           </p>
         </div>
 

@@ -295,3 +295,32 @@ button {
     display: block;
   }
 }
+
+/* ── Modo privado ──────────────────────────────────────────────────
+   Esconder é trabalho do CSS, não do JavaScript: o valor verdadeiro já
+   veio no HTML do servidor, e trocá-lo depois faria o número piscar na
+   tela antes de sumir.
+
+   O borrão é em `em` de propósito — assim acompanha o tamanho da fonte e
+   funciona igual no saldo gigante do topo e na linha miúda do extrato. */
+[data-ocultar="1"] .dinheiro {
+  filter: blur(0.42em);
+  /* Sem isto dá para arrastar o mouse e ler o valor na seleção. */
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+/* Impressão respeita o disfarce: se está oculto na tela, sai oculto no
+   papel e no PDF gerado pelo navegador. */
+@media print {
+  [data-ocultar="1"] .dinheiro {
+    filter: blur(0.42em);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dinheiro {
+    transition: filter 160ms ease-out;
+  }
+}

@@ -8,6 +8,7 @@ import {
   percentualDoLimite,
 } from "@/lib/fatura";
 import type { Fatura } from "@/lib/dados/faturas";
+import { Dinheiro } from "@/components/dinheiro";
 
 /** Fatura aberta de um cartão, com o ciclo real e a lista de compras. */
 export function CartaoFatura({
@@ -66,7 +67,7 @@ export function CartaoFatura({
       <div style={{ background: "var(--sf)", padding: "13px 14px" }}>
         <p className="rotulo">Fatura aberta</p>
         <p style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1, marginTop: 2 }}>
-          {moeda(total)}
+          <Dinheiro>{moeda(total)}</Dinheiro>
         </p>
         {fatiaDasDespesas > 0 ? (
           <p style={{ fontSize: 12, color: "var(--mut)" }}>
@@ -85,7 +86,7 @@ export function CartaoFatura({
           </div>
           <div>
             <p className="rotulo">Limite</p>
-            <p style={{ fontSize: 13, fontWeight: 600 }}>{moeda(k.limite)}</p>
+            <p style={{ fontSize: 13, fontWeight: 600 }}><Dinheiro>{moeda(k.limite)}</Dinheiro></p>
           </div>
         </div>
 
@@ -100,7 +101,7 @@ export function CartaoFatura({
               />
             </div>
             <p style={{ fontSize: 12, color: "var(--mut)", marginTop: 6 }}>
-              {pct}% usado · {moeda(disponivel)} disponível
+              {pct}% usado · <Dinheiro>{moeda(disponivel)}</Dinheiro> disponível
             </p>
           </>
         ) : null}
@@ -129,7 +130,7 @@ export function CartaoFatura({
                   {dataBr(c.data)}
                 </span>
                 <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
-                  {moeda(c.valor)}
+                  <Dinheiro>{moeda(c.valor)}</Dinheiro>
                 </span>
               </li>
             ))}

@@ -6,6 +6,7 @@ import { Botao } from "@/components/ui/botao";
 import { CampoData } from "@/components/ui/campo-data";
 import { Segmentos } from "@/components/ui/segmentos";
 import { paraIso } from "@/lib/formato";
+import { useOculto } from "@/hooks/use-oculto";
 
 type Alcance = "mes" | "tres" | "ano" | "livre" | "tudo";
 
@@ -71,7 +72,13 @@ export function MontadorRelatorio({ ano, mes }: { ano: number; mes: number }) {
     "recebido",
     "a_receber",
   ]);
+  // Nasce alinhado ao modo privado do app: se o dono escondeu os valores na
+  // tela, o relatório que ele for imprimir ou compartilhar sai escondido
+  // também. Continua podendo trocar aqui, para um caso específico.
+  const modoPrivado = useOculto();
   const [ocultar, setOcultar] = useState(false);
+  const [tocado, setTocado] = useState(false);
+  const escondido = tocado ? ocultar : modoPrivado;
   const [tecnicos, setTecnicos] = useState(true);
 
   function alternar(lista: string[], set: (v: string[]) => void, chave: string) {
@@ -85,7 +92,7 @@ export function MontadorRelatorio({ ano, mes }: { ano: number; mes: number }) {
       ate: d2,
       secoes: secoes.join(","),
       situacoes: situacoes.join(","),
-      ocultar: ocultar ? "1" : "0",
+      ocultar: escondido ? "1" : "0",
       tecnicos: tecnicos ? "1" : "0",
     });
     router.push(`/relatorios/documento?${q.toString()}`);
@@ -168,8 +175,11 @@ export function MontadorRelatorio({ ano, mes }: { ano: number; mes: number }) {
           { valor: "mostrar" as const, texto: "Mostrar valores" },
           { valor: "ocultar" as const, texto: "Ocultar valores" },
         ]}
-        valor={ocultar ? "ocultar" : "mostrar"}
-        aoEscolher={(v) => setOcultar(v === "ocultar")}
+        valor={escondido ? "ocultar" : "mostrar"}
+        aoEscolher={(v) => {
+          setTocado(true);
+          setOcultar(v === "ocultar");
+        }}
       />
 
       <Segmentos

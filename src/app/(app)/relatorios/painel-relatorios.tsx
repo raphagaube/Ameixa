@@ -10,6 +10,7 @@ import { Botao } from "@/components/ui/botao";
 import { moeda } from "@/lib/formato";
 import type { DadosRelatorio } from "@/lib/dados/relatorios";
 import { montarFatias } from "@/lib/relatorio";
+import { Dinheiro } from "@/components/dinheiro";
 
 export function PainelRelatorios({
   dados,
@@ -76,7 +77,7 @@ export function PainelRelatorios({
                 <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
                   <span style={{ fontSize: 14 }}>{r.nome}</span>
                   <span style={{ fontSize: 14, fontWeight: 600 }}>
-                    {moeda(r.valor)}
+                    <Dinheiro>{moeda(r.valor)}</Dinheiro>
                   </span>
                 </div>
                 <div style={{ marginTop: 6 }}>

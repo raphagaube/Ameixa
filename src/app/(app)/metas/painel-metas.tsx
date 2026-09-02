@@ -10,6 +10,7 @@ import type { Conta } from "@/lib/tipos/contas";
 import { percentualDaMeta, prazoPorExtenso, type Meta } from "@/lib/tipos/metas";
 import { destacarMeta } from "./acoes";
 import { FolhaMeta } from "./folha-meta";
+import { Dinheiro } from "@/components/dinheiro";
 
 export function PainelMetas({
   metas,
@@ -116,10 +117,10 @@ export function PainelMetas({
                   style={{ gap: 8, marginTop: 6 }}
                 >
                   <span style={{ fontSize: 22, fontWeight: 700 }}>
-                    {moeda(m.guardado)}
+                    <Dinheiro>{moeda(m.guardado)}</Dinheiro>
                   </span>
                   <span style={{ fontSize: 14, color: "var(--mut)" }}>
-                    de {moeda(m.alvo)}
+                    de <Dinheiro>{moeda(m.alvo)}</Dinheiro>
                   </span>
                 </div>
 
@@ -128,9 +129,13 @@ export function PainelMetas({
                 </div>
 
                 <p style={{ fontSize: 12, color: "var(--mut)", marginTop: 6 }}>
-                  {pct >= 100
-                    ? "Meta alcançada! 🎉"
-                    : `${pct}% — faltam ${moeda(falta)}`}
+                  {pct >= 100 ? (
+                    "Meta alcançada! 🎉"
+                  ) : (
+                    <>
+                      {pct}% — faltam <Dinheiro>{moeda(falta)}</Dinheiro>
+                    </>
+                  )}
                 </p>
               </li>
             );

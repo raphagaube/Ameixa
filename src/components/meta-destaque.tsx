@@ -4,6 +4,7 @@ import Link from "next/link";
 import { BarraProgresso } from "@/components/ui/barra-progresso";
 import { moeda } from "@/lib/formato";
 import { percentualDaMeta, prazoPorExtenso, type Meta } from "@/lib/tipos/metas";
+import { Dinheiro } from "@/components/dinheiro";
 
 /** Meta em destaque no Início. Trocar leva para a tela de Metas. */
 export function MetaDestaque({ meta }: { meta: Meta }) {
@@ -34,8 +35,8 @@ export function MetaDestaque({ meta }: { meta: Meta }) {
       </p>
 
       <div className="flex items-baseline justify-between" style={{ gap: 8, marginTop: 6 }}>
-        <span style={{ fontSize: 22, fontWeight: 700 }}>{moeda(meta.guardado)}</span>
-        <span style={{ fontSize: 14, color: "var(--mut)" }}>de {moeda(meta.alvo)}</span>
+        <span style={{ fontSize: 22, fontWeight: 700 }}><Dinheiro>{moeda(meta.guardado)}</Dinheiro></span>
+        <span style={{ fontSize: 14, color: "var(--mut)" }}>de <Dinheiro>{moeda(meta.alvo)}</Dinheiro></span>
       </div>
 
       <div style={{ marginTop: 8 }}>

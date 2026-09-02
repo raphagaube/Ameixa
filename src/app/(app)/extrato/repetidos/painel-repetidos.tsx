@@ -8,6 +8,7 @@ import { useFormularioLancamento } from "@/components/casca-lancamentos";
 import { Botao } from "@/components/ui/botao";
 import { dataBr, moeda } from "@/lib/formato";
 import { idsParaMesclar, type GrupoRepetido } from "@/lib/repetidos";
+import { Dinheiro } from "@/components/dinheiro";
 
 export function PainelRepetidos({
   grupos,
@@ -84,7 +85,7 @@ export function PainelRepetidos({
                   {g.descricao}
                 </p>
                 <p style={{ fontSize: 12, color: "var(--mut)" }}>
-                  {moeda(g.valor)} · {g.ocorrencias.length} vezes
+                  <Dinheiro>{moeda(g.valor)}</Dinheiro> · {g.ocorrencias.length} vezes
                 </p>
               </div>
               <Botao

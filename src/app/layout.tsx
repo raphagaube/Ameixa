@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Open_Sans } from "next/font/google";
 import "./globals.css";
 import { ProvedorTema, scriptAntiFlash } from "@/components/provedor-tema";
+import { scriptAntiFlashValores } from "@/lib/privacidade";
 import { RegistrarSW } from "@/components/registrar-sw";
 
 const openSans = Open_Sans({
@@ -45,6 +46,7 @@ export default function RootLayout({
     <html lang="pt-BR" className={openSans.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: scriptAntiFlash }} />
+        <script dangerouslySetInnerHTML={{ __html: scriptAntiFlashValores }} />
       </head>
       <body>
         <ProvedorTema>{children}</ProvedorTema>

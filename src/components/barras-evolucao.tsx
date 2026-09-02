@@ -1,7 +1,9 @@
 "use client";
 
+import { useOculto } from "@/hooks/use-oculto";
 import { moeda, moedaCurta } from "@/lib/formato";
 import { alturaDaBarra, type MesMovimento } from "@/lib/relatorio";
+import { Dinheiro } from "@/components/dinheiro";
 
 /**
  * Receitas × despesas nos últimos 6 meses.
@@ -10,6 +12,9 @@ import { alturaDaBarra, type MesMovimento } from "@/lib/relatorio";
  * distingue verde de vermelho lê os números.
  */
 export function BarrasEvolucao({ meses }: { meses: MesMovimento[] }) {
+  // A dica que aparece ao passar o mouse fica num atributo, onde o CSS do
+  // modo privado não chega — daí precisar saber disto em JavaScript.
+  const oculto = useOculto();
   const maximo = Math.max(
     ...meses.map((m) => Math.max(m.receitas, m.despesas)),
     0,
@@ -50,7 +55,7 @@ export function BarrasEvolucao({ meses }: { meses: MesMovimento[] }) {
               style={{ height: 96, gap: 3 }}
             >
               <div
-                title={`Receitas: ${moeda(m.receitas)}`}
+                title={oculto ? "Receitas" : `Receitas: ${moeda(m.receitas)}`}
                 style={{
                   flex: 1,
                   maxWidth: 14,
@@ -60,7 +65,7 @@ export function BarrasEvolucao({ meses }: { meses: MesMovimento[] }) {
                 }}
               />
               <div
-                title={`Despesas: ${moeda(m.despesas)}`}
+                title={oculto ? "Despesas" : `Despesas: ${moeda(m.despesas)}`}
                 style={{
                   flex: 1,
                   maxWidth: 14,
@@ -98,10 +103,10 @@ export function BarrasEvolucao({ meses }: { meses: MesMovimento[] }) {
                 <tr key={m.mes} style={{ borderTop: "1px solid var(--ln2)" }}>
                   <td style={{ padding: "6px 4px" }}>{m.rotulo}</td>
                   <td style={{ padding: "6px 4px", textAlign: "right" }}>
-                    {moedaCurta(m.receitas)}
+                    <Dinheiro>{moedaCurta(m.receitas)}</Dinheiro>
                   </td>
                   <td style={{ padding: "6px 4px", textAlign: "right" }}>
-                    {moedaCurta(m.despesas)}
+                    <Dinheiro>{moedaCurta(m.despesas)}</Dinheiro>
                   </td>
                   <td
                     style={{
@@ -112,7 +117,7 @@ export function BarrasEvolucao({ meses }: { meses: MesMovimento[] }) {
                     }}
                   >
                     {saldo < 0 ? "−" : ""}
-                    {moedaCurta(Math.abs(saldo))}
+                    <Dinheiro>{moedaCurta(Math.abs(saldo))}</Dinheiro>
                   </td>
                 </tr>
               );

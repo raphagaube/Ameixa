@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { PanoramaDasContas } from "@/lib/dados/saldos";
 import { dataBr, moeda } from "@/lib/formato";
 import { ROTULO_TIPO_CONTA, type TipoConta } from "@/lib/tipos/contas";
+import { Dinheiro } from "@/components/dinheiro";
 
 /**
  * "Onde está meu dinheiro" — a resposta para "quanto eu tenho".
@@ -62,7 +63,7 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
               color: total < 0 ? "var(--bad)" : "var(--color-text)",
             }}
           >
-            {moeda(total)}
+            <Dinheiro>{moeda(total)}</Dinheiro>
           </p>
           <p style={{ fontSize: 12, color: "var(--mut)" }}>contas e guardado</p>
         </div>
@@ -77,7 +78,7 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
         >
           <p className="rotulo">Guardado</p>
           <p style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.15, marginTop: 4 }}>
-            {moeda(guardado)}
+            <Dinheiro>{moeda(guardado)}</Dinheiro>
           </p>
           <p style={{ fontSize: 12, color: "var(--mut)" }}>investimentos</p>
         </div>
@@ -113,7 +114,7 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
                     color: c.saldo < 0 ? "var(--bad)" : "var(--color-text)",
                   }}
                 >
-                  {moeda(c.saldo)}
+                  <Dinheiro>{moeda(c.saldo)}</Dinheiro>
                 </span>
               </div>
 
@@ -128,15 +129,18 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
                   {c.conferidoEm ? (
                     `conferido em ${dataBr(c.conferidoEm)}`
                   ) : semMovimento ? (
-                    `inicial ${moeda(c.saldoInicial)} · sem movimento`
+                    <>
+                      inicial <Dinheiro>{moeda(c.saldoInicial)}</Dinheiro> · sem
+                      movimento
+                    </>
                   ) : (
                     <>
                       <span style={{ color: "var(--ok)" }}>
-                        +{moeda(c.entradas)}
+                        +<Dinheiro>{moeda(c.entradas)}</Dinheiro>
                       </span>
                       {" · "}
                       <span style={{ color: "var(--bad)" }}>
-                        −{moeda(c.saidas)}
+                        −<Dinheiro>{moeda(c.saidas)}</Dinheiro>
                       </span>
                     </>
                   )}
@@ -176,7 +180,7 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
           />
           <span>
             <span style={{ display: "block", fontSize: 13, fontWeight: 600 }}>
-              {moeda(Math.abs(semConta))} em lançamentos sem conta escolhida
+              <Dinheiro>{moeda(Math.abs(semConta))}</Dinheiro> em lançamentos sem conta escolhida
             </span>
             <span style={{ display: "block", fontSize: 12, color: "var(--mut)" }}>
               Por isso o total daqui pode não bater com o saldo do painel.

@@ -2,6 +2,7 @@
 
 import { moeda } from "@/lib/formato";
 import { gradienteDaRosca, type Fatia } from "@/lib/relatorio";
+import { Dinheiro } from "@/components/dinheiro";
 
 /**
  * Rosca de 186px com furo de 118px, montada com conic-gradient.
@@ -54,7 +55,7 @@ export function RoscaCategorias({
         >
           <div>
             <p style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.1 }}>
-              {moeda(total)}
+              <Dinheiro>{moeda(total)}</Dinheiro>
             </p>
             {legendaTopo ? (
               <p style={{ fontSize: 11, color: "var(--mut)", marginTop: 2 }}>
@@ -85,7 +86,7 @@ export function RoscaCategorias({
               {f.nome}
             </span>
             <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
-              {moeda(f.valor)}
+              <Dinheiro>{moeda(f.valor)}</Dinheiro>
             </span>
             <span
               style={{

@@ -21,6 +21,7 @@ import {
 } from "@/lib/tipos/orcamentos";
 import { escreverValor, lerValor } from "@/lib/valor";
 import { excluirOrcamento, salvarOrcamento } from "./acoes";
+import { Dinheiro } from "@/components/dinheiro";
 
 export function PainelOrcamentos({
   orcamentos,
@@ -166,7 +167,7 @@ export function PainelOrcamentos({
                 </div>
 
                 <p style={{ fontSize: 13, color: "var(--mut)", marginTop: 4 }}>
-                  {moeda(o.gasto)} de {moeda(o.limite)}
+                  <Dinheiro>{moeda(o.gasto)}</Dinheiro> de <Dinheiro>{moeda(o.limite)}</Dinheiro>
                 </p>
 
                 <div style={{ marginTop: 8 }}>

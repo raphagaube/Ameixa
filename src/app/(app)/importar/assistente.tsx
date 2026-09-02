@@ -24,6 +24,7 @@ import {
 } from "@/lib/importacao";
 import { importarLancamentos } from "@/app/(app)/ajustes/importar";
 import { buscarPlanilhaGoogle } from "./buscar-planilha";
+import { Dinheiro } from "@/components/dinheiro";
 
 type Origem = "google" | "arquivo" | "backup";
 type Passo = 1 | 2 | 3 | 4;
@@ -498,13 +499,13 @@ export function Assistente({
               <div>
                 <p className="rotulo">Receitas</p>
                 <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ok)" }}>
-                  {moeda(resumo.somaReceitas)}
+                  <Dinheiro>{moeda(resumo.somaReceitas)}</Dinheiro>
                 </p>
               </div>
               <div>
                 <p className="rotulo">Despesas</p>
                 <p style={{ fontSize: 15, fontWeight: 600, color: "var(--bad)" }}>
-                  {moeda(resumo.somaDespesas)}
+                  <Dinheiro>{moeda(resumo.somaDespesas)}</Dinheiro>
                 </p>
               </div>
             </div>
@@ -545,7 +546,7 @@ export function Assistente({
                           color: p.tipo === "receita" ? "var(--ok)" : "var(--bad)",
                         }}
                       >
-                        {p.valor === null ? "—" : moeda(Math.abs(p.valor))}
+                        <Dinheiro>{p.valor === null ? "—" : moeda(Math.abs(p.valor))}</Dinheiro>
                       </td>
                     </tr>
                   ))}
