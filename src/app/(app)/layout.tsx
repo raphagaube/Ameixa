@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { BarraAbas } from "@/components/barra-abas";
 import { CascaLancamentos } from "@/components/casca-lancamentos";
 import { dadosDeApoio } from "@/lib/dados/apoio";
 import { perfilDoUsuario } from "@/lib/dados/perfil";
@@ -23,18 +22,7 @@ export default async function LayoutApp({
 
   return (
     <CascaLancamentos dados={dados}>
-      <main
-        className="mx-auto w-full"
-        style={{
-          maxWidth: "var(--largura)",
-          paddingLeft: "var(--pad-lateral)",
-          paddingRight: "var(--pad-lateral)",
-          paddingBottom: "var(--pad-inferior)",
-        }}
-      >
-        {children}
-      </main>
-      <BarraAbas />
+      {children}
     </CascaLancamentos>
   );
 }

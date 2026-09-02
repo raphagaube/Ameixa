@@ -1,6 +1,8 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { BarraAbas } from "@/components/barra-abas";
 import { BotaoRegistroFacil } from "@/components/botao-registro-facil";
 import { FolhaLancamento, type ValoresIniciais } from "@/components/folha-lancamento";
 import { RegistroFacil } from "@/components/registro-facil";
@@ -30,6 +32,12 @@ export function CascaLancamentos({
   dados: DadosDeApoio;
   children: React.ReactNode;
 }) {
+  const caminho = usePathname();
+  // O botão flutuante fica só no Início. Nas outras telas ele acabava por
+  // cima do rodapé — a barra de "Organizar em lote", o salvar dos Ajustes.
+  // Lá o caminho para lançar é a aba Início, a um toque de distância.
+  const mostrarFlutuante = caminho === "/";
+
   const [registroAberto, setRegistroAberto] = useState(false);
   const [formAberto, setFormAberto] = useState(false);
   const [emEdicao, setEmEdicao] = useState<LancamentoNaLista | null>(null);
@@ -68,9 +76,27 @@ export function CascaLancamentos({
 
   return (
     <Ctx.Provider value={api}>
-      {children}
+      <main
+        className="mx-auto w-full"
+        style={{
+          maxWidth: "var(--largura)",
+          paddingLeft: "var(--pad-lateral)",
+          paddingRight: "var(--pad-lateral)",
+          // Só a tela com botão flutuante precisa do respiro grande; nas
+          // outras, sobrar espaço vazio no fim da página é desleixo.
+          paddingBottom: mostrarFlutuante
+            ? "var(--pad-inferior)"
+            : "var(--pad-inferior-sem-botao)",
+        }}
+      >
+        {children}
+      </main>
 
-      <BotaoRegistroFacil onClick={() => setRegistroAberto(true)} />
+      <BarraAbas />
+
+      {mostrarFlutuante ? (
+        <BotaoRegistroFacil onClick={() => setRegistroAberto(true)} />
+      ) : null}
 
       <RegistroFacil
         aberta={registroAberto}
