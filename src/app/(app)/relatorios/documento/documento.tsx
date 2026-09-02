@@ -1,7 +1,8 @@
 "use client";
 
-import { Download, FileSpreadsheet } from "lucide-react";
+import { Download, FileSpreadsheet, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useRef, useState, useTransition } from "react";
 import { BarrasEvolucao } from "@/components/barras-evolucao";
 import { LogoAmeixa } from "@/components/logo-ameixa";
 import { RoscaCategorias } from "@/components/rosca-categorias";
@@ -10,6 +11,12 @@ import type { DadosRelatorio } from "@/lib/dados/relatorios";
 import { dataBr, moedaOuOculto } from "@/lib/formato";
 import { calcularIndicadores, montarFatias } from "@/lib/relatorio";
 import { baixarExcel } from "@/lib/exportar";
+import {
+  baixarArquivo,
+  gerarPdf,
+  nomeDoRelatorio,
+  podeCompartilharArquivo,
+} from "@/lib/pdf";
 import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
 import type { Meta } from "@/lib/tipos/metas";
 import { percentualDaMeta } from "@/lib/tipos/metas";
@@ -45,6 +52,11 @@ export function DocumentoRelatorio({
   metas: Meta[];
 }) {
   const router = useRouter();
+  // Referência da folha do relatório: é ela que vira PDF, sem os botões.
+  const folha = useRef<HTMLDivElement>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [gerando, iniciarGerar] = useTransition();
+
   const fatias = montarFatias(dados.despesasPorCategoria);
   const receitas = montarFatias(dados.receitasPorCategoria);
   const saldo = dados.totalReceitas - dados.totalDespesas;
@@ -75,6 +87,37 @@ export function DocumentoRelatorio({
     padding: "15px 14px",
   };
 
+  function enviarPdf() {
+    setAviso(null);
+    if (!folha.current) return;
+
+    iniciarGerar(async () => {
+      const r = await gerarPdf(folha.current!, nomeDoRelatorio(de, ate));
+      if (!r.ok) {
+        setAviso(r.erro);
+        return;
+      }
+
+      if (podeCompartilharArquivo(r.arquivo)) {
+        try {
+          await navigator.share({
+            files: [r.arquivo],
+            title: "Relatório financeiro",
+            text: `Relatório de ${dataBr(de)} a ${dataBr(ate)}`,
+          });
+          return;
+        } catch (e) {
+          // Cancelar a bandeja não é erro; qualquer outra coisa vira download.
+          if (e instanceof DOMException && e.name === "AbortError") return;
+        }
+      }
+
+      // Computador ou navegador sem bandeja: salva o arquivo.
+      baixarArquivo(r.arquivo);
+      setAviso("Seu aparelho não abre a tela de compartilhar. O PDF foi salvo nos downloads.");
+    });
+  }
+
   function exportarExcel() {
     baixarExcel(
       lancamentos.length > 0 ? lancamentos : [],
@@ -85,23 +128,49 @@ export function DocumentoRelatorio({
 
   return (
     <div className="flex flex-col" style={{ gap: 16, paddingTop: 22 }}>
-      <div className="flex nao-imprimir" style={{ gap: 8 }}>
-        <Botao variante="contorno" onClick={() => router.back()}>
-          Voltar
-        </Botao>
-        <Botao variante="contorno" onClick={exportarExcel}>
-          <span className="flex items-center justify-center" style={{ gap: 6 }}>
-            <FileSpreadsheet size={16} strokeWidth={1.5} aria-hidden />
-            Excel
+      <div className="flex flex-col nao-imprimir" style={{ gap: 8 }}>
+        <Botao onClick={enviarPdf} carregando={gerando}>
+          <span className="flex items-center justify-center" style={{ gap: 8 }}>
+            <Share2 size={18} strokeWidth={1.5} aria-hidden />
+            Enviar relatório em PDF
           </span>
         </Botao>
-        <Botao onClick={() => window.print()}>
-          <span className="flex items-center justify-center" style={{ gap: 6 }}>
-            <Download size={16} strokeWidth={1.5} aria-hidden />
-            PDF
-          </span>
-        </Botao>
+
+        <div className="flex" style={{ gap: 8 }}>
+          <Botao variante="contorno" onClick={() => router.back()} disabled={gerando}>
+            Voltar
+          </Botao>
+          <Botao variante="contorno" onClick={exportarExcel} disabled={gerando}>
+            <span className="flex items-center justify-center" style={{ gap: 6 }}>
+              <FileSpreadsheet size={16} strokeWidth={1.5} aria-hidden />
+              Excel
+            </span>
+          </Botao>
+          <Botao variante="contorno" onClick={() => window.print()} disabled={gerando}>
+            <span className="flex items-center justify-center" style={{ gap: 6 }}>
+              <Download size={16} strokeWidth={1.5} aria-hidden />
+              Imprimir
+            </span>
+          </Botao>
+        </div>
+
+        {aviso ? (
+          <p
+            role="status"
+            style={{
+              fontSize: 12,
+              color: "var(--mut)",
+              background: "var(--tint)",
+              borderRadius: "var(--rs)",
+              padding: 10,
+            }}
+          >
+            {aviso}
+          </p>
+        ) : null}
       </div>
+
+      <div ref={folha} className="flex flex-col" style={{ gap: 16, background: "var(--color-bg)" }}>
 
       <header
         className="flex items-center"
@@ -342,6 +411,7 @@ export function DocumentoRelatorio({
           © {new Date().getFullYear()} Rapha. Todos os direitos reservados.
         </p>
       </footer>
+      </div>
     </div>
   );
 }
