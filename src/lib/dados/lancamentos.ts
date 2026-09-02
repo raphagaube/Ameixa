@@ -44,6 +44,16 @@ export type FiltroExtrato = {
   forma?: string;
   responsavel?: string;
   ordem?: Ordem;
+  /** Teto de linhas. O extrato usa o padrão; o relatório pede mais. */
+  limite?: number;
+  /**
+   * Deixa aportes de fora.
+   *
+   * Aporte em meta não é despesa nem receita — o dinheiro só mudou de
+   * lugar. Ele não pode aparecer numa lista que soma gastos, e é a regra
+   * inviolável do projeto.
+   */
+  semAportes?: boolean;
 };
 
 export async function lancamentosDoPeriodo(
@@ -52,6 +62,7 @@ export async function lancamentosDoPeriodo(
   const supabase = await criarClienteServidor();
   let q = supabase.from("lancamentos").select(CAMPOS);
 
+  if (f.semAportes) q = q.neq("tipo", "aporte");
   if (f.de) q = q.gte("data_registro", f.de);
   if (f.ate) q = q.lte("data_registro", f.ate);
   if (f.texto) {
@@ -81,7 +92,10 @@ export async function lancamentosDoPeriodo(
     default:
       q = q.order("data_registro", { ascending: false });
   }
-  q = q.order("criado_em", { ascending: false }).limit(500);
+  // O teto era fixo em 500. No relatório "Todo o período" isso cortava a
+  // lista sem uma palavra — quem tem mil lançamentos imprimia 500 e não
+  // ficava sabendo. Quem chama decide, e o relatório pede o suficiente.
+  q = q.order("criado_em", { ascending: false }).limit(f.limite ?? 500);
 
   const { data, error } = await q;
   if (error || !data) return [];

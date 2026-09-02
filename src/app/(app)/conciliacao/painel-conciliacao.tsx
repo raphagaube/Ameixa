@@ -13,6 +13,7 @@ import {
   type Classificacao,
   type LancamentoParaCasar,
   type Sugestao,
+  type MovimentoOfx,
 } from "@/lib/ofx";
 import type { Conta } from "@/lib/tipos/contas";
 import { aplicarConciliacao } from "./acoes";
@@ -42,6 +43,10 @@ export function PainelConciliacao({ contas }: { contas: Conta[] }) {
   const [acoes, setAcoes] = useState<Record<string, AcaoLinha>>({});
   const [sobra, setSobra] = useState<LancamentoParaCasar[]>([]);
   const [nomeArquivo, setNomeArquivo] = useState("");
+  // O extrato lido fica guardado: sem ele, trocar a conta depois de
+  // carregar o arquivo deixaria as sugestões velhas na tela enquanto o
+  // "Aplicar" gravaria na conta nova. Dado sujo, e marcado como conferido.
+  const [movimentos, setMovimentos] = useState<MovimentoOfx[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [processando, iniciar] = useTransition();
@@ -68,16 +73,22 @@ export function PainelConciliacao({ contas }: { contas: Conta[] }) {
     }
 
     setNomeArquivo(arquivo.name);
+    setMovimentos(movimentos);
+    recasar(movimentos, contaId);
+  }
 
-    const datas = movimentos.map((m) => m.data).sort();
+  /** Refaz o casamento contra a conta escolhida. */
+  function recasar(movs: MovimentoOfx[], conta: string) {
+    if (movs.length === 0 || !conta) return;
+    const datas = movs.map((m) => m.data).sort();
     iniciar(async () => {
       const lancs = await lancamentosParaCasar({
         de: datas[0],
         ate: datas[datas.length - 1],
-        contaId,
+        contaId: conta,
       });
 
-      const s = casar(movimentos, lancs);
+      const s = casar(movs, lancs);
       setSugestoes(s);
       setSobra(soNoApp(lancs, s));
       setAcoes(
@@ -165,7 +176,13 @@ export function PainelConciliacao({ contas }: { contas: Conta[] }) {
         <select
           id="conta-ofx"
           value={contaId}
-          onChange={(e) => setContaId(e.target.value)}
+          onChange={(e) => {
+            const nova = e.target.value;
+            setContaId(nova);
+            // Recalcula na hora: as sugestões são sempre da conta que está
+            // escolhida agora, nunca da que estava quando o arquivo entrou.
+            recasar(movimentos, nova);
+          }}
           style={estiloSelect}
         >
           {contas.map((c) => (

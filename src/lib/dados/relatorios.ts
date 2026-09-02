@@ -12,6 +12,8 @@ export type DadosRelatorio = {
   totalDespesas: number;
   totalReceitas: number;
   despesasCruas: { valor: number; data: string; noCartao: boolean }[];
+  /** Quantos lançamentos entraram no período. Aportes não contam. */
+  totalLancamentos: number;
   totalAnterior: number | null;
   diasNoPeriodo: number;
 };
@@ -127,6 +129,7 @@ export async function dadosDoRelatorio(
   return {
     despesasPorCategoria: agrupar(despesas),
     receitasPorCategoria: agrupar(receitas),
+    totalLancamentos: despesas.length + receitas.length,
     meses,
     totalDespesas: despesas.reduce((s, l) => s + l.valor, 0),
     totalReceitas: receitas.reduce((s, l) => s + l.valor, 0),

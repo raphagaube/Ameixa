@@ -29,7 +29,13 @@ export default async function Documento({
     dadosDoRelatorio(de, ate),
     perfilDoUsuario(),
     secoes.includes("detalhes")
-      ? lancamentosDoPeriodo({ de, ate, ordem: "antigos" })
+      ? lancamentosDoPeriodo({
+          de,
+          ate,
+          ordem: "antigos",
+          semAportes: true,
+          limite: 5000,
+        })
       : Promise.resolve([]),
     secoes.includes("orcamentos")
       ? orcamentosDoMes(fim.getFullYear(), fim.getMonth())

@@ -29,10 +29,32 @@ const linha = z.object({
 export type LinhaImportada = z.input<typeof linha>;
 export type ResultadoImport =
   | { ok: true; criados: number; ignorados: number; pendentes: number }
+  /**
+   * Achou linhas que já estão no app e parou para perguntar.
+   *
+   * Deduplicar sozinho seria errado num app de dinheiro: dois cafés de
+   * R$ 5,00 no mesmo dia e no mesmo lugar são dois gastos de verdade, e
+   * descartar o segundo esconderia dinheiro que saiu. Duplicar em silêncio
+   * também é errado — dobra o gasto do mês. Então quem decide é o dono.
+   */
+  | { ok: false; repetidos: number; erro: string }
   | { ok: false; erro: string };
+
+/** Como a linha é reconhecida entre importações: o que o olho compararia. */
+function chaveDaLinha(l: {
+  tipo: string;
+  valor: number;
+  descricao: string;
+  data_registro: string;
+}): string {
+  return [l.tipo, l.data_registro, l.valor.toFixed(2), l.descricao.trim().toLowerCase()].join(
+    "|",
+  );
+}
 
 export async function importarLancamentos(
   linhas: unknown[],
+  repetidos: "perguntar" | "importar" | "pular" = "perguntar",
 ): Promise<ResultadoImport> {
   if (!Array.isArray(linhas) || linhas.length === 0) {
     return { ok: false, erro: "Não há lançamentos para importar." };
@@ -82,13 +104,51 @@ export async function importarLancamentos(
 
   const supabase = await criarClienteServidor();
 
+  // Confere o que já existe antes de gravar. A importação não tem `fitid`
+  // como o OFX, então a comparação é pelo conteúdo: tipo, data, valor e
+  // descrição — o mesmo que o dono olharia para dizer "essa eu já lancei".
+  const datas = [...new Set(paraGravar.map((l) => l.data_registro))].sort();
+  const { data: jaExistem } = await supabase
+    .from("lancamentos")
+    .select("tipo, valor, descricao, data_registro")
+    .gte("data_registro", datas[0])
+    .lte("data_registro", datas[datas.length - 1]);
+
+  const existentes = new Set(
+    (jaExistem ?? []).map((l) =>
+      chaveDaLinha({ ...l, valor: Number(l.valor) }),
+    ),
+  );
+
+  const repetidas = paraGravar.filter((l) => existentes.has(chaveDaLinha(l)));
+
+  if (repetidas.length > 0 && repetidos === "perguntar") {
+    return {
+      ok: false,
+      repetidos: repetidas.length,
+      erro:
+        repetidas.length === paraGravar.length
+          ? "Todas essas linhas já estão no app."
+          : `${repetidas.length} de ${paraGravar.length} linhas já estão no app.`,
+    };
+  }
+
+  const aGravar =
+    repetidos === "pular"
+      ? paraGravar.filter((l) => !existentes.has(chaveDaLinha(l)))
+      : paraGravar;
+
+  if (aGravar.length === 0) {
+    return { ok: true, criados: 0, ignorados: ignorados + repetidas.length, pendentes: 0 };
+  }
+
   // Em blocos: milhares de linhas numa requisição só estouram o limite de
   // tamanho do PostgREST.
   const TAMANHO_BLOCO = 400;
   let gravados = 0;
 
-  for (let i = 0; i < paraGravar.length; i += TAMANHO_BLOCO) {
-    const bloco = paraGravar.slice(i, i + TAMANHO_BLOCO);
+  for (let i = 0; i < aGravar.length; i += TAMANHO_BLOCO) {
+    const bloco = aGravar.slice(i, i + TAMANHO_BLOCO);
     const { data: inseridos, error } = await supabase
       .from("lancamentos")
       .insert(bloco)

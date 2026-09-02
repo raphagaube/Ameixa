@@ -52,6 +52,7 @@ export function Assistente({
   const [usarCategoria, setUsarCategoria] = useState(true);
 
   const [erro, setErro] = useState<string | null>(null);
+  const [repetidas, setRepetidas] = useState<number | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
   const [ocupado, iniciar] = useTransition();
 
@@ -150,7 +151,7 @@ export function Assistente({
     }
   }
 
-  function gravar() {
+  function gravar(quantoARepetidos: "perguntar" | "importar" | "pular" = "perguntar") {
     setErro(null);
     iniciar(async () => {
       const paraEnviar = previas
@@ -173,7 +174,7 @@ export function Assistente({
             [p.observacao, p.categoriaTexto].filter(Boolean).join(" · ") || null,
         }));
 
-      const r = await importarLancamentos(paraEnviar);
+      const r = await importarLancamentos(paraEnviar, quantoARepetidos);
       if (r.ok) {
         setSucesso(
           `${r.criados} lançamentos importados.` +
@@ -183,10 +184,22 @@ export function Assistente({
         );
         setPasso(4);
         router.refresh();
+      } else if ("repetidos" in r) {
+        // Não decido por ele: duplicar dobra o gasto do mês, e pular pode
+        // esconder um gasto que aconteceu duas vezes de verdade.
+        setRepetidas(r.repetidos);
+        setErro(r.erro);
       } else {
         setErro(r.erro);
       }
     });
+  }
+
+  function reenviar(decisao: "importar" | "pular") {
+    setRepetidas(null);
+    setErro(null);
+    // O estado só vale no próximo render; manda a decisão direto.
+    gravar(decisao);
   }
 
   const caixa: React.CSSProperties = {
@@ -645,13 +658,49 @@ export function Assistente({
               Voltar
             </Botao>
             <Botao
-              onClick={gravar}
+              onClick={() => gravar()}
               carregando={ocupado}
               disabled={resumo.validas === 0}
             >
               Importar {resumo.validas}
             </Botao>
           </div>
+
+          {/* A escolha fica com o dono: duplicar dobra o gasto do mês, e
+              pular pode esconder um gasto que aconteceu duas vezes mesmo. */}
+          {repetidas !== null ? (
+            <div
+              role="alert"
+              className="flex flex-col"
+              style={{
+                gap: 10,
+                padding: 14,
+                borderRadius: "var(--r)",
+                border: "1px solid var(--warn, var(--ln))",
+              }}
+            >
+              <p style={{ fontSize: 14, fontWeight: 600 }}>
+                {repetidas} linha{repetidas > 1 ? "s" : ""} já {repetidas > 1 ? "estão" : "está"} no app
+              </p>
+              <p style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.5 }}>
+                Mesma data, mesmo valor e mesma descrição. Pode ser
+                reimportação do mesmo arquivo — ou um gasto que aconteceu
+                duas vezes de verdade.
+              </p>
+              <div className="flex" style={{ gap: 8 }}>
+                <Botao
+                  variante="contorno"
+                  onClick={() => reenviar("pular")}
+                  disabled={ocupado}
+                >
+                  Pular as repetidas
+                </Botao>
+                <Botao onClick={() => reenviar("importar")} disabled={ocupado}>
+                  Importar mesmo assim
+                </Botao>
+              </div>
+            </div>
+          ) : null}
         </>
       ) : null}
 

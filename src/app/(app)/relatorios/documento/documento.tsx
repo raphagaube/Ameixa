@@ -237,7 +237,7 @@ export function DocumentoRelatorio({
             <div>
               <p className="rotulo">Lançamentos</p>
               <p style={{ fontSize: 18, fontWeight: 700 }}>
-                {dados.despesasCruas.length + receitas.length}
+                {dados.totalLancamentos}
               </p>
             </div>
           </div>

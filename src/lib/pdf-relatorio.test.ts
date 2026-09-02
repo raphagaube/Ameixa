@@ -22,6 +22,7 @@ const dados: DadosRelatorio = {
     { valor: 1310.5, data: "2026-09-08", noCartao: true },
   ],
   totalAnterior: 3800,
+  totalLancamentos: 2,
   diasNoPeriodo: 30,
 };
 
@@ -124,6 +125,7 @@ describe("PDF do relatório", () => {
         totalReceitas: 0,
         despesasCruas: [],
         totalAnterior: null,
+        totalLancamentos: 0,
       },
     });
     expect(await assinatura(blob)).toBe("%PDF-");
