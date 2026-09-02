@@ -1,7 +1,6 @@
 import { CircleAlert, PartyPopper } from "lucide-react";
 import Link from "next/link";
 import { AlternarTema } from "@/components/alternar-tema";
-import { BotaoFecharApp } from "@/components/botao-fechar-app";
 import { LinhaLancamento } from "@/components/linha-lancamento";
 import { MetaDestaque } from "@/components/meta-destaque";
 import { BarraProgresso } from "@/components/ui/barra-progresso";
@@ -52,10 +51,7 @@ export default async function Inicio({
             Olá, {primeiroNome}
           </h1>
         </div>
-        <div className="flex" style={{ gap: 8 }}>
-          <AlternarTema />
-          <BotaoFecharApp />
-        </div>
+        <AlternarTema />
       </header>
 
       <SeletorMes ano={ano} mes={mes} />
