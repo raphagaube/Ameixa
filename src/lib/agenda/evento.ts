@@ -8,7 +8,11 @@
  */
 
 import { moeda } from "@/lib/formato";
-import type { LancamentoNaLista, Situacao } from "@/lib/tipos/lancamentos";
+import {
+  dataQueVale,
+  type LancamentoNaLista,
+  type Situacao,
+} from "@/lib/tipos/lancamentos";
 
 /** As duas agendas. O tipo do lançamento decide em qual ele entra. */
 export type Agenda = "pagar" | "receber";
@@ -55,9 +59,9 @@ export function diaSeguinte(iso: string): string {
   return new Date(Date.UTC(a, m - 1, d + 1)).toISOString().slice(0, 10);
 }
 
-/** A data que vale é a de vencimento; sem ela, a do registro. */
+/** A data do compromisso é a que vale para o lançamento. */
 export function dataDoCompromisso(l: LancamentoNaLista): string {
-  return (l.data_vencimento ?? l.data_registro).slice(0, 10);
+  return dataQueVale(l);
 }
 
 export function agendaDe(l: LancamentoNaLista): Agenda {

@@ -66,6 +66,24 @@ export type LancamentoNaLista = Lancamento & {
 };
 
 /**
+ * A data que vale para o lançamento: o vencimento, quando existe.
+ *
+ * Nem todo lançamento tem vencimento — uma compra à vista, por exemplo,
+ * só tem a data em que aconteceu. Nesses casos a data de registro é a
+ * resposta certa, e não um buraco.
+ *
+ * Mora aqui, e não em cada tela, porque o relatório e a agenda precisam
+ * concordar: um compromisso caindo num dia e o PDF dizendo outro seria
+ * pior que qualquer um dos dois estar errado sozinho.
+ */
+export function dataQueVale(l: {
+  data_vencimento: string | null;
+  data_registro: string;
+}): string {
+  return (l.data_vencimento ?? l.data_registro).slice(0, 10);
+}
+
+/**
  * Situação padrão pelo tipo e pela data.
  * Regra 3 do modelo de dados: lançamento com data futura entra
  * automaticamente como a pagar / a receber.

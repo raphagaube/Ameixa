@@ -25,7 +25,7 @@ import {
   percentualDoOrcamento,
   type Orcamento,
 } from "@/lib/tipos/orcamentos";
-import { ROTULO_SITUACAO } from "@/lib/tipos/lancamentos";
+import { dataQueVale, ROTULO_SITUACAO } from "@/lib/tipos/lancamentos";
 
 export function DocumentoRelatorio({
   dados,
@@ -373,10 +373,13 @@ export function DocumentoRelatorio({
             </p>
           ) : (
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+              <table
+                className="tabela-lancamentos"
+                style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}
+              >
                 <thead>
                   <tr style={{ color: "var(--mut)", textAlign: "left" }}>
-                    <th style={{ padding: "6px 4px" }}>Data</th>
+                    <th style={{ padding: "6px 4px" }}>Vencimento</th>
                     <th style={{ padding: "6px 4px" }}>Descrição</th>
                     <th style={{ padding: "6px 4px" }}>Categoria</th>
                     <th style={{ padding: "6px 4px" }}>Situação</th>
@@ -386,11 +389,16 @@ export function DocumentoRelatorio({
                 <tbody>
                   {lancamentos.map((l) => (
                     <tr key={l.id} style={{ borderTop: "1px solid var(--ln2)" }}>
-                      <td style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>
-                        {dataBr(l.data_registro)}
+                      <td
+                        data-rotulo="Vencimento"
+                        style={{ padding: "6px 4px", whiteSpace: "nowrap" }}
+                      >
+                        {dataBr(dataQueVale(l))}
                       </td>
-                      <td style={{ padding: "6px 4px" }}>{l.descricao}</td>
-                      <td style={{ padding: "6px 4px" }}>
+                      <td data-rotulo="Descrição" style={{ padding: "6px 4px" }}>
+                        {l.descricao}
+                      </td>
+                      <td data-rotulo="Categoria" style={{ padding: "6px 4px" }}>
                         {l.categoria?.nome ?? "—"}
                         {l.subcategoria?.nome ? (
                           <span style={{ color: "var(--mut)" }}>
@@ -399,8 +407,11 @@ export function DocumentoRelatorio({
                           </span>
                         ) : null}
                       </td>
-                      <td style={{ padding: "6px 4px" }}>{ROTULO_SITUACAO[l.situacao]}</td>
+                      <td data-rotulo="Situação" style={{ padding: "6px 4px" }}>
+                        {ROTULO_SITUACAO[l.situacao]}
+                      </td>
                       <td
+                        data-rotulo="Valor"
                         style={{
                           padding: "6px 4px",
                           textAlign: "right",

@@ -324,3 +324,37 @@ button {
     transition: filter 160ms ease-out;
   }
 }
+
+/* ── Lançamentos detalhados no celular ─────────────────────────────
+   Cinco colunas não cabem numa tela de telefone, e rolar a tabela para o
+   lado esconde metade da informação. Aqui cada lançamento vira um bloco,
+   com o rótulo ao lado do dado.
+
+   Só em `screen`: no papel e no PDF do navegador a largura existe, e a
+   tabela é mais fácil de percorrer. */
+@media screen and (max-width: 640px) {
+  .tabela-lancamentos thead {
+    display: none;
+  }
+  .tabela-lancamentos tr {
+    display: block;
+    padding: 8px 0;
+  }
+  .tabela-lancamentos td {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 2px 0 !important;
+    text-align: right !important;
+  }
+  /* O rótulo que o cabeçalho daria, agora ao lado de cada dado. */
+  .tabela-lancamentos td::before {
+    content: attr(data-rotulo);
+    color: var(--mut);
+    flex-shrink: 0;
+    text-align: left;
+  }
+  .tabela-lancamentos td[data-rotulo="Descrição"] {
+    font-weight: 600;
+  }
+}

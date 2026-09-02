@@ -1,7 +1,11 @@
 import { dataBr, moedaOuOculto } from "@/lib/formato";
 import { calcularIndicadores, montarFatias } from "@/lib/relatorio";
 import type { DadosRelatorio } from "@/lib/dados/relatorios";
-import { ROTULO_SITUACAO, type LancamentoNaLista } from "@/lib/tipos/lancamentos";
+import {
+  dataQueVale,
+  ROTULO_SITUACAO,
+  type LancamentoNaLista,
+} from "@/lib/tipos/lancamentos";
 import type { Meta } from "@/lib/tipos/metas";
 import { percentualDaMeta } from "@/lib/tipos/metas";
 import { estadoDoOrcamento, percentualDoOrcamento, type Orcamento } from "@/lib/tipos/orcamentos";
@@ -536,15 +540,15 @@ export async function montarPdfRelatorio(c: ConteudoRelatorio): Promise<Blob> {
         doc,
         f,
         [
-          { titulo: "Data", largura: UTIL * 0.115 },
+          { titulo: "Vencimento", largura: UTIL * 0.135 },
           { titulo: "Descrição", largura: UTIL * 0.25 },
           { titulo: "Categoria", largura: UTIL * 0.18 },
-          { titulo: "Subcategoria", largura: UTIL * 0.17 },
+          { titulo: "Subcategoria", largura: UTIL * 0.15 },
           { titulo: "Situação", largura: UTIL * 0.125 },
           { titulo: "Valor", largura: UTIL * 0.16, alinhar: "direita" },
         ],
         c.lancamentos.map((l) => [
-          dataBr(l.data_registro),
+          dataBr(dataQueVale(l)),
           l.descricao,
           l.categoria?.nome ?? "—",
           l.subcategoria?.nome ?? "—",
