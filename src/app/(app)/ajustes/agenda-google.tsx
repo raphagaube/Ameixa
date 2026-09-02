@@ -25,9 +25,40 @@ export function AgendaGoogle({ status }: { status: StatusAgenda }) {
 
   if (!status.configurado) {
     return (
-      <p style={{ fontSize: 13, color: "var(--mut)" }}>
-        A conexão com o Google Agenda ainda não foi configurada neste app.
-      </p>
+      <div className="flex flex-col" style={{ gap: 8 }}>
+        <p style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.5 }}>
+          A conexão com o Google Agenda ainda não foi configurada neste app.
+        </p>
+        {status.faltando.length > 0 ? (
+          <div
+            style={{
+              padding: 12,
+              borderRadius: "var(--rs)",
+              border: "1px solid var(--ln)",
+            }}
+          >
+            <p style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6 }}>
+              {status.faltando.length === 1
+                ? "Falta esta variável na Vercel, e um novo deploy depois:"
+                : `Faltam ${status.faltando.length} variáveis na Vercel, e um novo deploy depois:`}
+            </p>
+            <ul className="flex flex-col" style={{ gap: 4 }}>
+              {status.faltando.map((nome) => (
+                <li
+                  key={nome}
+                  style={{
+                    fontSize: 12,
+                    fontFamily: "ui-monospace, monospace",
+                    color: "var(--color-text)",
+                  }}
+                >
+                  {nome}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
     );
   }
 

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import { agendaConfigurada } from "@/lib/agenda/config";
+import { agendaConfigurada, variaveisQueFaltam } from "@/lib/agenda/config";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 /**
@@ -13,6 +13,8 @@ import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 export type StatusAgenda = {
   configurado: boolean;
+  /** Nomes das variáveis de ambiente ausentes. Vazio quando está tudo posto. */
+  faltando: string[];
   conectado: boolean;
   precisaReconectar: boolean;
   email: string | null;
@@ -23,6 +25,7 @@ export type StatusAgenda = {
 
 const VAZIO: StatusAgenda = {
   configurado: false,
+  faltando: [],
   conectado: false,
   precisaReconectar: false,
   email: null,
@@ -33,7 +36,7 @@ const VAZIO: StatusAgenda = {
 
 export const statusAgenda = cache(async (): Promise<StatusAgenda> => {
   const configurado = agendaConfigurada();
-  if (!configurado) return VAZIO;
+  if (!configurado) return { ...VAZIO, faltando: variaveisQueFaltam() };
 
   const supabase = await criarClienteServidor();
   const { data } = await supabase.rpc("agenda_status");
@@ -52,6 +55,7 @@ export const statusAgenda = cache(async (): Promise<StatusAgenda> => {
 
   return {
     configurado,
+    faltando: [],
     conectado: true,
     precisaReconectar: linha.estado === "reconectar",
     email: linha.email_google,
