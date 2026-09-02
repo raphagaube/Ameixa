@@ -285,3 +285,13 @@ button {
   color: var(--mut);
   margin-bottom: 22px;
 }
+
+/* Dica do teclado físico: só faz sentido onde existe um. */
+.dica-teclado {
+  display: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dica-teclado {
+    display: block;
+  }
+}

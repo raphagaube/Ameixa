@@ -2,11 +2,12 @@
 
 import { Delete } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Botao } from "@/components/ui/botao";
 import { Folha } from "@/components/ui/folha";
 import { Segmentos } from "@/components/ui/segmentos";
 import { moeda } from "@/lib/formato";
+import { acaoDaTecla } from "@/lib/teclado-valor";
 import type { Conta } from "@/lib/tipos/contas";
 import { salvarRapido } from "@/app/(app)/lancamentos/acoes";
 
@@ -86,6 +87,46 @@ export function RegistroFacil({
     aoDetalhar(v, t, c);
   }
 
+  /**
+   * Teclado físico do computador.
+   *
+   * No celular o teclado da tela basta. No computador, quem abre isso
+   * espera digitar — e como o valor é um mostrador, e não um campo, o
+   * navegador não tem onde entregar as teclas sozinho. Daí ouvir a janela.
+   *
+   * O ouvinte fica numa ref, no mesmo molde da Folha: se ele entrasse nas
+   * dependências do efeito, o efeito se remontaria a cada dígito.
+   */
+  const aoTeclado = useRef<(e: KeyboardEvent) => void>(() => {});
+
+  useEffect(() => {
+    aoTeclado.current = (e: KeyboardEvent) => {
+      const acao = acaoDaTecla({
+        key: e.key,
+        metaKey: e.metaKey,
+        ctrlKey: e.ctrlKey,
+        altKey: e.altKey,
+        alvo: (e.target as HTMLElement | null)?.tagName,
+      });
+      if (!acao) return;
+
+      // Backspace fora de um campo faz o navegador voltar de página em
+      // algumas configurações. Aqui ela é "apagar o último número".
+      e.preventDefault();
+
+      if (acao.tipo === "digito") teclar(acao.valor);
+      else if (acao.tipo === "apagar") teclar("apagar");
+      else completarDepois();
+    };
+  });
+
+  useEffect(() => {
+    if (!aberta) return;
+    const ouvir = (e: KeyboardEvent) => aoTeclado.current(e);
+    window.addEventListener("keydown", ouvir);
+    return () => window.removeEventListener("keydown", ouvir);
+  }, [aberta]);
+
   return (
     <Folha aberta={aberta} aoFechar={fecharLimpo} titulo="Registro fácil">
       <div className="flex flex-col" style={{ gap: 14, paddingBottom: 8 }}>
@@ -150,6 +191,10 @@ export function RegistroFacil({
             Cadastre um banco em Ajustes para escolher a conta aqui.
           </p>
         )}
+
+        <p className="dica-teclado" style={{ fontSize: 12, color: "var(--mut)", textAlign: "center" }}>
+          Dá para digitar pelo teclado. Enter salva, Backspace apaga.
+        </p>
 
         <div className="grid grid-cols-3" style={{ gap: 8 }}>
           {TECLAS.map((t) => (
