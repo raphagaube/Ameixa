@@ -1,8 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { obterCredenciais } from "@/lib/agenda/credenciais";
-import { desconectar } from "@/lib/agenda/credenciais";
+import {
+  desconectar,
+  gravarAgendas,
+  obterCredenciais,
+} from "@/lib/agenda/credenciais";
 import {
   drenarFila,
   garantirAgendas,
@@ -11,7 +14,7 @@ import {
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 export type ResultadoAgenda =
-  | { ok: true; enviados: number; restantes: number }
+  | { ok: true; enviados: number; restantes: number; proximo: number }
   | { ok: false; erro: string };
 
 /** Quantas pendências por chamada. O laço fica no cliente, não no servidor. */
@@ -25,16 +28,24 @@ const RECADO: Record<string, string> = {
 };
 
 /**
- * Manda para a agenda as pendências que ainda não têm compromisso.
+ * Manda pendências para a agenda.
  *
- * Paginado de propósito: o laço vive no cliente, que mostra "enviei 300 de
- * 640". Um laço no servidor esbarraria no tempo máximo da função da Vercel
- * e perderia tudo que já tinha feito.
+ * Dois modos. O normal pega só o que ainda não tem compromisso — é a carga
+ * inicial. O de reconferência passa por **todas** as pendências, inclusive
+ * as que já têm evento, e reescreve as que saíram do lugar; serve para
+ * quando os dados mudaram por fora do app (uma correção em massa de datas,
+ * por exemplo) e a agenda ficou defasada.
  *
- * @param sóFuturas restringe às que ainda vão vencer.
+ * Reconferir é barato: a assinatura guardada em `eventos_agenda` faz o que
+ * não mudou nem virar requisição ao Google.
+ *
+ * Paginado de propósito: o laço vive no cliente, que mostra o progresso. Um
+ * laço no servidor esbarraria no tempo máximo da função da Vercel e perderia
+ * tudo que já tinha feito.
  */
 export async function sincronizarPendencias(
-  soFuturas = false,
+  reconferir = false,
+  desde = 0,
 ): Promise<ResultadoAgenda> {
   const cred = await obterCredenciais();
   if (typeof cred === "string") {
@@ -43,61 +54,64 @@ export async function sincronizarPendencias(
 
   const supabase = await criarClienteServidor();
 
-  // Se as agendas sumiram do Google, recriar antes é o que evita gravar
-  // seiscentos eventos em lugar nenhum.
-  if (!cred.pagar || !cred.receber) {
-    const agendas = await garantirAgendas(cred.access, {
-      pagar: cred.pagar,
-      receber: cred.receber,
-    });
-    if (!agendas) {
-      return { ok: false, erro: "Não deu para criar as agendas no Google." };
-    }
+  // Confere as agendas a cada rodada, em vez de confiar no id guardado.
+  // Se o dono apagou uma delas no Google, sem isto o app tentaria gravar
+  // num calendário que não existe mais — e ficaria travado nisso.
+  const agendas = await garantirAgendas(cred.access, {
+    pagar: cred.pagar,
+    receber: cred.receber,
+  });
+  if (!agendas) {
+    return { ok: false, erro: "Não deu para criar as agendas no Google." };
+  }
+  if (agendas.pagar !== cred.pagar || agendas.receber !== cred.receber) {
+    await gravarAgendas(agendas.pagar, agendas.receber);
   }
 
-  let q = supabase
+  const { data, error } = await supabase
     .from("lancamentos")
     .select("id, eventos_agenda(lancamento_id)")
     .in("situacao", ["a_pagar", "a_receber"])
-    .order("data_vencimento", { ascending: true, nullsFirst: false });
+    .order("data_vencimento", { ascending: true, nullsFirst: false })
+    .limit(3000);
 
-  if (soFuturas) {
-    q = q.gte("data_vencimento", new Date().toISOString().slice(0, 10));
-  }
-
-  const { data, error } = await q.limit(3000);
   if (error) return { ok: false, erro: "Não deu para ler suas pendências." };
 
-  const semEvento = (data ?? [])
-    .filter((l) => {
-      const v = (l as { eventos_agenda?: unknown }).eventos_agenda;
-      return Array.isArray(v) ? v.length === 0 : !v;
-    })
+  const semEvento = (l: { eventos_agenda?: unknown }) => {
+    const v = l.eventos_agenda;
+    return Array.isArray(v) ? v.length === 0 : !v;
+  };
+
+  const alvos = (data ?? [])
+    .filter((l) => reconferir || semEvento(l))
     .map((l) => l.id as string);
 
-  if (semEvento.length === 0) {
+  const lote = alvos.slice(desde, desde + POR_VEZ);
+
+  if (lote.length === 0) {
     revalidatePath("/ajustes");
-    return { ok: true, enviados: 0, restantes: 0 };
+    return { ok: true, enviados: 0, restantes: 0, proximo: 0 };
   }
 
-  const lote = semEvento.slice(0, POR_VEZ);
   const r = await sincronizarLancamentos(lote);
-
   revalidatePath("/ajustes");
-  return {
-    ok: true,
-    enviados: r.feitos,
-    // O que falhou continua contando como restante: some da fila do
-    // usuário só quando de fato virou compromisso.
-    restantes: Math.max(0, semEvento.length - r.feitos),
-  };
+
+  // Na reconferência o alvo não some da lista depois de tratado, então quem
+  // controla o avanço é o deslocamento. Na carga inicial, o próprio filtro
+  // encolhe a cada rodada.
+  const proximo = reconferir ? desde + lote.length : 0;
+  const restantes = reconferir
+    ? Math.max(0, alvos.length - proximo)
+    : Math.max(0, alvos.length - r.feitos);
+
+  return { ok: true, enviados: r.feitos, restantes, proximo };
 }
 
 /** Botão "tentar agora" quando algo ficou preso na fila. */
 export async function tentarFilaAgora(): Promise<ResultadoAgenda> {
   const r = await drenarFila(60);
   revalidatePath("/ajustes");
-  return { ok: true, enviados: r.feitos, restantes: r.adiados };
+  return { ok: true, enviados: r.feitos, restantes: r.adiados, proximo: 0 };
 }
 
 /**

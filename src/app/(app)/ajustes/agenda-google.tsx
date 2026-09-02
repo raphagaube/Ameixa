@@ -1,6 +1,12 @@
 "use client";
 
-import { CalendarPlus, RefreshCw, TriangleAlert, Unlink } from "lucide-react";
+import {
+  CalendarPlus,
+  RefreshCcwDot,
+  RefreshCw,
+  TriangleAlert,
+  Unlink,
+} from "lucide-react";
 import { useState, useTransition } from "react";
 import { Botao } from "@/components/ui/botao";
 import type { StatusAgenda } from "@/lib/dados/agenda";
@@ -66,25 +72,32 @@ export function AgendaGoogle({ status }: { status: StatusAgenda }) {
    * Chama em laço até acabar. O servidor manda um lote por vez para não
    * esbarrar no tempo máximo da função; quem conta o progresso é aqui.
    */
-  function enviarPendencias() {
+  function enviarPendencias(reconferir = false) {
     setErro(null);
     iniciar(async () => {
       let enviados = 0;
-      for (let volta = 0; volta < 60; volta += 1) {
-        const r = await sincronizarPendencias();
+      let proximo = 0;
+      for (let volta = 0; volta < 80; volta += 1) {
+        const r = await sincronizarPendencias(reconferir, proximo);
         if (!r.ok) {
           setErro(r.erro);
           setProgresso(null);
           return;
         }
         enviados += r.enviados;
+        proximo = r.proximo;
+        const um = enviados === 1;
         setProgresso(
           r.restantes > 0
-            ? `Enviei ${enviados} de ${enviados + r.restantes}…`
-            : `Pronto: ${enviados} compromissos na sua agenda.`,
+            ? `Faltam ${r.restantes}…`
+            : reconferir
+              ? `Tudo conferido. ${enviados} compromisso${um ? "" : "s"} atualizado${um ? "" : "s"}.`
+              : `Pronto: ${enviados} compromisso${um ? "" : "s"} na sua agenda.`,
         );
-        // Nada foi enviado e ainda sobra: insistir só repetiria a falha.
-        if (r.restantes === 0 || r.enviados === 0) break;
+        if (r.restantes === 0) break;
+        // Na carga inicial, nada enviado e ainda sobrando significa que a
+        // próxima rodada repetiria a mesma falha.
+        if (!reconferir && r.enviados === 0) break;
       }
     });
   }
@@ -174,10 +187,27 @@ export function AgendaGoogle({ status }: { status: StatusAgenda }) {
       )}
 
       {status.pendentesSemEvento > 0 && !status.precisaReconectar ? (
-        <Botao variante="contorno" onClick={enviarPendencias} carregando={ocupado}>
+        <Botao
+          variante="contorno"
+          onClick={() => enviarPendencias(false)}
+          carregando={ocupado}
+        >
           <span className="flex items-center justify-center" style={{ gap: 8 }}>
             <RefreshCw size={18} strokeWidth={1.5} aria-hidden />
             Enviar as {status.pendentesSemEvento} pendências que já existem
+          </span>
+        </Botao>
+      ) : null}
+
+      {!status.precisaReconectar ? (
+        <Botao
+          variante="contorno"
+          onClick={() => enviarPendencias(true)}
+          carregando={ocupado}
+        >
+          <span className="flex items-center justify-center" style={{ gap: 8 }}>
+            <RefreshCcwDot size={18} strokeWidth={1.5} aria-hidden />
+            Reconferir os compromissos
           </span>
         </Botao>
       ) : null}

@@ -173,6 +173,15 @@ export async function gravarConexao(p: {
   return !error;
 }
 
+/** Anota os ids das agendas recriadas, sem exigir uma reconexão inteira. */
+export async function gravarAgendas(pagar: string | null, receber: string | null) {
+  const supabase = await criarClienteServidor();
+  await supabase.rpc("agenda_gravar_agendas", {
+    p_pagar: pagar,
+    p_receber: receber,
+  });
+}
+
 export async function marcarReconectar(motivo: string) {
   await marcar("reconectar", motivo);
 }
