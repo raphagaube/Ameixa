@@ -11,7 +11,7 @@ import { ROTULO_TIPO_CONTA, type TipoConta } from "@/lib/tipos/contas";
  * onde se entra para criar e editar. Aqui é de consulta.
  */
 export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas }) {
-  const { contas, total, disponivel, guardado, semConta } = panorama;
+  const { contas, disponivel, guardado, semConta } = panorama;
 
   if (contas.length === 0) {
     return (
@@ -47,30 +47,6 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
         >
           gerenciar
         </Link>
-      </div>
-
-      <div
-        style={{
-          background: "var(--tint)",
-          borderRadius: "var(--r)",
-          padding: "15px 14px",
-        }}
-      >
-        <p className="rotulo">Total nas contas</p>
-        <p
-          style={{
-            fontSize: 30,
-            fontWeight: 700,
-            lineHeight: 1.1,
-            marginTop: 4,
-            color: total < 0 ? "var(--bad)" : "var(--color-text)",
-          }}
-        >
-          {moeda(total)}
-        </p>
-        <p style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>
-          {contas.length} {contas.length === 1 ? "conta" : "contas"}
-        </p>
       </div>
 
       {/* Dinheiro que dá para gastar hoje não é a mesma coisa que dinheiro

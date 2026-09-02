@@ -66,7 +66,7 @@ export default async function Inicio({
           padding: "15px 14px",
         }}
       >
-        <p className="rotulo">Saldo total · até {mesAno(referencia)}</p>
+        <p className="rotulo">Saldo nas contas · até {mesAno(referencia)}</p>
         <p
           style={{
             fontSize: 44,
