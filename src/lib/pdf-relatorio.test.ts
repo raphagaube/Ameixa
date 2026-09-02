@@ -25,7 +25,13 @@ const dados: DadosRelatorio = {
   diasNoPeriodo: 30,
 };
 
-function lanc(id: string, descricao: string, valor: number): LancamentoNaLista {
+function lanc(
+  id: string,
+  descricao: string,
+  valor: number,
+  categoria: string | null = null,
+  subcategoria: string | null = null,
+): LancamentoNaLista {
   return {
     id,
     tipo: "despesa",
@@ -47,8 +53,8 @@ function lanc(id: string, descricao: string, valor: number): LancamentoNaLista {
     parcela_atual: null,
     parcela_total: null,
     incompleto: false,
-    categoria: null,
-    subcategoria: null,
+    categoria: categoria ? { nome: categoria, cor: "#8FB3D9", cor_texto: "#14161a" } : null,
+    subcategoria: subcategoria ? { nome: subcategoria } : null,
     conta: null,
     cartao: null,
   };
@@ -143,5 +149,20 @@ describe("PDF do relatório", () => {
       },
     });
     expect(await assinatura(blob)).toBe("%PDF-");
+  });
+
+  /** Pedido: o detalhado precisa mostrar categoria E subcategoria. */
+  it("gera o detalhado com categoria e subcategoria", async () => {
+    const blob = await montarPdfRelatorio({
+      ...base,
+      secoes: ["detalhes"],
+      lancamentos: [
+        lanc("1", "Kalimera Hortifruti", 83.63, "Alimentação", "Supermercado"),
+        lanc("2", "Uber", 24.9, "Transporte", "Aplicativo"),
+        lanc("3", "Sem classificação", 10),
+      ],
+    });
+    expect(await assinatura(blob)).toBe("%PDF-");
+    expect(blob.size).toBeGreaterThan(1000);
   });
 });

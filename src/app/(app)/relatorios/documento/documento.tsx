@@ -390,7 +390,15 @@ export function DocumentoRelatorio({
                         {dataBr(l.data_registro)}
                       </td>
                       <td style={{ padding: "6px 4px" }}>{l.descricao}</td>
-                      <td style={{ padding: "6px 4px" }}>{l.categoria?.nome ?? "—"}</td>
+                      <td style={{ padding: "6px 4px" }}>
+                        {l.categoria?.nome ?? "—"}
+                        {l.subcategoria?.nome ? (
+                          <span style={{ color: "var(--mut)" }}>
+                            {" › "}
+                            {l.subcategoria.nome}
+                          </span>
+                        ) : null}
+                      </td>
                       <td style={{ padding: "6px 4px" }}>{ROTULO_SITUACAO[l.situacao]}</td>
                       <td
                         style={{
