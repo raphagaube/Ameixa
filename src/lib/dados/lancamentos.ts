@@ -1,4 +1,5 @@
 import "server-only";
+import { filtroOu, interpretarBusca } from "@/lib/busca";
 import { paraIso } from "@/lib/formato";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
@@ -53,7 +54,14 @@ export async function lancamentosDoPeriodo(
 
   if (f.de) q = q.gte("data_registro", f.de);
   if (f.ate) q = q.lte("data_registro", f.ate);
-  if (f.texto) q = q.ilike("descricao", `%${f.texto}%`);
+  if (f.texto) {
+    // O mesmo campo procura por descrição e por valor: digitar 363 acha a
+    // conta de R$ 363,00, não só um estabelecimento chamado 363.
+    const busca = interpretarBusca(f.texto);
+    const ou = filtroOu(busca);
+    if (ou) q = q.or(ou);
+    else if (busca.texto) q = q.ilike("descricao", `%${busca.texto}%`);
+  }
   if (f.categoriaId) q = q.eq("categoria_id", f.categoriaId);
   if (f.subcategoriaId) q = q.eq("subcategoria_id", f.subcategoriaId);
   if (f.situacao) q = q.eq("situacao", f.situacao);

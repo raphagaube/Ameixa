@@ -213,8 +213,8 @@ export function PainelExtrato({
             onKeyDown={(e) => {
               if (e.key === "Enter") aplicarBusca();
             }}
-            placeholder="Buscar na descrição"
-            aria-label="Buscar na descrição"
+            placeholder="Buscar por descrição ou valor"
+            aria-label="Buscar por descrição ou valor"
             style={{ ...estiloSelect, flex: 1 }}
           />
           <Botao
