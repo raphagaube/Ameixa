@@ -97,6 +97,8 @@ function tabela(
   colunas: Coluna[],
   linhas: string[][],
   corDaLinha?: (i: number) => { r: number; g: number; b: number } | null,
+  /** Desenho extra no início da linha — o quadradinho de cor da categoria. */
+  enfeite?: (i: number, y: number) => void,
 ) {
   const cabecalho = () => {
     f.espaco(10);
@@ -126,6 +128,7 @@ function tabela(
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
+    enfeite?.(i, f.y);
 
     let x = MARGEM;
     colunas.forEach((c, j) => {
@@ -152,6 +155,130 @@ function tabela(
   });
 
   f.pular(4);
+}
+
+/** #RRGGBB para os três canais que o jsPDF espera. */
+function hexParaRgb(hex: string): { r: number; g: number; b: number } {
+  const limpo = hex.replace("#", "");
+  const n = Number.parseInt(
+    limpo.length === 3
+      ? limpo.split("").map((c) => c + c).join("")
+      : limpo,
+    16,
+  );
+  return Number.isFinite(n)
+    ? { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 }
+    : CINZA;
+}
+
+/**
+ * Rosca desenhada em vetor, não colada como imagem.
+ *
+ * O jsPDF não tem arco preenchido, então cada fatia é um leque de
+ * triângulos saindo do centro. Com um passo de 2 graus a borda fica lisa a
+ * olho nu, e o arquivo continua leve e nítido em qualquer zoom.
+ */
+function rosca(
+  doc: Doc,
+  cx: number,
+  cy: number,
+  raio: number,
+  fatias: { valor: number; cor: string }[],
+) {
+  const total = fatias.reduce((s, f) => s + f.valor, 0);
+  if (total <= 0) return;
+
+  const VAO = 0.8; // graus de respiro entre fatias
+  let angulo = -90; // começa no topo, como todo gráfico de pizza
+
+  for (const f of fatias) {
+    const tamanho = (f.valor / total) * 360;
+    const fim = angulo + Math.max(tamanho - VAO, 0.4);
+    const { r, g, b } = hexParaRgb(f.cor);
+    doc.setFillColor(r, g, b);
+
+    const passo = 2;
+    for (let a = angulo; a < fim; a += passo) {
+      const a2 = Math.min(a + passo, fim);
+      const rad = (x: number) => (x * Math.PI) / 180;
+      doc.triangle(
+        cx,
+        cy,
+        cx + raio * Math.cos(rad(a)),
+        cy + raio * Math.sin(rad(a)),
+        cx + raio * Math.cos(rad(a2)),
+        cy + raio * Math.sin(rad(a2)),
+        "F",
+      );
+    }
+
+    angulo += tamanho;
+  }
+
+  // O furo: círculo branco por cima do meio.
+  doc.setFillColor(255, 255, 255);
+  doc.circle(cx, cy, raio * 0.58, "F");
+}
+
+/** Barras de receitas contra despesas, também em vetor. */
+function barras(
+  doc: Doc,
+  f: Folha,
+  meses: { rotulo: string; receitas: number; despesas: number }[],
+) {
+  const maximo = Math.max(...meses.map((m) => Math.max(m.receitas, m.despesas)), 0);
+  if (maximo <= 0) return;
+
+  const ALTURA = 30;
+  f.espaco(ALTURA + 14);
+
+  const base = f.y + ALTURA;
+  const larguraGrupo = UTIL / meses.length;
+  const larguraBarra = Math.min(larguraGrupo / 3, 7);
+
+  meses.forEach((m, i) => {
+    const centro = MARGEM + larguraGrupo * i + larguraGrupo / 2;
+
+    const desenhar = (valor: number, deslocamento: number, cor: typeof VERDE) => {
+      const altura = (valor / maximo) * ALTURA;
+      if (altura <= 0) return;
+      doc.setFillColor(cor.r, cor.g, cor.b);
+      doc.rect(centro + deslocamento, base - altura, larguraBarra, altura, "F");
+    };
+
+    desenhar(m.receitas, -larguraBarra - 0.6, VERDE);
+    desenhar(m.despesas, 0.6, VERMELHO);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    tinta(doc, CINZA);
+    doc.text(m.rotulo, centro, base + 4, { align: "center" });
+  });
+
+  // Linha da base, para as barras não flutuarem no vazio.
+  doc.setDrawColor(LINHA.r, LINHA.g, LINHA.b);
+  doc.setLineWidth(0.3);
+  doc.line(MARGEM, base, A4.largura - MARGEM, base);
+
+  f.pular(ALTURA + 10);
+}
+
+/** Legenda de duas cores, para as barras não dependerem só da cor. */
+function legendaBarras(doc: Doc, f: Folha) {
+  f.espaco(6);
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+
+  doc.setFillColor(VERDE.r, VERDE.g, VERDE.b);
+  doc.rect(MARGEM, f.y - 2, 3, 3, "F");
+  tinta(doc, CINZA);
+  doc.text("Receitas", MARGEM + 5, f.y);
+
+  doc.setFillColor(VERMELHO.r, VERMELHO.g, VERMELHO.b);
+  doc.rect(MARGEM + 26, f.y - 2, 3, 3, "F");
+  doc.text("Despesas", MARGEM + 31, f.y);
+
+  f.pular(6);
 }
 
 export type ConteudoRelatorio = {
@@ -257,16 +384,38 @@ export async function montarPdfRelatorio(c: ConteudoRelatorio): Promise<Blob> {
     if (fatias.length === 0) {
       vazio(doc, f, "Nenhuma despesa no período.");
     } else {
+      // Com "ocultar valores" o gráfico ainda faz sentido: as proporções
+      // continuam verdadeiras, só os números somem.
+      const RAIO = 26;
+      f.espaco(RAIO * 2 + 10);
+      rosca(doc, A4.largura / 2, f.y + RAIO, RAIO, fatias);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      tinta(doc, TINTA);
+      doc.text(v(c.dados.totalDespesas), A4.largura / 2, f.y + RAIO + 1, {
+        align: "center",
+      });
+      f.pular(RAIO * 2 + 8);
+
       tabela(
         doc,
         f,
         [
-          { titulo: "Categoria", largura: UTIL * 0.46 },
-          { titulo: "%", largura: UTIL * 0.18, alinhar: "direita" },
-          { titulo: "Valor", largura: UTIL * 0.36, alinhar: "direita" },
+          { titulo: "", largura: 5 },
+          { titulo: "Categoria", largura: UTIL * 0.44 },
+          { titulo: "%", largura: UTIL * 0.16, alinhar: "direita" },
+          { titulo: "Valor", largura: UTIL * 0.4 - 5, alinhar: "direita" },
         ],
-        fatias.map((x) => [x.nome, `${x.percentual}%`, v(x.valor)]),
+        fatias.map((x) => ["", x.nome, `${x.percentual}%`, v(x.valor)]),
         () => VERMELHO,
+        // Quadradinho da cor: a legenda não pode depender só do nome, nem
+        // só da cor.
+        (i, y) => {
+          const { r, g, b } = hexParaRgb(fatias[i].cor);
+          doc.setFillColor(r, g, b);
+          doc.rect(MARGEM, y - 2.2, 2.6, 2.6, "F");
+        },
       );
     }
   }
@@ -274,6 +423,9 @@ export async function montarPdfRelatorio(c: ConteudoRelatorio): Promise<Blob> {
   // ── Evolução mensal ──────────────────────────────────────────
   if (c.secoes.includes("evolucao")) {
     titulo(doc, f, ++n, "Evolução mensal");
+
+    legendaBarras(doc, f);
+    barras(doc, f, c.dados.meses);
 
     tabela(
       doc,
