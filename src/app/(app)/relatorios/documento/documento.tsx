@@ -2,7 +2,7 @@
 
 import { Download, FileSpreadsheet, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { BarrasEvolucao } from "@/components/barras-evolucao";
 import { LogoAmeixa } from "@/components/logo-ameixa";
 import { RoscaCategorias } from "@/components/rosca-categorias";
@@ -13,7 +13,6 @@ import { calcularIndicadores, montarFatias } from "@/lib/relatorio";
 import { baixarExcel } from "@/lib/exportar";
 import {
   baixarArquivo,
-  gerarPdf,
   nomeDoRelatorio,
   podeCompartilharArquivo,
 } from "@/lib/pdf";
@@ -52,8 +51,6 @@ export function DocumentoRelatorio({
   metas: Meta[];
 }) {
   const router = useRouter();
-  // Referência da folha do relatório: é ela que vira PDF, sem os botões.
-  const folha = useRef<HTMLDivElement>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [gerando, iniciarGerar] = useTransition();
 
@@ -89,14 +86,34 @@ export function DocumentoRelatorio({
 
   function enviarPdf() {
     setAviso(null);
-    if (!folha.current) return;
 
     iniciarGerar(async () => {
-      const r = await gerarPdf(folha.current!, nomeDoRelatorio(de, ate));
-      if (!r.ok) {
-        setAviso(r.erro);
+      let arquivo: File;
+      try {
+        // Montado a partir dos dados, não de uma foto da tela: texto de
+        // verdade, folha branca, e o tema escuro do aparelho não vaza.
+        const { montarPdfRelatorio } = await import("@/lib/pdf-relatorio");
+        const blob = await montarPdfRelatorio({
+          dados,
+          nome,
+          de,
+          ate,
+          secoes,
+          ocultar,
+          tecnicos,
+          lancamentos,
+          orcamentos,
+          metas,
+        });
+        arquivo = new File([blob], nomeDoRelatorio(de, ate), {
+          type: "application/pdf",
+        });
+      } catch {
+        setAviso("Não deu para montar o PDF. Tente usar o botão Imprimir.");
         return;
       }
+
+      const r = { arquivo };
 
       if (podeCompartilharArquivo(r.arquivo)) {
         try {
@@ -170,7 +187,7 @@ export function DocumentoRelatorio({
         ) : null}
       </div>
 
-      <div ref={folha} className="flex flex-col" style={{ gap: 16, background: "var(--color-bg)" }}>
+      <div className="flex flex-col" style={{ gap: 16 }}>
 
       <header
         className="flex items-center"

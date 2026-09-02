@@ -29,10 +29,10 @@ export function RoscaCategorias({
   }
 
   return (
-    <div className="flex flex-col items-center" style={{ gap: 16 }}>
+    <div className="flex flex-col items-center" style={{ gap: 18 }}>
       <div
         className="relative grid place-items-center"
-        style={{ width: 186, height: 186 }}
+        style={{ width: 250, height: 250 }}
       >
         <div
           aria-hidden
@@ -46,14 +46,14 @@ export function RoscaCategorias({
         <div
           className="relative grid place-items-center text-center"
           style={{
-            width: 118,
-            height: 118,
+            width: 140,
+            height: 140,
             borderRadius: "50%",
             background: "var(--color-bg)",
           }}
         >
           <div>
-            <p style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.1 }}>
+            <p style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.1 }}>
               {moeda(total)}
             </p>
             {legendaTopo ? (
@@ -65,29 +65,35 @@ export function RoscaCategorias({
         </div>
       </div>
 
-      <ul className="w-full flex flex-col" style={{ gap: 8 }}>
+      {/* Legenda enxuta: o gráfico é a estrela, ela é o apoio. Antes cada
+          fatia ocupava uma linha alta e a lista tomava mais tela que a
+          rosca. */}
+      <ul className="w-full flex flex-col" style={{ gap: 5 }}>
         {fatias.map((f) => (
-          <li key={f.nome} className="flex items-center" style={{ gap: 8 }}>
+          <li key={f.nome} className="flex items-center" style={{ gap: 7 }}>
             <span
               aria-hidden
               style={{
-                width: 10,
-                height: 10,
-                borderRadius: 3,
+                width: 9,
+                height: 9,
+                borderRadius: 2,
                 background: f.cor,
                 flexShrink: 0,
               }}
             />
-            <span className="min-w-0 flex-1 truncate" style={{ fontSize: 14 }}>
+            <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13 }}>
               {f.nome}
             </span>
-            <span style={{ fontSize: 14, fontWeight: 600 }}>{moeda(f.valor)}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
+              {moeda(f.valor)}
+            </span>
             <span
               style={{
                 fontSize: 12,
                 color: "var(--mut)",
-                width: 46,
+                width: 38,
                 textAlign: "right",
+                flexShrink: 0,
               }}
             >
               {f.percentual}%

@@ -185,7 +185,11 @@ button {
     display: none !important;
   }
 
-  :root {
+  /* Precisa vencer :root[data-mode="dark"], que tem mais peso que :root
+     sozinho. Sem os dois seletores, imprimir no tema escuro saía escuro:
+     papel preto, tinta clara e um gasto de toner absurdo. */
+  :root,
+  :root[data-mode="dark"] {
     --color-bg: #ffffff;
     --sf: #ffffff;
     --color-text: #000000;
@@ -218,6 +222,18 @@ button {
   img {
     mix-blend-mode: multiply !important;
     filter: none !important;
+  }
+
+  /* O acento do tema escuro é claro demais para papel branco.
+     Precisa de !important: o ProvedorTema escreve essas variáveis como
+     estilo inline no <html>, e estilo inline vence qualquer seletor. */
+  :root {
+    --deep: #2f6b47 !important;
+    --tint: #eef3ef !important;
+    --on-ac: #ffffff !important;
+    --ok: #2f6b47 !important;
+    --warn: #8a6417 !important;
+    --bad: #a83a34 !important;
   }
 }
 
