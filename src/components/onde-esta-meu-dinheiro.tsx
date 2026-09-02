@@ -11,7 +11,7 @@ import { ROTULO_TIPO_CONTA, type TipoConta } from "@/lib/tipos/contas";
  * onde se entra para criar e editar. Aqui é de consulta.
  */
 export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas }) {
-  const { contas, disponivel, guardado, semConta } = panorama;
+  const { contas, total, disponivel, guardado, semConta } = panorama;
 
   if (contas.length === 0) {
     return (
@@ -30,13 +30,6 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
     );
   }
 
-  const celula: React.CSSProperties = {
-    borderRadius: "var(--r)",
-    border: "1px solid var(--ln2)",
-    background: "var(--sf)",
-    padding: "12px 14px",
-  };
-
   return (
     <section className="flex flex-col" style={{ gap: 12 }}>
       <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
@@ -49,23 +42,28 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
         </Link>
       </div>
 
-      {/* Dinheiro que dá para gastar hoje não é a mesma coisa que dinheiro
-          parado num investimento; somar tudo num número só esconde isso. */}
-      <div className="grid grid-cols-2" style={{ gap: 12 }}>
-        <div style={celula}>
-          <p className="rotulo">Disponível</p>
-          <p style={{ fontSize: 18, fontWeight: 600, marginTop: 2 }}>
-            {moeda(disponivel)}
-          </p>
-          <p style={{ fontSize: 12, color: "var(--mut)" }}>contas e dinheiro</p>
-        </div>
-        <div style={celula}>
-          <p className="rotulo">Guardado</p>
-          <p style={{ fontSize: 18, fontWeight: 600, marginTop: 2 }}>
-            {moeda(guardado)}
-          </p>
-          <p style={{ fontSize: 12, color: "var(--mut)" }}>investimentos</p>
-        </div>
+      <div
+        style={{
+          background: "var(--tint)",
+          borderRadius: "var(--r)",
+          padding: "15px 14px",
+        }}
+      >
+        <p className="rotulo">Total de tudo</p>
+        <p
+          style={{
+            fontSize: 30,
+            fontWeight: 700,
+            lineHeight: 1.1,
+            marginTop: 4,
+            color: total < 0 ? "var(--bad)" : "var(--color-text)",
+          }}
+        >
+          {moeda(total)}
+        </p>
+        <p style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>
+          {moeda(disponivel)} para usar · {moeda(guardado)} guardado
+        </p>
       </div>
 
       <ul className="celulas">

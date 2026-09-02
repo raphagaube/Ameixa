@@ -66,17 +66,20 @@ export default async function Inicio({
           padding: "15px 14px",
         }}
       >
-        <p className="rotulo">Saldo nas contas · até {mesAno(referencia)}</p>
+        <p className="rotulo">Disponível · até {mesAno(referencia)}</p>
         <p
           style={{
             fontSize: 44,
             fontWeight: 700,
             lineHeight: 1.1,
             marginTop: 6,
-            color: resumo.acumulado < 0 ? "var(--bad)" : undefined,
+            color: panorama.disponivel < 0 ? "var(--bad)" : undefined,
           }}
         >
-          {moeda(resumo.acumulado)}
+          {moeda(panorama.disponivel)}
+        </p>
+        <p style={{ fontSize: 12, color: "var(--mut)" }}>
+          contas correntes e dinheiro
         </p>
 
         <div className="grid grid-cols-3" style={{ gap: 10, marginTop: 14 }}>
