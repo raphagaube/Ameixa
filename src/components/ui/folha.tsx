@@ -23,12 +23,27 @@ export function Folha({
 }) {
   const painel = useRef<HTMLDivElement>(null);
 
+  /**
+   * Guarda a função de fechar numa ref.
+   *
+   * Quem abre a gaveta passa `() => aoFechar(false)`, que é uma função nova
+   * a cada renderização. Com ela na lista de dependências, o efeito rodava a
+   * cada tecla digitada — e o `painel.focus()` lá dentro tirava o cursor do
+   * campo já na primeira letra. A ref mantém a função sempre atual sem
+   * fazer o efeito rodar de novo.
+   */
+  const fechar = useRef(aoFechar);
+  useEffect(() => {
+    fechar.current = aoFechar;
+  });
+
   // Esc fecha, e o fundo trava a rolagem enquanto a folha está aberta.
+  // Depende só de `aberta`: roda uma vez ao abrir e desfaz ao fechar.
   useEffect(() => {
     if (!aberta) return;
 
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === "Escape") aoFechar();
+      if (e.key === "Escape") fechar.current();
     };
     document.addEventListener("keydown", aoTeclar);
 
@@ -41,7 +56,7 @@ export function Folha({
       document.removeEventListener("keydown", aoTeclar);
       document.body.style.overflow = rolagemAnterior;
     };
-  }, [aberta, aoFechar]);
+  }, [aberta]);
 
   if (!aberta) return null;
 
