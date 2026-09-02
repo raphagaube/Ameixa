@@ -3,12 +3,14 @@ import Link from "next/link";
 import { AlternarTema } from "@/components/alternar-tema";
 import { LinhaLancamento } from "@/components/linha-lancamento";
 import { MetaDestaque } from "@/components/meta-destaque";
+import { OndeEstaMeuDinheiro } from "@/components/onde-esta-meu-dinheiro";
 import { BarraProgresso } from "@/components/ui/barra-progresso";
 import { SeletorMes } from "@/components/seletor-mes";
 import { perfilDoUsuario } from "@/lib/dados/perfil";
 import { ultimosLancamentos } from "@/lib/dados/lancamentos";
 import { metasDoUsuario } from "@/lib/dados/metas";
 import { orcamentosDoMes } from "@/lib/dados/orcamentos";
+import { panoramaDasContas } from "@/lib/dados/saldos";
 import { resumoDoMes } from "@/lib/dados/resumo-mes";
 import {
   COR_ESTADO,
@@ -28,12 +30,13 @@ export default async function Inicio({
   const mes = p.mes !== undefined ? Number(p.mes) : hoje.getMonth();
   const referencia = new Date(ano, mes, 1);
 
-  const [perfil, resumo, ultimos, metas, orcamentos] = await Promise.all([
+  const [perfil, resumo, ultimos, metas, orcamentos, panorama] = await Promise.all([
     perfilDoUsuario(),
     resumoDoMes(ano, mes),
     ultimosLancamentos(4),
     metasDoUsuario(),
     orcamentosDoMes(ano, mes),
+    panoramaDasContas(),
   ]);
 
   const primeiroNome = (perfil?.nome ?? "").split(" ")[0];
@@ -104,6 +107,8 @@ export default async function Inicio({
           </div>
         </div>
       </section>
+
+      <OndeEstaMeuDinheiro panorama={panorama} />
 
       {resumo.pendentes > 0 ? (
         <Link

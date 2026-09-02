@@ -10,6 +10,7 @@ import { Botao } from "@/components/ui/botao";
 import { type Cartao, type Conta, meiosDaConta, ROTULO_TIPO_CONTA } from "@/lib/tipos/contas";
 import { moeda } from "@/lib/formato";
 import type { Fatura } from "@/lib/dados/faturas";
+import type { ContaComSaldo } from "@/lib/saldo-conta";
 import { FolhaCartao } from "./folha-cartao";
 import { FolhaConta } from "./folha-conta";
 
@@ -17,18 +18,24 @@ export function PainelCartoes({
   contas,
   faturas,
   totalDespesasDoMes,
+  saldos,
   ano,
   mes,
 }: {
   contas: Conta[];
   faturas: Fatura[];
   totalDespesasDoMes: number;
+  saldos: ContaComSaldo[];
   ano: number;
   mes: number;
 }) {
   const router = useRouter();
   const [conta, setConta] = useState<Conta | "nova" | null>(null);
   const [cartao, setCartao] = useState<Cartao | "novo" | null>(null);
+
+  // O saldo real de cada conta: o cadastrado mais o que se movimentou nela.
+  // Mostrar só o cadastrado fazia esta tela mentir.
+  const saldoDe = new Map(saldos.map((s) => [s.id, s]));
 
   function fechar(salvou: boolean) {
     setConta(null);
@@ -126,12 +133,24 @@ export function PainelCartoes({
                   </button>
                 </div>
 
-                <p style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>
-                  {moeda(c.saldo_inicial)}
+                <p
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 700,
+                    marginTop: 8,
+                    color:
+                      (saldoDe.get(c.id)?.saldo ?? c.saldo_inicial) < 0
+                        ? "var(--bad)"
+                        : undefined,
+                  }}
+                >
+                  {moeda(saldoDe.get(c.id)?.saldo ?? c.saldo_inicial)}
                 </p>
                 <p style={{ fontSize: 12, color: "var(--mut)" }}>
                   {ROTULO_TIPO_CONTA[c.tipo]}
                   {c.varias ? ` · ${c.qtd_contas} contas` : ""}
+                  {" · inicial "}
+                  {moeda(c.saldo_inicial)}
                 </p>
 
                 <ul className="flex flex-wrap" style={{ gap: 6, marginTop: 8 }}>
