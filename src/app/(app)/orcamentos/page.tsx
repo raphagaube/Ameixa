@@ -16,7 +16,7 @@ export default async function Orcamentos({
 
   const [orcamentos, categorias] = await Promise.all([
     orcamentosDoMes(ano, mes),
-    categoriasDoUsuario(),
+    categoriasDoUsuario().then((c) => c ?? []),
   ]);
 
   return (

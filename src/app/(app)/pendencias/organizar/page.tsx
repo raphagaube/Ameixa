@@ -9,7 +9,7 @@ export const metadata = { title: "Organizar pendências · Ameixa" };
 export default async function Organizar() {
   const [lista, categorias] = await Promise.all([
     pendencias(),
-    categoriasDoUsuario(),
+    categoriasDoUsuario().then((c) => c ?? []),
   ]);
 
   const grupos = agruparPorCategoriaOriginal(

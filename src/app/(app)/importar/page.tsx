@@ -8,7 +8,7 @@ export const metadata = { title: "Importar · Ameixa" };
 export default async function Importar() {
   const [contas, categorias] = await Promise.all([
     contasDoUsuario(),
-    categoriasDoUsuario(),
+    categoriasDoUsuario().then((c) => c ?? []),
   ]);
 
   return (

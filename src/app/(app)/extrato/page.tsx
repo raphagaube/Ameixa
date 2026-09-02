@@ -61,7 +61,7 @@ export default async function Extrato({
       responsavel: p.responsavel || undefined,
       ordem,
     }),
-    categoriasDoUsuario(),
+    categoriasDoUsuario().then((c) => c ?? []),
   ]);
 
   return (

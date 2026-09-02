@@ -47,19 +47,24 @@ export const dadosDeApoio = cache(async (): Promise<DadosDeApoio> => {
     formasDePagamento(),
   ]);
 
+  // `null` é falha de leitura, `[]` é primeiro acesso de verdade. Semear
+  // por causa de um erro de rede seria inofensivo; APAGAR por causa dele
+  // não é — e era o que este trecho fazia antes.
+  if (categorias === null) {
+    return { contas, categorias: [], metas, formas };
+  }
+
   if (categorias.length === 0) {
     const user = await usuarioAtual();
     if (user) {
       const supabase = await criarClienteServidor();
       await supabase.rpc("semear_usuario", { p_user: user.id });
-      // O seed do handoff cria quatro bancos de exemplo. O app é entregue
-      // vazio: banco é do usuário, não nosso. Só roda no primeiro acesso,
-      // quando ainda não há conta cadastrada.
-      await supabase.from("contas").delete().eq("user_id", user.id);
-
+      // Nada é apagado aqui. A semeadura não cria mais bancos de exemplo,
+      // então não há o que limpar — e nenhum caminho do app tem permissão
+      // de remover as contas do dono sem ele pedir.
       return {
-        contas: [],
-        categorias: await categoriasDoUsuario(),
+        contas,
+        categorias: (await categoriasDoUsuario()) ?? [],
         metas,
         formas: await formasDePagamento(),
       };
