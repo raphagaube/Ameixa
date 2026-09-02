@@ -2,7 +2,10 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /** Rotas que podem ser abertas sem estar logado. */
-const PUBLICAS = ["/entrar", "/auth"];
+// Política e termos precisam abrir sem login: o Google exige poder ler a
+// política de privacidade antes de qualquer pessoa autorizar o acesso à
+// agenda, e ninguém deveria ter que criar conta para ler os termos.
+const PUBLICAS = ["/entrar", "/auth", "/privacidade", "/termos"];
 
 export async function proxy(req: NextRequest) {
   let resposta = NextResponse.next({ request: req });

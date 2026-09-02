@@ -246,3 +246,42 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Páginas de política e termos: texto corrido, fora do app. */
+.conteudo-legal h1 {
+  font-size: 28px;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.conteudo-legal h2 {
+  font-size: 18px;
+  margin-top: 30px;
+  margin-bottom: 8px;
+}
+.conteudo-legal p,
+.conteudo-legal ul {
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+.conteudo-legal ul {
+  padding-left: 22px;
+  list-style: disc;
+}
+.conteudo-legal li {
+  margin-bottom: 6px;
+}
+.conteudo-legal a {
+  color: var(--deep);
+  text-decoration: underline;
+}
+.conteudo-legal code {
+  font-size: 13px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--ln);
+}
+.conteudo-legal .atualizado {
+  font-size: 13px;
+  color: var(--mut);
+  margin-bottom: 22px;
+}
