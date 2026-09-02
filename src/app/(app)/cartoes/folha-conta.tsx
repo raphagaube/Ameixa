@@ -11,6 +11,7 @@ import type { Conta, TipoConta } from "@/lib/tipos/contas";
 import { dataBr, paraIso } from "@/lib/formato";
 import { escreverValor, lerValor } from "@/lib/valor";
 import { excluirConta, salvarConta } from "./acoes";
+import { BotaoExcluir } from "@/components/ui/botao-excluir";
 
 const CORES_BANCO = [
   "#8A05BE",
@@ -226,14 +227,12 @@ export function FolhaConta({
         </Botao>
 
         {conta ? (
-          <Botao
-            variante="contorno"
-            onClick={excluir}
+          <BotaoExcluir
+            rotulo="Excluir banco"
+            oQueSePerde="O banco e todos os cartões dele. Os lançamentos continuam existindo, mas ficam sem conta."
+            aoConfirmar={excluir}
             carregando={salvando}
-            style={{ color: "var(--bad)", borderColor: "var(--bad)" }}
-          >
-            Excluir banco
-          </Botao>
+          />
         ) : null}
       </div>
     </Folha>

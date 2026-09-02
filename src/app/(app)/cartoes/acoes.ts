@@ -72,15 +72,45 @@ export async function excluirConta(id: string): Promise<Resultado> {
 
   const supabase = await criarClienteServidor();
 
-  const { count } = await supabase
-    .from("lancamentos")
-    .select("id", { count: "exact", head: true })
+  // Conta os lançamentos do banco E os dos cartões dele.
+  //
+  // Só olhar `conta_id` deixava passar um caso perigoso: compra no crédito
+  // grava `cartao_id` e pode não ter conta nenhuma. Um banco usado só pelo
+  // cartão passava na trava, o cartão sumia por cascade e as compras
+  // ficavam órfãs, fora da fatura, sem nenhuma mensagem.
+  const { data: cartoes } = await supabase
+    .from("cartoes")
+    .select("id")
     .eq("conta_id", id);
 
-  if (count && count > 0) {
+  const idsCartoes = (cartoes ?? []).map((c) => c.id);
+
+  const [naConta, nosCartoes] = await Promise.all([
+    supabase
+      .from("lancamentos")
+      .select("id", { count: "exact", head: true })
+      .eq("conta_id", id),
+    idsCartoes.length > 0
+      ? supabase
+          .from("lancamentos")
+          .select("id", { count: "exact", head: true })
+          .in("cartao_id", idsCartoes)
+      : Promise.resolve({ count: 0 }),
+  ]);
+
+  const total = (naConta.count ?? 0) + (nosCartoes.count ?? 0);
+
+  if (total > 0) {
+    const noCartao = nosCartoes.count ?? 0;
+    const detalhe =
+      noCartao > 0 && (naConta.count ?? 0) > 0
+        ? ` (${naConta.count} na conta e ${noCartao} nos cartões dele)`
+        : noCartao > 0
+          ? " — todos em cartões deste banco"
+          : "";
     return {
       ok: false,
-      erro: `Esse banco está em ${count} lançamento${count > 1 ? "s" : ""}. Troque o banco deles antes de excluir.`,
+      erro: `Esse banco está em ${total} lançamento${total > 1 ? "s" : ""}${detalhe}. Troque o banco deles antes de excluir.`,
     };
   }
 

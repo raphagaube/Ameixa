@@ -10,6 +10,7 @@ import type { Conta } from "@/lib/tipos/contas";
 import { APLICACOES, ROTULO_PRAZO, type Meta, type UnidadePrazo } from "@/lib/tipos/metas";
 import { escreverValor, lerValor } from "@/lib/valor";
 import { excluirMeta, salvarMeta } from "./acoes";
+import { BotaoExcluir } from "@/components/ui/botao-excluir";
 
 export function FolhaMeta({
   meta,
@@ -198,14 +199,12 @@ export function FolhaMeta({
         </Botao>
 
         {meta ? (
-          <Botao
-            variante="contorno"
-            onClick={excluir}
+          <BotaoExcluir
+            rotulo="Excluir meta"
+            oQueSePerde="A meta. Os aportes continuam existindo, mas deixam de estar ligados a ela."
+            aoConfirmar={excluir}
             carregando={salvando}
-            style={{ color: "var(--bad)", borderColor: "var(--bad)" }}
-          >
-            Excluir meta
-          </Botao>
+          />
         ) : null}
       </div>
     </Folha>

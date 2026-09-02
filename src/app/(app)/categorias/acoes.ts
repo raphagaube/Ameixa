@@ -49,20 +49,45 @@ export async function salvarCategoria(entrada: EntradaCategoria): Promise<Result
     categoriaId = data.id;
   }
 
-  // Subcategorias: troca o conjunto inteiro. São poucas por categoria, e
-  // assim um item renomeado não vira duplicata.
+  // Subcategorias: mexe só no que mudou.
+  //
+  // Antes isto apagava o conjunto inteiro e reinseria. Como as linhas
+  // voltavam com id novo e `lancamentos.subcategoria_id` é
+  // `on delete set null`, abrir uma categoria só para trocar a cor
+  // desligava a subcategoria de todo o histórico dela — em silêncio, sem
+  // desfazer. Agora quem não foi tocado nem é escrito, e só some o que o
+  // dono de fato tirou da lista.
   const limpas = [...new Set(subcategorias.map((s) => s.trim()).filter(Boolean))];
 
-  await supabase.from("subcategorias").delete().eq("categoria_id", categoriaId!);
+  const { data: atuais } = await supabase
+    .from("subcategorias")
+    .select("id, nome")
+    .eq("categoria_id", categoriaId!);
 
-  if (limpas.length > 0) {
+  const existentes = new Map((atuais ?? []).map((s) => [s.nome, s.id]));
+
+  const paraCriar = limpas.filter((n) => !existentes.has(n));
+  const paraRemover = (atuais ?? []).filter((s) => !limpas.includes(s.nome));
+
+  if (paraCriar.length > 0) {
     const { error } = await supabase.from("subcategorias").insert(
-      limpas.map((n) => ({
+      paraCriar.map((n) => ({
         user_id: user.id,
         categoria_id: categoriaId!,
         nome: n,
       })),
     );
+    if (error) return { ok: false, erro: traduzir(error.message) };
+  }
+
+  if (paraRemover.length > 0) {
+    const { error } = await supabase
+      .from("subcategorias")
+      .delete()
+      .in(
+        "id",
+        paraRemover.map((s) => s.id),
+      );
     if (error) return { ok: false, erro: traduzir(error.message) };
   }
 

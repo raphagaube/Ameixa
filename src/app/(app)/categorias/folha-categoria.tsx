@@ -8,6 +8,7 @@ import { Folha } from "@/components/ui/folha";
 import type { Categoria } from "@/lib/tipos/categorias";
 import { tintaSobreAcento } from "@/lib/theme";
 import { excluirCategoria, salvarCategoria } from "./acoes";
+import { BotaoExcluir } from "@/components/ui/botao-excluir";
 
 /** Os oito atalhos de cor do handoff. */
 const ATALHOS = [
@@ -303,14 +304,12 @@ export function FolhaCategoria({
         </Botao>
 
         {categoria ? (
-          <Botao
-            variante="contorno"
-            onClick={excluir}
+          <BotaoExcluir
+            rotulo="Excluir categoria"
+            oQueSePerde="A categoria e as subcategorias dela. Os lançamentos continuam existindo, mas ficam sem classificação nos relatórios."
+            aoConfirmar={excluir}
             carregando={salvando}
-            style={{ color: "var(--bad)", borderColor: "var(--bad)" }}
-          >
-            Excluir categoria
-          </Botao>
+          />
         ) : null}
       </div>
     </Folha>

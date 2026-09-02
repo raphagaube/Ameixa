@@ -9,6 +9,7 @@ import { EscolhaCor, Segmentos } from "@/components/ui/segmentos";
 import type { Cartao, Conta } from "@/lib/tipos/contas";
 import { escreverValor, lerValor } from "@/lib/valor";
 import { excluirCartao, salvarCartao } from "./acoes";
+import { BotaoExcluir } from "@/components/ui/botao-excluir";
 
 const CORES_CARTAO = [
   "#8A05BE",
@@ -181,14 +182,12 @@ export function FolhaCartao({
         </Botao>
 
         {cartao ? (
-          <Botao
-            variante="contorno"
-            onClick={excluir}
+          <BotaoExcluir
+            rotulo="Excluir cartão"
+            oQueSePerde="O cartão. As compras continuam existindo, mas somem da fatura."
+            aoConfirmar={excluir}
             carregando={salvando}
-            style={{ color: "var(--bad)", borderColor: "var(--bad)" }}
-          >
-            Excluir cartão
-          </Botao>
+          />
         ) : null}
       </div>
     </Folha>

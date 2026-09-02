@@ -25,6 +25,7 @@ import {
   situacoesDoTipo,
 } from "@/lib/tipos/lancamentos";
 import { escreverValor, lerValor } from "@/lib/valor";
+import { BotaoExcluir } from "@/components/ui/botao-excluir";
 
 export type ValoresIniciais = {
   valor?: number;
@@ -669,14 +670,12 @@ export function FolhaLancamento({
         </Botao>
 
         {editando ? (
-          <Botao
-            variante="contorno"
-            onClick={excluir}
+          <BotaoExcluir
+            rotulo="Excluir lançamento"
+            oQueSePerde="Este lançamento sai do extrato, dos relatórios e da sua agenda. Se ele faz parte de uma série, as outras parcelas continuam."
+            aoConfirmar={excluir}
             carregando={salvando}
-            style={{ color: "var(--bad)", borderColor: "var(--bad)" }}
-          >
-            Excluir lançamento
-          </Botao>
+          />
         ) : null}
       </div>
     </Folha>

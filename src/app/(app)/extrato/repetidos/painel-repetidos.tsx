@@ -88,14 +88,26 @@ export function PainelRepetidos({
                   <Dinheiro>{moeda(g.valor)}</Dinheiro> · {g.ocorrencias.length} vezes
                 </p>
               </div>
+              {/* Chamava-se "Mesclar", mas nada é combinado: as repetições
+                  além da primeira são marcadas para exclusão. Quem lia
+                  "mesclar" esperava juntar em um registro só, e podia
+                  confirmar a perda de meses de histórico sem perceber. */}
               <Botao
                 variante="contorno"
                 onClick={() => mesclar(g)}
                 style={{ width: "auto", paddingInline: 14, fontSize: 12 }}
               >
-                Mesclar
+                Marcar cópias
               </Botao>
             </div>
+
+            {/* O agrupamento é só por valor e descrição, então seis meses de
+                aluguel entram no mesmo grupo. Sem este aviso, "cópias" leva
+                o dono a apagar histórico legítimo. */}
+            <p style={{ fontSize: 12, color: "var(--mut)", marginTop: 8 }}>
+              Mesmo valor e mesma descrição. Confira as datas antes de marcar —
+              contas mensais aparecem aqui sem serem cópias.
+            </p>
 
             <ul className="flex flex-col" style={{ gap: 8, marginTop: 10 }}>
               {g.ocorrencias.map((o) => {
@@ -146,7 +158,7 @@ export function PainelRepetidos({
                         border: `1px solid ${marcado ? "var(--bad)" : "var(--ln)"}`,
                       }}
                     >
-                      {marcado ? "Excluir" : "Manter"}
+                      {marcado ? "Vai excluir" : "Marcar"}
                     </button>
                   </li>
                 );
