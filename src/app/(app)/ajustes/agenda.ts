@@ -17,8 +17,15 @@ export type ResultadoAgenda =
   | { ok: true; enviados: number; restantes: number; proximo: number }
   | { ok: false; erro: string };
 
-/** Quantas pendências por chamada. O laço fica no cliente, não no servidor. */
-const POR_VEZ = 60;
+/**
+ * Quantas pendências por chamada.
+ *
+ * Baixo de propósito: cada uma é uma ida ao Google, em série, e a função da
+ * Vercel tem poucos segundos para responder. Lote grande estoura o tempo e
+ * perde o que já tinha feito; o laço no cliente compensa com mais rodadas,
+ * que custam quase nada.
+ */
+const POR_VEZ = 15;
 
 const RECADO: Record<string, string> = {
   "nao-configurado": "A conexão com o Google ainda não foi configurada neste app.",
@@ -54,18 +61,22 @@ export async function sincronizarPendencias(
 
   const supabase = await criarClienteServidor();
 
-  // Confere as agendas a cada rodada, em vez de confiar no id guardado.
-  // Se o dono apagou uma delas no Google, sem isto o app tentaria gravar
-  // num calendário que não existe mais — e ficaria travado nisso.
-  const agendas = await garantirAgendas(cred.access, {
-    pagar: cred.pagar,
-    receber: cred.receber,
-  });
-  if (!agendas) {
-    return { ok: false, erro: "Não deu para criar as agendas no Google." };
-  }
-  if (agendas.pagar !== cred.pagar || agendas.receber !== cred.receber) {
-    await gravarAgendas(agendas.pagar, agendas.receber);
+  // Confere as agendas no começo da série, em vez de confiar no id guardado:
+  // se o dono apagou uma delas no Google, sem isto o app tentaria gravar num
+  // calendário que não existe mais e ficaria travado nisso. Só na primeira
+  // rodada — repetir a cada lote seriam duas requisições jogadas fora por
+  // rodada, e a agenda não some no meio de uma série.
+  if (desde === 0 || !cred.pagar || !cred.receber) {
+    const agendas = await garantirAgendas(cred.access, {
+      pagar: cred.pagar,
+      receber: cred.receber,
+    });
+    if (!agendas) {
+      return { ok: false, erro: "Não deu para criar as agendas no Google." };
+    }
+    if (agendas.pagar !== cred.pagar || agendas.receber !== cred.receber) {
+      await gravarAgendas(agendas.pagar, agendas.receber);
+    }
   }
 
   const { data, error } = await supabase
