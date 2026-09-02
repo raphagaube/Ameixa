@@ -1,7 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
+import {
+  apagarEventoOrfao,
+  enfileirar,
+  LIMITE_NA_HORA,
+  sincronizarLancamentos,
+} from "@/lib/agenda/sincronizar";
 import { paraIso } from "@/lib/formato";
 import { gerarSerie, type ConfigSerie } from "@/lib/serie";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
@@ -109,6 +116,10 @@ export async function salvarLancamento(
 
     if (error) return { ok: false, erro: traduzir(error.message) };
     revalidarTudo();
+    // É por aqui que passa "marcar como paga", então é aqui que o evento
+    // perde o lembrete. Depois da resposta: a agenda é conveniência, o
+    // lançamento é o dado.
+    naAgenda([d.id]);
     return { ok: true, criados: 1 };
   }
 
@@ -127,7 +138,7 @@ export async function salvarLancamento(
   const serieId =
     d.repeticao.repeticao === "unica" ? null : globalThis.crypto.randomUUID();
 
-  const { error } = await supabase.from("lancamentos").insert(
+  const { data: criados, error } = await supabase.from("lancamentos").insert(
     ocorrencias.map((o) => ({
       ...comuns,
       descricao: o.descricao,
@@ -139,12 +150,28 @@ export async function salvarLancamento(
       parcela_atual: o.parcela_atual,
       parcela_total: o.parcela_total,
     })),
-  );
+  ).select("id");
 
   if (error) return { ok: false, erro: traduzir(error.message) };
 
   revalidarTudo();
+  naAgenda((criados ?? []).map((c) => c.id));
   return { ok: true, criados: ocorrencias.length };
+}
+
+/**
+ * Manda os lançamentos para o Google Agenda depois que a resposta já foi.
+ *
+ * Nada daqui pode virar erro na tela: o lançamento já está salvo. Série
+ * grande vai direto para a fila em vez de segurar a função por doze idas e
+ * voltas ao Google.
+ */
+function naAgenda(ids: string[]) {
+  if (ids.length === 0) return;
+  after(async () => {
+    if (ids.length > LIMITE_NA_HORA) await enfileirar(ids, "salvar");
+    else await sincronizarLancamentos(ids);
+  });
 }
 
 export async function excluirLancamento(
@@ -165,21 +192,61 @@ export async function excluirLancamento(
       .maybeSingle();
 
     if (data?.serie_id) {
+      const orfaos = await eventosDe(supabase, { serie_id: data.serie_id });
       const { error } = await supabase
         .from("lancamentos")
         .delete()
         .eq("serie_id", data.serie_id);
       if (error) return { ok: false, erro: traduzir(error.message) };
       revalidarTudo();
+      limparDaAgenda(orfaos);
       return { ok: true, criados: 0 };
     }
   }
+
+  // Ler antes de apagar não é preferência: `eventos_agenda` tem
+  // `on delete cascade`, então depois do delete o vínculo já não existe e o
+  // evento ficaria órfão na agenda para sempre.
+  const orfaos = await eventosDe(supabase, { id });
 
   const { error } = await supabase.from("lancamentos").delete().eq("id", id);
   if (error) return { ok: false, erro: traduzir(error.message) };
 
   revalidarTudo();
+  limparDaAgenda(orfaos);
   return { ok: true, criados: 0 };
+}
+
+type Orfao = { calendario_id: string; evento_id: string };
+
+async function eventosDe(
+  supabase: Awaited<ReturnType<typeof criarClienteServidor>>,
+  filtro: { id?: string; serie_id?: string },
+): Promise<Orfao[]> {
+  const ids = filtro.serie_id
+    ? ((
+        await supabase
+          .from("lancamentos")
+          .select("id")
+          .eq("serie_id", filtro.serie_id)
+      ).data ?? []).map((l) => l.id)
+    : [filtro.id!];
+
+  if (ids.length === 0) return [];
+
+  const { data } = await supabase
+    .from("eventos_agenda")
+    .select("calendario_id, evento_id")
+    .in("lancamento_id", ids);
+
+  return data ?? [];
+}
+
+function limparDaAgenda(orfaos: Orfao[]) {
+  if (orfaos.length === 0) return;
+  after(async () => {
+    for (const o of orfaos) await apagarEventoOrfao(o);
+  });
 }
 
 /** Registro Fácil: grava só o valor e marca como pendência a completar. */

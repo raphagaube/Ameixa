@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { enfileirar } from "@/lib/agenda/sincronizar";
 import { z } from "zod";
 import { criarClienteServidor, usuarioAtual } from "@/lib/supabase/servidor";
 import { tintaSobreAcento } from "@/lib/theme";
@@ -92,10 +93,11 @@ export async function organizarPendencias(
     const TAMANHO = 200;
     for (let i = 0; i < d.ids.length; i += TAMANHO) {
       const bloco = d.ids.slice(i, i + TAMANHO);
-      const { error } = await supabase
+      const { data: mexidos, error } = await supabase
         .from("lancamentos")
         .update({ categoria_id: categoriaId, incompleto: false })
-        .in("id", bloco);
+        .in("id", bloco)
+        .select("id, situacao");
 
       if (error) {
         return {
@@ -107,6 +109,15 @@ export async function organizarPendencias(
         };
       }
       atualizados += bloco.length;
+
+      // A categoria aparece na descrição do evento, então quem já está na
+      // agenda precisa ser reescrito. Pela fila: são até 200 por bloco.
+      await enfileirar(
+        (mexidos ?? [])
+          .filter((l) => l.situacao === "a_pagar" || l.situacao === "a_receber")
+          .map((l) => l.id),
+        "salvar",
+      );
     }
   }
 

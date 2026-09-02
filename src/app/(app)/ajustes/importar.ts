@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { enfileirar } from "@/lib/agenda/sincronizar";
 import { z } from "zod";
 import { criarClienteServidor, usuarioAtual } from "@/lib/supabase/servidor";
 
@@ -88,7 +89,10 @@ export async function importarLancamentos(
 
   for (let i = 0; i < paraGravar.length; i += TAMANHO_BLOCO) {
     const bloco = paraGravar.slice(i, i + TAMANHO_BLOCO);
-    const { error } = await supabase.from("lancamentos").insert(bloco);
+    const { data: inseridos, error } = await supabase
+      .from("lancamentos")
+      .insert(bloco)
+      .select("id, situacao");
 
     if (error) {
       return {
@@ -100,6 +104,15 @@ export async function importarLancamentos(
       };
     }
     gravados += bloco.length;
+
+    // Só a fila: uma planilha de 600 linhas seriam 600 idas ao Google
+    // dentro de uma requisição que tem segundos para responder.
+    await enfileirar(
+      (inseridos ?? [])
+        .filter((l) => l.situacao === "a_pagar" || l.situacao === "a_receber")
+        .map((l) => l.id),
+      "salvar",
+    );
   }
 
   for (const p of ["/", "/extrato", "/pendencias", "/relatorios", "/orcamentos"]) {

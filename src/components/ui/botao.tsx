@@ -1,9 +1,19 @@
 "use client";
 
-type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+type Comum = {
   variante?: "primario" | "contorno" | "texto";
   carregando?: boolean;
 };
+
+type Props = React.ButtonHTMLAttributes<HTMLButtonElement> &
+  Comum & {
+    /**
+     * Vira um link com a mesma aparência. Existe para o OAuth do Google,
+     * que precisa de navegação de topo: um `fetch` ou Server Action engole
+     * o redirecionamento e nada acontece na tela.
+     */
+    href?: string;
+  };
 
 /**
  * Botão primário do handoff: fundo --deep, texto --on-ac, 14px de padding,
@@ -15,6 +25,7 @@ export function Botao({
   children,
   disabled,
   style,
+  href,
   ...resto
 }: Props) {
   const base: React.CSSProperties = {
@@ -48,14 +59,34 @@ export function Botao({
     },
   };
 
+  const aparencia = { ...base, ...porVariante[variante], ...style };
+  const conteudo = carregando ? "Aguarde…" : children;
+
+  if (href) {
+    return (
+      <a
+        href={href}
+        aria-disabled={disabled || carregando || undefined}
+        style={{
+          ...aparencia,
+          display: "grid",
+          placeItems: "center",
+          textDecoration: "none",
+        }}
+      >
+        {conteudo}
+      </a>
+    );
+  }
+
   return (
     <button
       {...resto}
       disabled={disabled || carregando}
       aria-busy={carregando || undefined}
-      style={{ ...base, ...porVariante[variante], ...style }}
+      style={aparencia}
     >
-      {carregando ? "Aguarde…" : children}
+      {conteudo}
     </button>
   );
 }

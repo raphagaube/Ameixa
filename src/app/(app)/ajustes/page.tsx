@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  CalendarDays,
   ChevronRight,
   CreditCard,
   ListTree,
@@ -8,10 +9,15 @@ import {
   Upload,
 } from "lucide-react";
 import Link from "next/link";
+import { after } from "next/server";
 import { AlternarTema } from "@/components/alternar-tema";
+import { AVISO_RETORNO, type MotivoRetorno } from "@/lib/agenda/oauth";
+import { drenarFila } from "@/lib/agenda/sincronizar";
 import { LogoAmeixa } from "@/components/logo-ameixa";
+import { statusAgenda } from "@/lib/dados/agenda";
 import { perfilDoUsuario } from "@/lib/dados/perfil";
 import { usuarioAtual } from "@/lib/supabase/servidor";
+import { AgendaGoogle } from "./agenda-google";
 import { EscolhaAcento } from "./escolha-acento";
 import { ExportarDados } from "./exportar-dados";
 import { MinhaConta } from "./minha-conta";
@@ -28,8 +34,26 @@ const ATALHOS = [
   { href: "/conciliacao", rotulo: "Conciliação bancária (OFX)", Icone: ArrowLeftRight },
 ];
 
-export default async function Ajustes() {
-  const [perfil, usuario] = await Promise.all([perfilDoUsuario(), usuarioAtual()]);
+export default async function Ajustes({
+  searchParams,
+}: {
+  searchParams: Promise<{ agenda?: string }>;
+}) {
+  const [perfil, usuario, agenda, busca] = await Promise.all([
+    perfilDoUsuario(),
+    usuarioAtual(),
+    statusAgenda(),
+    searchParams,
+  ]);
+
+  // O retorno do OAuth volta por aqui. A tradução vive junto do fluxo, para
+  // o dono nunca ver uma mensagem crua do Google.
+  const motivo = busca.agenda as MotivoRetorno | undefined;
+  const aviso = motivo ? AVISO_RETORNO[motivo] : null;
+
+  // Não há cron: no plano Hobby da Vercel ele roda uma vez por dia. O que
+  // ficou preso sai daqui, depois que a tela já foi entregue.
+  if (agenda.naFila > 0) after(() => drenarFila(20));
 
   return (
     <div className="flex flex-col" style={{ gap: 22, paddingTop: 22 }}>
@@ -70,6 +94,34 @@ export default async function Ajustes() {
       <section className="flex flex-col" style={{ gap: 12 }}>
         <h2 style={{ fontSize: 17 }}>Dados</h2>
         <ExportarDados />
+      </section>
+
+      <section className="flex flex-col" style={{ gap: 12 }}>
+        <h2 className="flex items-center" style={{ fontSize: 17, gap: 8 }}>
+          <CalendarDays
+            size={18}
+            strokeWidth={1.5}
+            style={{ color: "var(--deep)" }}
+            aria-hidden
+          />
+          Google Agenda
+        </h2>
+        {aviso ? (
+          <p
+            role="status"
+            style={{
+              fontSize: 13,
+              lineHeight: 1.5,
+              padding: 12,
+              borderRadius: "var(--rs)",
+              border: "1px solid var(--ln)",
+              color: motivo === "ok" ? "var(--color-text)" : "var(--mut)",
+            }}
+          >
+            {aviso}
+          </p>
+        ) : null}
+        <AgendaGoogle status={agenda} />
       </section>
 
       <section className="flex flex-col" style={{ gap: 12 }}>
