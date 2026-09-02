@@ -25,13 +25,22 @@ export const ROTULO_SITUACAO: Record<Situacao, string> = {
   guardado: "Guardado",
 };
 
+/** Em quê o intervalo personalizado é contado. */
+export type UnidadeIntervalo = "dias" | "semanas" | "meses";
+
+export const ROTULO_UNIDADE: Record<UnidadeIntervalo, string> = {
+  dias: "dias",
+  semanas: "semanas",
+  meses: "meses",
+};
+
 export const ROTULO_FREQUENCIA: Record<Frequencia, string> = {
   semanal: "Semanal",
   quinzenal: "Quinzenal",
   mensal: "Mensal",
   semestral: "Semestral",
   anual: "Anual",
-  personalizado: "Personalizado",
+  personalizado: "A cada…",
 };
 
 export type Lancamento = {

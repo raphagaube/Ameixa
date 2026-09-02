@@ -17,15 +17,24 @@ export async function categoriasDoUsuario(): Promise<Categoria[] | null> {
   const { data, error } = await supabase
     .from("categorias")
     .select("id, nome, tipo, cor, cor_texto, ordem, subcategorias(id, nome)")
-    .order("ordem", { ascending: true })
     .order("nome", { ascending: true });
 
   if (error || !data) return null;
 
-  return data.map((c) => ({
-    ...c,
-    subcategorias: [...(c.subcategorias ?? [])].sort((a, b) =>
-      a.nome.localeCompare(b.nome, "pt-BR"),
-    ),
-  })) as Categoria[];
+  // Ordena aqui, e não no banco: a comparação do Postgres não conhece as
+  // regras do português, e "Água" cairia depois de "Vestuário". A do
+  // navegador com "pt-BR" põe cada acento no lugar certo.
+  //
+  // A coluna `ordem` deixou de mandar na lista: ela vinha da semeadura, e
+  // fazia as categorias criadas pelo dono aparecerem todas antes das
+  // originais, sem que nada na tela explicasse por quê.
+  const porNome = (a: { nome: string }, b: { nome: string }) =>
+    a.nome.localeCompare(b.nome, "pt-BR");
+
+  return data
+    .map((c) => ({
+      ...c,
+      subcategorias: [...(c.subcategorias ?? [])].sort(porNome),
+    }))
+    .sort(porNome) as Categoria[];
 }

@@ -4,6 +4,7 @@ import {
   type Situacao,
   type TipoLancamento,
   type TipoRepeticao,
+  type UnidadeIntervalo,
   situacaoPadrao,
 } from "@/lib/tipos/lancamentos";
 
@@ -24,7 +25,13 @@ export type ConfigSerie =
   | {
       repeticao: "recorrente";
       frequencia: Frequencia;
+      /** Só em "personalizado": de quantas em quantas unidades repete. */
+      intervalo?: number;
+      /** Só em "personalizado". */
+      unidade?: UnidadeIntervalo;
+      /** Quantas gerar. Ignorado quando `ate` está preenchido. */
       ocorrencias: number;
+      /** Repetir até esta data, em vez de contar repetições. */
       ate?: string | null;
     }
   | { repeticao: "assinatura"; meses: number };
@@ -57,7 +64,21 @@ function somarDias(d: Date, n: number): Date {
   return x;
 }
 
-function avancar(inicio: Date, i: number, freq: Frequencia): Date {
+/**
+ * De quanto em quanto tempo a série anda.
+ *
+ * "personalizado" deixou de ser um sinônimo de mensal: agora ele usa o
+ * intervalo e a unidade que o dono escolheu. Antes, escolher
+ * "Personalizado" desmarcava "Semanal" e ainda assim gerava mensal — o
+ * nome prometia uma coisa e o app fazia outra.
+ */
+function avancar(
+  inicio: Date,
+  i: number,
+  freq: Frequencia,
+  intervalo = 1,
+  unidade: UnidadeIntervalo = "meses",
+): Date {
   switch (freq) {
     case "semanal":
       return somarDias(inicio, 7 * i);
@@ -67,8 +88,13 @@ function avancar(inicio: Date, i: number, freq: Frequencia): Date {
       return somarMeses(inicio, 6 * i);
     case "anual":
       return somarMeses(inicio, 12 * i);
+    case "personalizado": {
+      const n = Math.max(1, Math.trunc(intervalo)) * i;
+      if (unidade === "dias") return somarDias(inicio, n);
+      if (unidade === "semanas") return somarDias(inicio, 7 * n);
+      return somarMeses(inicio, n);
+    }
     default:
-      // mensal e personalizado avançam de mês em mês
       return somarMeses(inicio, i);
   }
 }
@@ -159,8 +185,10 @@ export function gerarSerie(
   }
 
   // Recorrente
-  const { frequencia, ocorrencias, ate } = config;
-  const usaData = frequencia === "personalizado" && !!ate;
+  const { frequencia, ocorrencias, ate, intervalo, unidade } = config;
+  // Uma data final vale para qualquer frequência. Antes só valia em
+  // "personalizado", então não havia como pedir "toda semana até dezembro".
+  const usaData = !!ate;
   const fim = usaData ? comoData(ate!) : null;
   const quantas = usaData
     ? MAX_OCORRENCIAS
@@ -168,7 +196,7 @@ export function gerarSerie(
 
   const lista: Ocorrencia[] = [];
   for (let i = 0; i < quantas; i++) {
-    const data = avancar(inicio, i, frequencia);
+    const data = avancar(inicio, i, frequencia, intervalo, unidade);
     if (fim && data > fim) break;
     lista.push(monta(data, base.descricao, null, null, "recorrente", i === 0));
   }

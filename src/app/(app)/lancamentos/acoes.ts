@@ -50,6 +50,8 @@ const esquema = z.object({
         "anual",
         "personalizado",
       ]),
+      intervalo: z.number().int().min(1).max(365).optional(),
+      unidade: z.enum(["dias", "semanas", "meses"]).optional(),
       ocorrencias: z.number().int().min(1).max(240),
       ate: z.string().regex(ISO).nullable().optional(),
     }),

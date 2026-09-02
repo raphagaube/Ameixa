@@ -7,6 +7,7 @@
  * inteiro, o que muda quando a conta é paga.
  */
 
+import { diaDePagamento, motivoDaAntecipacao } from "@/lib/dias-uteis";
 import { moeda } from "@/lib/formato";
 import {
   dataQueVale,
@@ -59,9 +60,18 @@ export function diaSeguinte(iso: string): string {
   return new Date(Date.UTC(a, m - 1, d + 1)).toISOString().slice(0, 10);
 }
 
-/** A data do compromisso é a que vale para o lançamento. */
+/**
+ * O dia do compromisso: quando a conta precisa de fato ser paga.
+ *
+ * Boleto que vence num sábado não é pago no sábado — o banco não compensa,
+ * e deixar para segunda custa juros. Então o compromisso (e o lembrete
+ * junto dele) é antecipado para o dia útil anterior.
+ *
+ * O vencimento contratado não muda: ele continua no lançamento, e aparece
+ * na descrição do evento quando as duas datas diferem.
+ */
 export function dataDoCompromisso(l: LancamentoNaLista): string {
-  return dataQueVale(l);
+  return diaDePagamento(dataQueVale(l));
 }
 
 export function agendaDe(l: LancamentoNaLista): Agenda {
@@ -103,6 +113,10 @@ function titulo(l: LancamentoNaLista): string {
 }
 
 function descricao(l: LancamentoNaLista): string {
+  const vencimento = dataQueVale(l);
+  const pagar = diaDePagamento(vencimento);
+  const motivo = pagar !== vencimento ? motivoDaAntecipacao(vencimento) : null;
+
   const cat = primeiro(l.categoria);
   const sub = primeiro(l.subcategoria);
   const conta = primeiro(l.conta);
@@ -115,6 +129,10 @@ function descricao(l: LancamentoNaLista): string {
     `Valor: ${moeda(numeroDe(l.valor))}`,
     l.parcela_atual && l.parcela_total
       ? `Parcela ${l.parcela_atual} de ${l.parcela_total}`
+      : null,
+    // Só quando as datas diferem: repetir o vencimento todo dia seria ruído.
+    motivo
+      ? `Vence em ${vencimento.split("-").reverse().join("/")} (${motivo}) — pague até hoje`
       : null,
     l.observacao || null,
     "Lançado na Ameixa",

@@ -13,8 +13,10 @@ import { paraIso } from "@/lib/formato";
 import type { DadosDeApoio } from "@/lib/tipos/apoio";
 import {
   ROTULO_FREQUENCIA,
+  ROTULO_UNIDADE,
   ROTULO_SITUACAO,
   type Frequencia,
+  type UnidadeIntervalo,
   type LancamentoNaLista,
   type Situacao,
   type TipoLancamento,
@@ -94,6 +96,8 @@ export function FolhaLancamento({
   const [frequencia, setFrequencia] = useState<Frequencia>("mensal");
   const [ocorrencias, setOcorrencias] = useState("12");
   const [ate, setAte] = useState("");
+  const [intervalo, setIntervalo] = useState("2");
+  const [unidade, setUnidade] = useState<UnidadeIntervalo>("meses");
   const [meses, setMeses] = useState("12");
 
   const [erro, setErro] = useState<string | null>(null);
@@ -174,8 +178,10 @@ export function FolhaLancamento({
           ? {
               repeticao: "recorrente" as const,
               frequencia,
+              intervalo: Number(intervalo) || 1,
+              unidade,
               ocorrencias: Number(ocorrencias) || 1,
-              ate: frequencia === "personalizado" ? ate || null : null,
+              ate: ate || null,
             }
           : repeticao === "assinatura"
             ? { repeticao: "assinatura" as const, meses: Number(meses) || 1 }
@@ -521,14 +527,68 @@ export function FolhaLancamento({
                       aoEscolher={setFrequencia}
                       colunas="1fr 1fr"
                     />
+
+                    {/* "A cada…" agora define um intervalo de verdade. Antes
+                        ele desmarcava a frequência escolhida e, apesar do
+                        nome, gerava mensal. */}
                     {frequencia === "personalizado" ? (
-                      <CampoData rotulo="Repetir até" valor={ate} aoMudar={setAte} opcional />
+                      <div
+                        className="grid"
+                        style={{ gridTemplateColumns: "1fr 1.4fr", gap: 8 }}
+                      >
+                        <Campo
+                          rotulo="A cada"
+                          type="number"
+                          min={1}
+                          max={365}
+                          inputMode="numeric"
+                          value={intervalo}
+                          onChange={(e) => setIntervalo(e.target.value)}
+                        />
+                        <Segmentos
+                          rotulo="Unidade"
+                          opcoes={(
+                            ["dias", "semanas", "meses"] as UnidadeIntervalo[]
+                          ).map((u) => ({ valor: u, texto: ROTULO_UNIDADE[u] }))}
+                          valor={unidade}
+                          aoEscolher={setUnidade}
+                          colunas="1fr 1fr 1fr"
+                        />
+                      </div>
+                    ) : null}
+
+                    {/* Contar repetições ou ir até uma data agora vale para
+                        qualquer frequência. Antes, "até uma data" só existia
+                        dentro de "personalizado", então não havia como pedir
+                        "toda semana até dezembro". */}
+                    <Segmentos
+                      rotulo="Repetir"
+                      opcoes={[
+                        { valor: "contar" as const, texto: "Por um número de vezes" },
+                        { valor: "ate" as const, texto: "Até uma data" },
+                      ]}
+                      valor={ate ? "ate" : "contar"}
+                      aoEscolher={(v) =>
+                        v === "ate"
+                          ? setAte(ate || dataRegistro)
+                          : setAte("")
+                      }
+                      colunas="1fr 1fr"
+                    />
+
+                    {ate ? (
+                      <CampoData
+                        rotulo="Repetir até"
+                        valor={ate}
+                        aoMudar={setAte}
+                      />
                     ) : (
                       <Campo
                         rotulo="Quantas repetições gerar"
                         type="number"
                         min={1}
                         max={240}
+                        inputMode="numeric"
                         value={ocorrencias}
                         onChange={(e) => setOcorrencias(e.target.value)}
                       />

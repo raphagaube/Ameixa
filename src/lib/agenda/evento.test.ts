@@ -74,7 +74,41 @@ describe("data do compromisso", () => {
 
   /** A coluna é nullable; sem o recuo metade dos a_pagar ficaria sem evento. */
   it("cai na data de registro quando não há vencimento", () => {
-    expect(dataDoCompromisso(lanc({ data_vencimento: null }))).toBe("2026-09-05");
+    // 05/09/2026 é sábado, então o compromisso antecipa para a sexta.
+    expect(dataDoCompromisso(lanc({ data_vencimento: null }))).toBe("2026-09-04");
+  });
+
+  /**
+   * A regra do dono: conta que vence em fim de semana ou feriado é paga no
+   * dia útil anterior. O lembrete tem que cair quando dá para pagar, não
+   * quando o banco está fechado.
+   */
+  it("vencimento no sábado vira compromisso na sexta", () => {
+    expect(dataDoCompromisso(lanc({ data_vencimento: "2026-09-05" }))).toBe(
+      "2026-09-04",
+    );
+  });
+
+  it("vencimento no feriado antecipa", () => {
+    // 07/09 (Independência) cai numa segunda em 2026.
+    expect(dataDoCompromisso(lanc({ data_vencimento: "2026-09-07" }))).toBe(
+      "2026-09-04",
+    );
+  });
+
+  it("vencimento em dia útil fica onde está", () => {
+    expect(dataDoCompromisso(lanc({ data_vencimento: "2026-09-10" }))).toBe(
+      "2026-09-10",
+    );
+  });
+
+  it("a descrição explica a antecipação, e só quando ela acontece", () => {
+    const antecipado = montarEvento(lanc({ data_vencimento: "2026-09-05" }));
+    expect(antecipado.description).toContain("Vence em 05/09/2026");
+    expect(antecipado.description).toContain("fim de semana");
+
+    const normal = montarEvento(lanc({ data_vencimento: "2026-09-10" }));
+    expect(normal.description).not.toContain("Vence em");
   });
 
   it("o fim é o dia seguinte, porque é exclusivo", () => {
