@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Folha inferior (bottom sheet). Padrão do handoff: raio 20px no topo,
@@ -39,6 +39,37 @@ export function Folha({
 
   // Esc fecha, e o fundo trava a rolagem enquanto a folha está aberta.
   // Depende só de `aberta`: roda uma vez ao abrir e desfaz ao fechar.
+  /**
+   * Quanto o teclado do Android está cobrindo.
+   *
+   * O viewport de layout não encolhe quando o teclado sobe, então o rodapé
+   * da folha — onde ficam o erro e o "Salvar" — some atrás dele. Terminar
+   * de digitar a observação e não alcançar o Salvar sem antes fechar o
+   * teclado era o caminho normal, toda vez.
+   *
+   * O botão flutuante já media isto para se desviar; a folha, que é onde
+   * se digita, não media.
+   */
+  const [alturaTeclado, setAlturaTeclado] = useState(0);
+
+  useEffect(() => {
+    if (!aberta) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const medir = () => {
+      const escondido = window.innerHeight - vv.height - vv.offsetTop;
+      // 120px separa teclado de barra de endereço encolhendo.
+      setAlturaTeclado(escondido > 120 ? escondido : 0);
+    };
+    medir();
+    vv.addEventListener("resize", medir);
+    vv.addEventListener("scroll", medir);
+    return () => {
+      vv.removeEventListener("resize", medir);
+      vv.removeEventListener("scroll", medir);
+    };
+  }, [aberta]);
+
   useEffect(() => {
     if (!aberta) return;
 
@@ -79,7 +110,11 @@ export function Folha({
         className="folha-entra absolute inset-x-0 bottom-0 mx-auto w-full outline-none"
         style={{
           maxWidth: "var(--largura)",
-          maxHeight: alturaMaxima,
+          maxHeight: alturaTeclado
+            ? `calc(${alturaMaxima} - ${alturaTeclado}px)`
+            : alturaMaxima,
+          // Ergue a folha acima do teclado, em vez de deixá-la atrás dele.
+          transform: alturaTeclado ? `translateY(-${alturaTeclado}px)` : undefined,
           overflowY: "auto",
           overscrollBehavior: "contain",
           background: "var(--sf)",

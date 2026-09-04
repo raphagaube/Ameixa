@@ -172,7 +172,7 @@ export function RegistroFacil({
                   onClick={() => setContaId(ativa ? null : c.id)}
                   aria-pressed={ativa}
                   style={{
-                    minHeight: 36,
+                    minHeight: 44,
                     borderRadius: 999,
                     padding: "6px 14px",
                     fontSize: 13,

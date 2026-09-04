@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  CircleCheck,
-  FileSpreadsheet,
-  FileText,
-  Link2,
-  TriangleAlert,
-} from "lucide-react";
+import { CircleCheck, Download, FileSpreadsheet, FileText, Link2, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { Botao } from "@/components/ui/botao";
@@ -193,6 +187,35 @@ export function Assistente({
         setErro(r.erro);
       }
     });
+  }
+
+  /**
+   * Salva as linhas rejeitadas num CSV, com o motivo de cada uma.
+   *
+   * Sem isto o dono via "e mais 87…" e não tinha como saber o que
+   * corrigir: a lista só mostrava cinco, e sumia de vez depois de gravar.
+   */
+  function baixarDescartadas() {
+    const ruins = previas.filter((p) => p.problema);
+    const aspas = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const csv = [
+      ["linha", "motivo", "data", "descricao", "valor"].join(";"),
+      ...ruins.map((p) =>
+        [p.numero, p.problema, p.data ?? "", p.descricao ?? "", p.valor ?? ""]
+          .map(aspas)
+          .join(";"),
+      ),
+    ].join(String.fromCharCode(13, 10));
+
+    const url = URL.createObjectURL(
+      // BOM para o Excel abrir os acentos certos.
+      new Blob([String.fromCharCode(0xfeff) + csv], { type: "text/csv;charset=utf-8" }),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ameixa-linhas-de-fora.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function reenviar(decisao: "importar" | "pular") {
@@ -589,6 +612,23 @@ export function Assistente({
                   ))}
                 {resumo.comProblema > 5 ? <li>e mais {resumo.comProblema - 5}…</li> : null}
               </ul>
+
+              {/* "e mais 87…" era o fim da linha: depois de gravar, a lista
+                  das rejeitadas some de vez e não sobra como saber o que
+                  corrigir na planilha. */}
+              <Botao
+                variante="texto"
+                onClick={() => baixarDescartadas()}
+                style={{ marginTop: 8 }}
+              >
+                <span
+                  className="flex items-center justify-center"
+                  style={{ gap: 8 }}
+                >
+                  <Download size={16} strokeWidth={1.5} aria-hidden />
+                  Baixar as {resumo.comProblema} linhas de fora
+                </span>
+              </Botao>
             </div>
           ) : null}
 

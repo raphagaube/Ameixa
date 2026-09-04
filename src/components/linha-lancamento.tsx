@@ -3,7 +3,11 @@
 import { ArrowUpRight } from "lucide-react";
 import { useFormularioLancamento } from "@/components/casca-lancamentos";
 import { dataBr, moeda } from "@/lib/formato";
-import { ROTULO_SITUACAO, type LancamentoNaLista } from "@/lib/tipos/lancamentos";
+import {
+  dataQueVale,
+  ROTULO_SITUACAO,
+  type LancamentoNaLista,
+} from "@/lib/tipos/lancamentos";
 import { Dinheiro } from "@/components/dinheiro";
 
 /** Uma linha da lista do extrato. Clicar abre o formulário de edição. */
@@ -24,17 +28,25 @@ export function LinhaLancamento({
       : "var(--bad)";
   const sinal = ehAporte ? "" : l.tipo === "receita" ? "+" : "−";
 
+  // A data e a situação saem do texto truncado e ganham lugar próprio.
+  //
+  // Antes tudo ia numa linha só com `truncate`, e num celular a data era a
+  // primeira a ser cortada — justamente o que distingue a parcela de
+  // outubro da de novembro. Três "Escola Eloah · R$ 2.695,15" ficavam
+  // idênticas na tela.
   const meta = [
     l.categoria?.nome,
     l.subcategoria?.nome,
     l.cartao?.nome ?? l.conta?.nome,
-    mostrarData ? dataBr(l.data_registro) : null,
-    l.situacao === "pago" || l.situacao === "recebido"
-      ? null
-      : ROTULO_SITUACAO[l.situacao],
   ]
     .filter(Boolean)
     .join(" · ");
+
+  const quando = mostrarData ? dataBr(dataQueVale(l)) : null;
+  const pendente =
+    l.situacao === "pago" || l.situacao === "recebido"
+      ? null
+      : ROTULO_SITUACAO[l.situacao];
 
   return (
     <button
@@ -83,6 +95,25 @@ export function LinhaLancamento({
             style={{ fontSize: 12, color: "var(--mut)" }}
           >
             {ehAporte ? `guardado · ${meta}` : meta}
+          </span>
+        ) : null}
+        {quando || pendente ? (
+          <span
+            className="flex items-center"
+            style={{ gap: 6, fontSize: 12, color: "var(--mut)" }}
+          >
+            {quando ? <span style={{ flexShrink: 0 }}>{quando}</span> : null}
+            {pendente ? (
+              <span
+                style={{
+                  flexShrink: 0,
+                  fontWeight: 600,
+                  color: "var(--deep)",
+                }}
+              >
+                {pendente}
+              </span>
+            ) : null}
           </span>
         ) : null}
       </span>

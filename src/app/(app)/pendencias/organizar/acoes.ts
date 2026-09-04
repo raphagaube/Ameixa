@@ -19,7 +19,10 @@ const decisao = z.object({
 });
 
 const esquema = z.object({
-  decisoes: z.array(decisao).min(1).max(60),
+  decisoes: z
+    .array(decisao)
+    .min(1)
+    .max(60, "Dá para organizar até 60 grupos por vez. Marque alguns como “Deixar como está” e faça o resto numa segunda rodada."),
 });
 
 export type Decisao = z.input<typeof decisao>;

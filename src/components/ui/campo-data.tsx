@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import { nomeMes } from "@/lib/formato";
 
 /**
@@ -22,6 +22,18 @@ export function CampoData({
 }) {
   const id = useId();
   const hoje = new Date();
+
+  /**
+   * O que está sendo digitado no campo do dia, enquanto está sendo digitado.
+   *
+   * Sem isto o campo era corrigido a cada tecla: apagar para trocar o dia
+   * deixava o texto vazio por um instante, `Number("") || 1` virava 1, e o
+   * que o dono digitasse em seguida grudava nesse 1. Digitar 25 dava 1,
+   * depois 12, depois 125 → preso em 1 e 10.
+   *
+   * `null` significa "não estou digitando": mostra o dia de verdade.
+   */
+  const [digitando, setDigitando] = useState<string | null>(null);
 
   const [aStr, mStr, dStr] = valor ? valor.split("-") : ["", "", ""];
   const ano = Number(aStr) || hoje.getFullYear();
@@ -98,8 +110,16 @@ export function CampoData({
             max={31}
             inputMode="numeric"
             aria-label={`${rotulo} — dia`}
-            value={dia}
-            onChange={(e) => montar(Number(e.target.value) || 1, mes, ano)}
+            value={digitando ?? String(dia)}
+            onChange={(e) => {
+              const texto = e.target.value.replace(/\D/g, "").slice(0, 2);
+              setDigitando(texto);
+              // Só avisa quem está de fora quando já dá para ser um dia.
+              // Campo vazio é passo do caminho, não uma escolha.
+              const n = Number(texto);
+              if (n >= 1) montar(n, mes, ano);
+            }}
+            onBlur={() => setDigitando(null)}
             style={estiloSelect}
           />
           <select

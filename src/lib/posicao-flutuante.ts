@@ -56,3 +56,18 @@ export function ler(bruto: string | null): Posicao {
     return PADRAO;
   }
 }
+
+/**
+ * Devolve o botão ao canto de origem.
+ *
+ * Existe porque a posição era gravada e nunca mais podia ser desfeita: um
+ * arraste largando a pílula no meio da tela deixava-a permanentemente por
+ * cima da lista, e a única saída era arrastar de novo adivinhando o lugar.
+ */
+export function esquecerPosicao() {
+  try {
+    localStorage.removeItem(CHAVE_POSICAO);
+  } catch {
+    // Sem armazenamento nunca houve posição guardada.
+  }
+}

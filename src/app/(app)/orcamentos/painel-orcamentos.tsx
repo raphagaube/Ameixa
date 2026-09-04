@@ -131,7 +131,7 @@ export function PainelOrcamentos({
                     type="button"
                     onClick={() => abrir(o)}
                     style={{
-                      minHeight: 28,
+                      minHeight: 44,
                       fontSize: 15,
                       fontWeight: 600,
                       background: "transparent",
@@ -154,9 +154,9 @@ export function PainelOrcamentos({
                       aria-label={`Remover orçamento de ${o.categoria}`}
                       className="grid place-items-center"
                       style={{
-                        width: 32,
-                        height: 32,
-                        minHeight: 32,
+                        width: 44,
+                        height: 44,
+                        minHeight: 44,
                         background: "transparent",
                         color: "var(--mut)",
                       }}

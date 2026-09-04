@@ -36,15 +36,26 @@ export function lerExcel(dados: ArrayBuffer): LinhaCru[] {
   // cellDates faz o SheetJS devolver Date em vez do número de série.
   const pasta = XLSX.read(dados, { type: "array", cellDates: true });
 
-  const primeiraAba = pasta.SheetNames[0];
-  if (!primeiraAba) return [];
-
-  const aba = pasta.Sheets[primeiraAba];
-  const matriz = XLSX.utils.sheet_to_json<unknown[]>(aba, {
-    header: 1,
-    blankrows: false,
-    defval: "",
-  });
+  // Procura a primeira aba com conteúdo, em vez de pegar a primeira e
+  // pronto.
+  //
+  // Planilha de controle financeiro quase sempre tem uma aba de resumo ou
+  // de instruções na frente, e os lançamentos atrás. Lendo cegamente a
+  // primeira, o dono recebia "a planilha não tem linhas além do
+  // cabeçalho" — falso do ponto de vista dele, que estava olhando para as
+  // mil linhas na tela.
+  let matriz: unknown[][] = [];
+  for (const nome of pasta.SheetNames) {
+    const candidata = XLSX.utils.sheet_to_json<unknown[]>(pasta.Sheets[nome], {
+      header: 1,
+      blankrows: false,
+      defval: "",
+    });
+    if (candidata.length >= 2) {
+      matriz = candidata;
+      break;
+    }
+  }
 
   if (matriz.length < 2) return [];
 

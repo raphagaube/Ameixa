@@ -155,9 +155,9 @@ export function FolhaCategoria({
                   aria-label={`Usar a cor ${a}`}
                   aria-pressed={cor.toLowerCase() === a.toLowerCase()}
                   style={{
-                    width: 28,
-                    height: 28,
-                    minHeight: 28,
+                    width: 44,
+                    height: 44,
+                    minHeight: 44,
                     borderRadius: 999,
                     background: a,
                     border:
@@ -224,10 +224,11 @@ export function FolhaCategoria({
                   className="flex items-center"
                   style={{
                     gap: 4,
+                    minHeight: 44,
                     fontSize: 13,
                     border: "1px solid var(--ln)",
                     borderRadius: 999,
-                    padding: "3px 6px 3px 10px",
+                    padding: "3px 4px 3px 12px",
                   }}
                 >
                   {s}
@@ -237,15 +238,18 @@ export function FolhaCategoria({
                     aria-label={`Remover ${s}`}
                     className="grid place-items-center"
                     style={{
-                      width: 22,
-                      height: 22,
-                      minHeight: 22,
+                      // Estreito mas da altura do chip: o dedo acerta a
+                      // faixa inteira, sem o X virar uma bola de 44px ao
+                      // lado de um texto de 13.
+                      width: 34,
+                      height: 38,
+                      minHeight: 38,
                       borderRadius: 999,
                       color: "var(--mut)",
                       background: "transparent",
                     }}
                   >
-                    <X size={13} strokeWidth={2} aria-hidden />
+                    <X size={15} strokeWidth={2} aria-hidden />
                   </button>
                 </li>
               ))}

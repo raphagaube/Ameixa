@@ -132,9 +132,9 @@ export function PainelRepetidos({
                       aria-label={`Editar lançamento de ${dataBr(o.data_registro)}`}
                       className="grid place-items-center"
                       style={{
-                        width: 30,
-                        height: 30,
-                        minHeight: 30,
+                        width: 44,
+                        height: 44,
+                        minHeight: 44,
                         background: "transparent",
                         color: "var(--mut)",
                         flexShrink: 0,
@@ -147,7 +147,7 @@ export function PainelRepetidos({
                       onClick={() => alternar(o.id)}
                       aria-pressed={marcado}
                       style={{
-                        minHeight: 30,
+                        minHeight: 44,
                         borderRadius: 999,
                         padding: "4px 12px",
                         fontSize: 12,

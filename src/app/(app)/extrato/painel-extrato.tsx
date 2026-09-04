@@ -57,6 +57,19 @@ export function PainelExtrato({
   const subcategorias =
     categorias.find((c) => c.id === categoria)?.subcategorias ?? [];
 
+  // O que está filtrando agora, para a lista vazia poder apontar a causa.
+  const filtrosAtivos = [
+    busca ? `busca "${busca}"` : null,
+    categoria
+      ? `categoria ${categorias.find((c) => c.id === categoria)?.nome ?? ""}`
+      : null,
+    subcategoria ? "subcategoria" : null,
+    situacao ? `situação ${situacao.replace("_", " ")}` : null,
+    responsavel ? `responsável "${responsavel}"` : null,
+  ].filter(Boolean) as string[];
+  const temFiltro = filtrosAtivos.length > 0;
+  const resumoDosFiltros = filtrosAtivos.join(", ");
+
   function irPara(mudancas: Record<string, string | undefined>) {
     const q = new URLSearchParams(params.toString());
     for (const [k, v] of Object.entries(mudancas)) {
@@ -332,9 +345,26 @@ export function PainelExtrato({
       </div>
 
       {lancamentos.length === 0 ? (
-        <p style={{ fontSize: 14, color: "var(--mut)", padding: "24px 0" }}>
-          Nenhum lançamento neste período.
-        </p>
+        /* A mensagem antiga culpava o período. Como os filtros sobrevivem na
+           URL, o dono voltava dias depois com "uber" ainda no campo de busca,
+           via o mês vazio e concluía que não tinha lançado nada. */
+        <div className="flex flex-col" style={{ gap: 10, padding: "24px 0" }}>
+          <p style={{ fontSize: 14, color: "var(--mut)" }}>
+            {temFiltro
+              ? "Nenhum lançamento com esses filtros."
+              : "Nenhum lançamento neste período."}
+          </p>
+          {temFiltro ? (
+            <>
+              <p style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.5 }}>
+                Filtros ligados: {resumoDosFiltros}.
+              </p>
+              <Botao variante="contorno" onClick={limparBusca}>
+                Limpar os filtros
+              </Botao>
+            </>
+          ) : null}
+        </div>
       ) : porData ? (
         <div className="flex flex-col" style={{ gap: 16 }}>
           {grupos.map(([data, itens]) => {

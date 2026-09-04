@@ -118,3 +118,33 @@ describe("mapeamento do Excel para lançamento", () => {
     expect(r[0].valor).toBe(1234.56);
   });
 });
+
+describe("qual aba é lida", () => {
+  /**
+   * Planilha de controle costuma ter resumo ou instruções na frente. Antes
+   * o app lia cegamente a primeira e dizia que não havia linhas — falso
+   * para quem estava olhando as mil linhas na aba de trás.
+   */
+  it("pula abas sem dados e lê a primeira que tem", () => {
+    const pasta = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      pasta,
+      XLSX.utils.aoa_to_sheet([["Controle financeiro 2026"]]),
+      "Instruções",
+    );
+    XLSX.utils.book_append_sheet(
+      pasta,
+      XLSX.utils.aoa_to_sheet([
+        ["Data", "Descrição", "Valor"],
+        ["01/07/2026", "Mercado", "83,63"],
+      ]),
+      "Lançamentos",
+    );
+
+    const linhas = lerExcel(
+      XLSX.write(pasta, { type: "array", bookType: "xlsx" }) as ArrayBuffer,
+    );
+    expect(linhas).toHaveLength(1);
+    expect(linhas[0].descricao).toBe("Mercado");
+  });
+});

@@ -20,6 +20,7 @@ import { usuarioAtual } from "@/lib/supabase/servidor";
 import { AgendaGoogle } from "./agenda-google";
 import { EscolhaAcento } from "./escolha-acento";
 import { ExportarDados } from "./exportar-dados";
+import { RestaurarBotao } from "./restaurar-botao";
 import { MinhaConta } from "./minha-conta";
 import { BotaoSair } from "./botao-sair";
 
@@ -94,6 +95,7 @@ export default async function Ajustes({
       <section className="flex flex-col" style={{ gap: 12 }}>
         <h2 style={{ fontSize: 17 }}>Dados</h2>
         <ExportarDados />
+        <RestaurarBotao />
       </section>
 
       <section className="flex flex-col" style={{ gap: 12 }}>

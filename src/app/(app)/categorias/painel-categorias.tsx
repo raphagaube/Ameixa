@@ -69,7 +69,7 @@ export function PainelCategorias({ categorias }: { categorias: Categoria[] }) {
                   type="button"
                   onClick={() => setEmEdicao(c)}
                   style={{
-                    minHeight: 32,
+                    minHeight: 44,
                     fontSize: 13,
                     fontWeight: 600,
                     color: "var(--deep)",

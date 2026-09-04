@@ -78,9 +78,9 @@ export function PainelMetas({
                     aria-label={`Editar ${m.nome}`}
                     className="grid place-items-center"
                     style={{
-                      width: 32,
-                      height: 32,
-                      minHeight: 32,
+                      width: 44,
+                      height: 44,
+                      minHeight: 44,
                       background: "transparent",
                       color: "var(--mut)",
                     }}
@@ -94,7 +94,7 @@ export function PainelMetas({
                   onClick={() => alternarDestaque(m.id)}
                   aria-pressed={noPainel}
                   style={{
-                    minHeight: 28,
+                    minHeight: 44,
                     marginTop: 2,
                     borderRadius: 999,
                     padding: "3px 10px",

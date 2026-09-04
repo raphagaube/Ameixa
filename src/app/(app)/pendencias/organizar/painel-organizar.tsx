@@ -105,7 +105,7 @@ export function PainelOrganizar({
   };
 
   const botao = (ativo: boolean): React.CSSProperties => ({
-    minHeight: 34,
+    minHeight: 44,
     borderRadius: 999,
     padding: "5px 12px",
     fontSize: 12,

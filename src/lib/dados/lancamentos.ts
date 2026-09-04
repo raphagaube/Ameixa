@@ -115,15 +115,6 @@ export async function pendencias(): Promise<LancamentoNaLista[]> {
   return (data as Bruto[]).map(normalizar);
 }
 
-export async function contarPendencias(): Promise<number> {
-  const supabase = await criarClienteServidor();
-  const { count } = await supabase
-    .from("lancamentos")
-    .select("id", { count: "exact", head: true })
-    .eq("incompleto", true);
-  return count ?? 0;
-}
-
 /** Os últimos lançamentos, para o bloco do Início. */
 export async function ultimosLancamentos(n = 4): Promise<LancamentoNaLista[]> {
   const supabase = await criarClienteServidor();
@@ -135,6 +126,23 @@ export async function ultimosLancamentos(n = 4): Promise<LancamentoNaLista[]> {
     .limit(n);
 
   return ((data ?? []) as Bruto[]).map(normalizar);
+}
+
+/**
+ * Quantos lançamentos estão incompletos, no app inteiro.
+ *
+ * O Início contava só os do mês aberto, mas a tela de Pendências lista
+ * todos. Navegar para um mês vazio fazia aparecer "Não há lançamentos
+ * pendentes!" com pendências existindo — o único aviso proativo do app
+ * dizia o contrário da verdade.
+ */
+export async function contarPendencias(): Promise<number> {
+  const supabase = await criarClienteServidor();
+  const { count } = await supabase
+    .from("lancamentos")
+    .select("id", { count: "exact", head: true })
+    .eq("incompleto", true);
+  return count ?? 0;
 }
 
 export function limitesDoMes(ano: number, mes: number) {

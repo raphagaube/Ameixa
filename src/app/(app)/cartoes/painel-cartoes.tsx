@@ -123,7 +123,7 @@ export function PainelCartoes({
                     type="button"
                     onClick={() => setConta(c)}
                     style={{
-                      minHeight: 32,
+                      minHeight: 44,
                       fontSize: 13,
                       fontWeight: 600,
                       color: "var(--deep)",

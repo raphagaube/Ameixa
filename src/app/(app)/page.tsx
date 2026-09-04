@@ -7,7 +7,7 @@ import { OndeEstaMeuDinheiro } from "@/components/onde-esta-meu-dinheiro";
 import { BarraProgresso } from "@/components/ui/barra-progresso";
 import { SeletorMes } from "@/components/seletor-mes";
 import { perfilDoUsuario } from "@/lib/dados/perfil";
-import { ultimosLancamentos } from "@/lib/dados/lancamentos";
+import { contarPendencias, ultimosLancamentos } from "@/lib/dados/lancamentos";
 import { metasDoUsuario } from "@/lib/dados/metas";
 import { orcamentosDoMes } from "@/lib/dados/orcamentos";
 import { panoramaDasContas } from "@/lib/dados/saldos";
@@ -32,14 +32,17 @@ export default async function Inicio({
   const mes = p.mes !== undefined ? Number(p.mes) : hoje.getMonth();
   const referencia = new Date(ano, mes, 1);
 
-  const [perfil, resumo, ultimos, metas, orcamentos, panorama] = await Promise.all([
-    perfilDoUsuario(),
-    resumoDoMes(ano, mes),
-    ultimosLancamentos(4),
-    metasDoUsuario(),
-    orcamentosDoMes(ano, mes),
-    panoramaDasContas(),
-  ]);
+  const [perfil, resumo, ultimos, metas, orcamentos, panorama, pendencias] =
+    await Promise.all([
+      perfilDoUsuario(),
+      resumoDoMes(ano, mes),
+      ultimosLancamentos(4),
+      metasDoUsuario(),
+      orcamentosDoMes(ano, mes),
+      panoramaDasContas(),
+      // Global, não do mês: é a mesma conta que a tela de Pendências faz.
+      contarPendencias(),
+    ]);
 
   const primeiroNome = (perfil?.nome ?? "").split(" ")[0];
   // Sem meta marcada, mostra a primeira — melhor que um espaço vazio.
@@ -118,7 +121,7 @@ export default async function Inicio({
 
       <OndeEstaMeuDinheiro panorama={panorama} />
 
-      {resumo.pendentes > 0 ? (
+      {pendencias > 0 ? (
         <Link
           href="/pendencias"
           className="flex items-center pulso-pendencia"
@@ -137,9 +140,9 @@ export default async function Inicio({
             aria-hidden
           />
           <span style={{ fontSize: 14 }}>
-            {resumo.pendentes === 1
+            {pendencias === 1
               ? "1 lançamento esperando você completar"
-              : `${resumo.pendentes} lançamentos esperando você completar`}
+              : `${pendencias} lançamentos esperando você completar`}
           </span>
         </Link>
       ) : (

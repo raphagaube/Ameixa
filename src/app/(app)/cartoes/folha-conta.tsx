@@ -192,7 +192,7 @@ export function FolhaConta({
                 type="button"
                 onClick={() => setConferidoEm(paraIso(new Date()))}
                 style={{
-                  minHeight: 36,
+                  minHeight: 44,
                   alignSelf: "flex-start",
                   fontSize: 13,
                   fontWeight: 600,

@@ -239,7 +239,7 @@ export function FolhaLancamento({
       : "Novo lançamento";
 
   const chip = (ativo: boolean, cor?: string, corTexto?: string): React.CSSProperties => ({
-    minHeight: 36,
+    minHeight: 44,
     borderRadius: 999,
     padding: "6px 14px",
     fontSize: 13,
@@ -300,7 +300,7 @@ export function FolhaLancamento({
                 Você ainda não tem metas. Crie uma na aba Metas.
               </p>
             ) : (
-              <div className="flex flex-wrap" style={{ gap: 6 }}>
+              <div className="flex flex-wrap" style={{ gap: 8 }}>
                 {dados.metas.map((m) => (
                   <button
                     key={m.id}
@@ -322,7 +322,7 @@ export function FolhaLancamento({
           <>
             <div className="flex flex-col" style={{ gap: 6 }}>
               <span className="rotulo">Categoria</span>
-              <div className="flex flex-wrap" style={{ gap: 6 }}>
+              <div className="flex flex-wrap" style={{ gap: 8 }}>
                 {categoriasDoTipo.map((c) => {
                   const ativo = categoriaId === c.id;
                   return (
@@ -346,7 +346,7 @@ export function FolhaLancamento({
             {subcategorias.length > 0 ? (
               <div className="flex flex-col" style={{ gap: 6 }}>
                 <span className="rotulo">Subcategoria</span>
-                <div className="flex flex-wrap" style={{ gap: 6 }}>
+                <div className="flex flex-wrap" style={{ gap: 8 }}>
                   {subcategorias.map((s) => {
                     const ativo = subcategoriaId === s.id;
                     return (
@@ -405,7 +405,7 @@ export function FolhaLancamento({
           <>
             <div className="flex flex-col" style={{ gap: 6 }}>
               <span className="rotulo">Meio de pagamento</span>
-              <div className="flex flex-wrap" style={{ gap: 6 }}>
+              <div className="flex flex-wrap" style={{ gap: 8 }}>
                 {todasFormas.map((f) => {
                   const ativo = forma === f;
                   return (
@@ -461,7 +461,7 @@ export function FolhaLancamento({
             {forma.toLowerCase() === "crédito" && cartoes.length > 0 ? (
               <div className="flex flex-col" style={{ gap: 6 }}>
                 <span className="rotulo">Qual cartão</span>
-                <div className="flex flex-wrap" style={{ gap: 6 }}>
+                <div className="flex flex-wrap" style={{ gap: 8 }}>
                   {cartoes.map((k) => {
                     const ativo = cartaoId === k.id;
                     return (
