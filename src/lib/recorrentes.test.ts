@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
 import {
   agruparSeries,
+  nomesParecidos,
   possiveisRepetidas,
   separarSufixo,
   trocarBase,
@@ -123,5 +124,57 @@ describe("possiveisRepetidas", () => {
       ...serie("d", "Reforma", 1000, ["2026-11", "2026-12"]),
     ]);
     expect(possiveisRepetidas(s).size).toBe(0);
+  });
+});
+
+describe("nomesParecidos — casos reais da tela", () => {
+  it("reconhece a mesma conta escrita de outro jeito", () => {
+    expect(nomesParecidos("Tânia Neuro", "Tânia neuropsipedagoga")).toBe(true);
+    expect(nomesParecidos("Gfibra Internet Chácara", "Gfibra Internet chácara")).toBe(true);
+    expect(
+      nomesParecidos("Cama box, loja Madeira", "Madeira Madeira loja cama box crianças"),
+    ).toBe(true);
+    expect(nomesParecidos("DENTISTA ELOAH", "Dentista odontoclinic Eloah")).toBe(true);
+    expect(nomesParecidos("Guarda da Rua", "Guarda da rua / vigilante noturno")).toBe(true);
+    expect(nomesParecidos("Anuidade cartão", "Anuidade cartão riachuelo")).toBe(true);
+  });
+
+  it("não confunde contas diferentes que só têm o mesmo valor", () => {
+    expect(nomesParecidos("Guarda da Rua", "Sabesp Chácara")).toBe(false);
+    expect(nomesParecidos("Cpfl Chácara", "DENTISTA ELOAH")).toBe(false);
+    expect(nomesParecidos("Celular Eloah", "Celular Rapha")).toBe(false);
+  });
+
+  it("nome sem palavra que pese não serve de prova", () => {
+    expect(nomesParecidos("C&A", "C&A")).toBe(false);
+  });
+});
+
+describe("possiveisRepetidas exige nome parecido", () => {
+  const serie = (id: string, nome: string, valor: number) =>
+    ["2026-09", "2026-10", "2026-11"].map((m) =>
+      l({ serie_id: id, descricao: nome, valor, data_vencimento: `${m}-10` }),
+    );
+
+  it("mesmo valor nos mesmos meses, nomes diferentes: não aponta", () => {
+    const s = agruparSeries([
+      ...serie("a", "Guarda da Rua", 80),
+      ...serie("b", "Sabesp Chácara", 80),
+      ...serie("c", "Celular Eloah", 67),
+      ...serie("d", "Celular Rapha", 67),
+    ]);
+    expect(possiveisRepetidas(s).size).toBe(0);
+  });
+
+  it("três séries de mesmo valor: só liga as de nome parecido", () => {
+    const s = agruparSeries([
+      ...serie("a", "Guarda da Rua", 80),
+      ...serie("b", "Guarda da rua / vigilante noturno", 80),
+      ...serie("c", "Sabesp chácara", 80),
+    ]);
+    const r = possiveisRepetidas(s);
+    const guarda = s.find((x) => x.base === "Guarda da Rua")!;
+    expect(r.get(guarda.chave)).toEqual(["Guarda da rua / vigilante noturno"]);
+    expect(r.has(s.find((x) => x.base === "Sabesp chácara")!.chave)).toBe(false);
   });
 });

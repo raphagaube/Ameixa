@@ -75,10 +75,44 @@ export function agruparSeries(lista: LancamentoNaLista[]): Serie[] {
 
 const mesesDe = (s: Serie) => new Set(s.itens.map((l) => dataQueVale(l).slice(0, 7)));
 
+/** Palavras que não ajudam a dizer se dois nomes são a mesma conta. */
+const SEM_PESO = new Set(["das", "dos", "com", "para", "por", "sem", "ref", "que", "uma"]);
+
+function palavras(nome: string): string[] {
+  return [
+    ...new Set(
+      nome
+        .normalize("NFD")
+        .replace(/\p{M}/gu, "")
+        .toLowerCase()
+        .split(/[^a-z]+/)
+        .filter((p) => p.length >= 3 && !SEM_PESO.has(p)),
+    ),
+  ];
+}
+
+/**
+ * Os dois nomes descrevem a mesma conta?
+ *
+ * Mais da metade das palavras do nome mais curto precisa aparecer no outro.
+ * Prefixo vale, porque o dono abrevia: "Tânia Neuro" e "Tânia
+ * neuropsipedagoga". Só valor igual não basta — R$ 80,00 é o guarda da rua
+ * e é a Sabesp, e "Celular Eloah" e "Celular Rapha" são duas linhas.
+ */
+export function nomesParecidos(a: string, b: string): boolean {
+  const pa = palavras(a);
+  const pb = palavras(b);
+  const [curto, longo] = pa.length <= pb.length ? [pa, pb] : [pb, pa];
+  if (curto.length === 0) return false;
+  const bate = (p: string) => longo.some((q) => q.startsWith(p) || p.startsWith(q));
+  return curto.filter(bate).length * 2 > curto.length;
+}
+
 /**
  * Séries que parecem a mesma conta cadastrada duas vezes: mesmo tipo, mesmo
- * valor e pelo menos dois meses em comum. Gerar a recorrência de novo, com
- * outro nome ou outro dia, dobra a despesa sem que nada na tela avise.
+ * valor, pelo menos dois meses em comum e nomes parecidos. Gerar a
+ * recorrência de novo, com outro nome ou outro dia, dobra a despesa sem que
+ * nada na tela avise.
  */
 export function possiveisRepetidas(series: Serie[]): Map<string, string[]> {
   const out = new Map<string, string[]>();
@@ -88,6 +122,7 @@ export function possiveisRepetidas(series: Serie[]): Map<string, string[]> {
       const b = series[j];
       if (a.tipo !== b.tipo) continue;
       if (a.itens[0].valor.toFixed(2) !== b.itens[0].valor.toFixed(2)) continue;
+      if (!nomesParecidos(a.base, b.base)) continue;
       const ma = mesesDe(a);
       let comuns = 0;
       for (const m of mesesDe(b)) if (ma.has(m)) comuns += 1;
