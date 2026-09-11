@@ -5,6 +5,7 @@ import {
   CreditCard,
   ListTree,
   PiggyBank,
+  Repeat,
   TriangleAlert,
   Upload,
 } from "lucide-react";
@@ -30,6 +31,7 @@ const ATALHOS = [
   { href: "/cartoes", rotulo: "Cartões e contas", Icone: CreditCard },
   { href: "/orcamentos", rotulo: "Orçamentos", Icone: PiggyBank },
   { href: "/categorias", rotulo: "Categorias", Icone: ListTree },
+  { href: "/recorrentes", rotulo: "Contas recorrentes", Icone: Repeat },
   { href: "/pendencias", rotulo: "Pendências", Icone: TriangleAlert },
   { href: "/importar", rotulo: "Importar planilha", Icone: Upload },
   { href: "/conciliacao", rotulo: "Conciliação bancária (OFX)", Icone: ArrowLeftRight },

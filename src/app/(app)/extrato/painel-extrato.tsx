@@ -510,12 +510,17 @@ export function PainelExtrato({
       ) : null}
 
       {lancamentos.length === 0 ? null : !selecionando ? (
-        <Botao variante="contorno" onClick={() => setSelecionando(true)}>
-          <span className="flex items-center justify-center" style={{ gap: 6 }}>
-            <CheckSquare size={16} strokeWidth={1.5} aria-hidden />
-            Selecionar vários
-          </span>
-        </Botao>
+        <div className="flex" style={{ gap: 8 }}>
+          <Botao variante="contorno" onClick={() => setSelecionando(true)}>
+            <span className="flex items-center justify-center" style={{ gap: 6 }}>
+              <CheckSquare size={16} strokeWidth={1.5} aria-hidden />
+              Selecionar vários
+            </span>
+          </Botao>
+          <Botao variante="contorno" onClick={() => router.push("/recorrentes")}>
+            Contas recorrentes
+          </Botao>
+        </div>
       ) : (
         <section
           className="flex flex-col"

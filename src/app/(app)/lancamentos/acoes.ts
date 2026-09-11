@@ -230,16 +230,18 @@ type Orfao = { calendario_id: string; evento_id: string };
 
 async function eventosDe(
   supabase: Awaited<ReturnType<typeof criarClienteServidor>>,
-  filtro: { id?: string; serie_id?: string },
+  filtro: { id?: string; serie_id?: string; ids?: string[] },
 ): Promise<Orfao[]> {
-  const ids = filtro.serie_id
-    ? ((
-        await supabase
-          .from("lancamentos")
-          .select("id")
-          .eq("serie_id", filtro.serie_id)
-      ).data ?? []).map((l) => l.id)
-    : [filtro.id!];
+  const ids = filtro.ids
+    ? filtro.ids
+    : filtro.serie_id
+      ? ((
+          await supabase
+            .from("lancamentos")
+            .select("id")
+            .eq("serie_id", filtro.serie_id)
+        ).data ?? []).map((l) => l.id)
+      : [filtro.id!];
 
   if (ids.length === 0) return [];
 
@@ -294,6 +296,7 @@ function revalidarTudo() {
   for (const p of [
     "/",
     "/extrato",
+    "/recorrentes",
     "/pendencias",
     "/relatorios",
     "/metas",
@@ -545,4 +548,161 @@ export async function restaurarVencimentos(
   revalidarTudo();
   naAgenda(v.data.map((a) => a.id));
   return { ok: true, criados: v.data.length };
+}
+
+const itemEdicao = z.object({
+  id: z.string().uuid(),
+  descricao: z.string().trim().min(1, "Toda linha precisa de uma descrição.").max(120),
+  valor: z
+    .number()
+    .positive("O valor precisa ser maior que zero.")
+    .max(1_000_000_000, "Valor alto demais."),
+  data_vencimento: z.string().regex(ISO, "Data inválida.").nullable(),
+});
+
+export type ItemEdicao = z.infer<typeof itemEdicao>;
+
+export type ResultadoEdicao =
+  | { ok: true; alterados: number; antes: ItemEdicao[] }
+  | { ok: false; erro: string; antes: ItemEdicao[] };
+
+/** Quantas linhas vão ao banco ao mesmo tempo. */
+const EM_PARALELO = 8;
+
+/**
+ * Grava descrição, valor e vencimento de várias linhas de uma vez.
+ *
+ * Cada linha pode ter valores diferentes (o mês de cada vencimento é
+ * outro), então não dá para um único `update ... in (...)`. As linhas vão
+ * em grupos pequenos em paralelo.
+ *
+ * Só linhas que mudaram de fato são gravadas. O que elas tinham antes volta
+ * na resposta: desfazer é chamar esta mesma função com esses valores.
+ * Se algo falhar no meio, a resposta traz o `antes` do que já foi gravado,
+ * para o Desfazer ainda funcionar.
+ */
+export async function editarLancamentosEmLote(
+  itens: ItemEdicao[],
+): Promise<ResultadoEdicao> {
+  const v = z.array(itemEdicao).min(1).max(MAX_LOTE).safeParse(itens);
+  if (!v.success) {
+    return {
+      ok: false,
+      erro: v.error.issues[0]?.message ?? "Dados inválidos.",
+      antes: [],
+    };
+  }
+
+  const supabase = await criarClienteServidor();
+  const { data: atuais, error: erroLeitura } = await supabase
+    .from("lancamentos")
+    .select("id, descricao, valor, data_vencimento")
+    .in(
+      "id",
+      v.data.map((i) => i.id),
+    );
+  if (erroLeitura) {
+    return { ok: false, erro: traduzir(erroLeitura.message), antes: [] };
+  }
+
+  const porId = new Map(
+    (atuais ?? []).map((a) => [
+      a.id as string,
+      {
+        id: a.id as string,
+        descricao: a.descricao as string,
+        valor: Number(a.valor),
+        data_vencimento: ((a.data_vencimento as string | null) ?? null)?.slice(0, 10) ?? null,
+      },
+    ]),
+  );
+
+  const mudar = v.data.filter((i) => {
+    const a = porId.get(i.id);
+    return (
+      !!a &&
+      (a.descricao !== i.descricao ||
+        a.valor !== i.valor ||
+        a.data_vencimento !== i.data_vencimento)
+    );
+  });
+
+  const antes: ItemEdicao[] = [];
+  for (let k = 0; k < mudar.length; k += EM_PARALELO) {
+    const grupo = mudar.slice(k, k + EM_PARALELO);
+    const respostas = await Promise.all(
+      grupo.map((i) =>
+        supabase
+          .from("lancamentos")
+          .update({
+            descricao: i.descricao,
+            valor: i.valor,
+            data_vencimento: i.data_vencimento,
+          })
+          .eq("id", i.id),
+      ),
+    );
+    respostas.forEach((r, x) => {
+      if (!r.error) antes.push(porId.get(grupo[x].id)!);
+    });
+    const falha = respostas.find((r) => r.error);
+    if (falha?.error) {
+      if (antes.length) {
+        revalidarTudo();
+        naAgenda(antes.map((a) => a.id));
+      }
+      return {
+        ok: false,
+        erro: `${antes.length} de ${mudar.length} gravados; o resto falhou: ${traduzir(falha.error.message)}`,
+        antes,
+      };
+    }
+  }
+
+  if (antes.length) {
+    revalidarTudo();
+    naAgenda(antes.map((a) => a.id));
+  }
+  return { ok: true, alterados: antes.length, antes };
+}
+
+export type ResultadoExclusao =
+  | { ok: true; excluidos: number; ignorados: number }
+  | { ok: false; erro: string };
+
+/**
+ * Apaga pendências de uma vez — o caso é a série cadastrada duas vezes.
+ *
+ * Só apaga o que está a pagar ou a receber. O que já foi pago é histórico:
+ * mesmo que venha na lista, fica, e a resposta conta quantos ficaram.
+ */
+export async function excluirPendentesEmLote(
+  ids: string[],
+): Promise<ResultadoExclusao> {
+  const v = idsEmLote.safeParse(ids);
+  if (!v.success) return { ok: false, erro: "Seleção inválida." };
+
+  const supabase = await criarClienteServidor();
+  const { data: atuais, error: erroLeitura } = await supabase
+    .from("lancamentos")
+    .select("id, situacao")
+    .in("id", v.data);
+  if (erroLeitura) return { ok: false, erro: traduzir(erroLeitura.message) };
+
+  const pendentes = (atuais ?? [])
+    .filter((l) => l.situacao === "a_pagar" || l.situacao === "a_receber")
+    .map((l) => l.id as string);
+  const ignorados = v.data.length - pendentes.length;
+  if (pendentes.length === 0) return { ok: true, excluidos: 0, ignorados };
+
+  // Mesmo motivo de excluirLancamento: depois do delete o vínculo com a
+  // agenda some em cascata, e o evento ficaria órfão.
+  const orfaos = await eventosDe(supabase, { ids: pendentes });
+
+  const { error } = await supabase.from("lancamentos").delete().in("id", pendentes);
+  if (error) return { ok: false, erro: traduzir(error.message) };
+
+  revalidarTudo();
+  limparDaAgenda(orfaos);
+  return { ok: true, excluidos: pendentes.length, ignorados };
 }

@@ -1,0 +1,100 @@
+import {
+  dataQueVale,
+  type LancamentoNaLista,
+  type TipoLancamento,
+} from "@/lib/tipos/lancamentos";
+
+/**
+ * O pedaço final que numera a ocorrência: "— 3/10", "— assinatura 2/12" ou
+ * "(5/21)". Só conta como sufixo com travessão ou parênteses — "Candeias
+ * Ubatuba 21 à 28/12" termina em "28/12" e isso é parte do nome.
+ */
+const SUFIXO =
+  /(\s*[—–-]\s*(?:assinatura\s+)?\d+\s*\/\s*\d+|\s*\(\s*\d+\s*\/\s*\d+\s*\))\s*$/i;
+
+export function separarSufixo(descricao: string): { base: string; sufixo: string } {
+  const m = descricao.match(SUFIXO);
+  if (!m || m.index === undefined) return { base: descricao.trim(), sufixo: "" };
+  return { base: descricao.slice(0, m.index).trim(), sufixo: m[0] };
+}
+
+/** Troca o nome mantendo a numeração da ocorrência. */
+export function trocarBase(descricao: string, novaBase: string): string {
+  return novaBase.trim() + separarSufixo(descricao).sufixo;
+}
+
+export type Serie = {
+  chave: string;
+  /** Tem `serie_id`: nasceu do formulário como série. */
+  vinculada: boolean;
+  base: string;
+  tipo: TipoLancamento;
+  /** Pendentes da série, na ordem em que vencem. */
+  itens: LancamentoNaLista[];
+  onde: string | null;
+};
+
+/**
+ * Junta as pendências em séries.
+ *
+ * O `serie_id` é a ligação certa, mas nem toda série tem: o importador de
+ * planilha não grava o campo. Sem ele, duas ou mais pendências com o mesmo
+ * nome-base, tipo e valor são tratadas como uma série — é o que o dono
+ * enxergaria olhando a lista.
+ */
+export function agruparSeries(lista: LancamentoNaLista[]): Serie[] {
+  const grupos = new Map<string, Serie>();
+
+  for (const l of lista) {
+    if (l.tipo === "aporte") continue;
+    const { base } = separarSufixo(l.descricao);
+    const chave = l.serie_id
+      ? `s:${l.serie_id}`
+      : `d:${l.tipo}|${base.toLocaleLowerCase("pt-BR")}|${l.valor.toFixed(2)}`;
+
+    const g = grupos.get(chave) ?? {
+      chave,
+      vinculada: !!l.serie_id,
+      base,
+      tipo: l.tipo,
+      itens: [],
+      onde: l.cartao?.nome ?? l.conta?.nome ?? null,
+    };
+    g.itens.push(l);
+    grupos.set(chave, g);
+  }
+
+  return [...grupos.values()]
+    .filter((g) => g.vinculada || g.itens.length >= 2)
+    .map((g) => ({
+      ...g,
+      itens: [...g.itens].sort((a, b) => dataQueVale(a).localeCompare(dataQueVale(b))),
+    }))
+    .sort((a, b) => a.base.localeCompare(b.base, "pt-BR", { sensitivity: "base" }));
+}
+
+const mesesDe = (s: Serie) => new Set(s.itens.map((l) => dataQueVale(l).slice(0, 7)));
+
+/**
+ * Séries que parecem a mesma conta cadastrada duas vezes: mesmo tipo, mesmo
+ * valor e pelo menos dois meses em comum. Gerar a recorrência de novo, com
+ * outro nome ou outro dia, dobra a despesa sem que nada na tela avise.
+ */
+export function possiveisRepetidas(series: Serie[]): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (let i = 0; i < series.length; i++) {
+    for (let j = i + 1; j < series.length; j++) {
+      const a = series[i];
+      const b = series[j];
+      if (a.tipo !== b.tipo) continue;
+      if (a.itens[0].valor.toFixed(2) !== b.itens[0].valor.toFixed(2)) continue;
+      const ma = mesesDe(a);
+      let comuns = 0;
+      for (const m of mesesDe(b)) if (ma.has(m)) comuns += 1;
+      if (comuns < 2) continue;
+      out.set(a.chave, [...(out.get(a.chave) ?? []), b.base]);
+      out.set(b.chave, [...(out.get(b.chave) ?? []), a.base]);
+    }
+  }
+  return out;
+}

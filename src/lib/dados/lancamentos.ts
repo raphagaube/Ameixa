@@ -115,6 +115,36 @@ export async function pendencias(): Promise<LancamentoNaLista[]> {
   return (data as Bruto[]).map(normalizar);
 }
 
+/**
+ * Todas as pendências (a pagar e a receber), sem aportes — a matéria-prima
+ * da tela de contas recorrentes.
+ *
+ * Paginado de propósito. Sem `range`, o PostgREST devolve no máximo mil
+ * linhas e corta o resto calado; com séries de dois anos isso chega rápido,
+ * e uma série cortada ao meio seria corrigida pela metade.
+ */
+export async function pendenciasTodas(): Promise<LancamentoNaLista[]> {
+  const supabase = await criarClienteServidor();
+  const PAGINA = 1000;
+  const todas: Bruto[] = [];
+
+  for (let de = 0; ; de += PAGINA) {
+    const { data, error } = await supabase
+      .from("lancamentos")
+      .select(CAMPOS)
+      .in("situacao", ["a_pagar", "a_receber"])
+      .neq("tipo", "aporte")
+      .order("data_registro", { ascending: true })
+      .order("id", { ascending: true })
+      .range(de, de + PAGINA - 1);
+    if (error || !data) break;
+    todas.push(...(data as Bruto[]));
+    if (data.length < PAGINA) break;
+  }
+
+  return todas.map(normalizar);
+}
+
 /** Os últimos lançamentos, para o bloco do Início. */
 export async function ultimosLancamentos(n = 4): Promise<LancamentoNaLista[]> {
   const supabase = await criarClienteServidor();
