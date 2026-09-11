@@ -118,28 +118,29 @@ export function gerarSerie(
 ): Ocorrencia[] {
   const inicio = comoData(base.dataRegistro);
 
-  // Distância entre registro e vencimento é mantida em todas as ocorrências.
-  const deslocamento =
-    base.dataVencimento === null
-      ? null
-      : Math.round(
-          (comoData(base.dataVencimento).getTime() - inicio.getTime()) / 86400000,
-        );
+  // O vencimento anda com o mesmo passo do registro, a partir da própria
+  // data dele — e não "registro + N dias".
+  //
+  // Antes a distância em dias era fixa: registrado dia 28 e vencendo dia 10
+  // dava 13 dias, e 28/06 + 13 caía em 11/07, 28/09 + 13 em 11/10. A conta
+  // do dia 10 passava a vencer dia 10, 11, 10, 10, 11 conforme o tamanho do
+  // mês. Aplicar o mesmo passo às duas datas mantém o dia do vencimento.
+  const vencimentoBase =
+    base.dataVencimento === null ? null : comoData(base.dataVencimento);
 
   const monta = (
-    data: Date,
+    passo: (d: Date) => Date,
     descricao: string,
     parcelaAtual: number | null,
     parcelaTotal: number | null,
     serieTipo: TipoRepeticao | null,
     primeira: boolean,
   ): Ocorrencia => {
-    const iso = paraIso(data);
+    const iso = paraIso(passo(inicio));
     return {
       descricao,
       data_registro: iso,
-      data_vencimento:
-        deslocamento === null ? null : paraIso(somarDias(data, deslocamento)),
+      data_vencimento: vencimentoBase === null ? null : paraIso(passo(vencimentoBase)),
       // A primeira respeita o que o usuário escolheu; as seguintes seguem a data.
       situacao: primeira ? base.situacao : situacaoPadrao(base.tipo, iso, hojeIso),
       serie_tipo: serieTipo,
@@ -149,7 +150,7 @@ export function gerarSerie(
   };
 
   if (config.repeticao === "unica") {
-    return [monta(inicio, base.descricao, null, null, null, true)];
+    return [monta((d) => d, base.descricao, null, null, null, true)];
   }
 
   if (config.repeticao === "parcelada") {
@@ -160,7 +161,7 @@ export function gerarSerie(
     return Array.from({ length: limite }, (_, i) => {
       const numero = parcelaAtual + i;
       return monta(
-        somarMeses(inicio, i),
+        (d) => somarMeses(d, i),
         `${base.descricao} — ${numero}/${parcelaTotal}`,
         numero,
         parcelaTotal,
@@ -174,7 +175,7 @@ export function gerarSerie(
     const total = Math.min(Math.max(config.meses, 1), MAX_OCORRENCIAS);
     return Array.from({ length: total }, (_, i) =>
       monta(
-        somarMeses(inicio, i),
+        (d) => somarMeses(d, i),
         `${base.descricao} — assinatura ${i + 1}/${total}`,
         i + 1,
         total,
@@ -196,15 +197,15 @@ export function gerarSerie(
 
   const lista: Ocorrencia[] = [];
   for (let i = 0; i < quantas; i++) {
-    const data = avancar(inicio, i, frequencia, intervalo, unidade);
-    if (fim && data > fim) break;
-    lista.push(monta(data, base.descricao, null, null, "recorrente", i === 0));
+    const passo = (d: Date) => avancar(d, i, frequencia, intervalo, unidade);
+    if (fim && passo(inicio) > fim) break;
+    lista.push(monta(passo, base.descricao, null, null, "recorrente", i === 0));
   }
 
   // Uma data final anterior à primeira ocorrência ainda salva o lançamento
   // que o usuário digitou — senão o salvar não faria nada.
   if (lista.length === 0) {
-    lista.push(monta(inicio, base.descricao, null, null, "recorrente", true));
+    lista.push(monta((d) => d, base.descricao, null, null, "recorrente", true));
   }
 
   return lista;

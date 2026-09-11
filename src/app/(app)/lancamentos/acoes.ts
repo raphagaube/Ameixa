@@ -12,6 +12,13 @@ import {
 import { paraIso } from "@/lib/formato";
 import { gerarSerie, type ConfigSerie } from "@/lib/serie";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import {
+  dataQueVale,
+  situacaoAlvo,
+  trocarDiaDoMes,
+  type Situacao,
+  type TipoLancamento,
+} from "@/lib/tipos/lancamentos";
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const uuidOuVazio = z.string().uuid().nullable().optional();
@@ -306,4 +313,236 @@ function traduzir(bruto: string): string {
     return "Alguma categoria ou conta escolhida não existe mais. Recarregue a tela.";
   if (m.includes("duplicate key")) return "Esse lançamento já foi importado antes.";
   return "Não deu para salvar. Tente novamente.";
+}
+
+/** Teto de uma chamada em lote. Acima disso a lista vira duas. */
+const MAX_LOTE = 500;
+
+const idsEmLote = z.array(z.string().uuid()).min(1).max(MAX_LOTE);
+
+export type ResultadoLote =
+  | {
+      ok: true;
+      alterados: number;
+      /** Aportes e quem já estava no destino. */
+      ignorados: number;
+      /** Situação anterior de cada alterado, para o Desfazer. */
+      antes: { id: string; situacao: Situacao }[];
+    }
+  | { ok: false; erro: string };
+
+/**
+ * Muda a situação de vários lançamentos de uma vez.
+ *
+ * Existe porque marcar meses de pendências uma a uma pelo formulário é
+ * inviável: são dezenas de aberturas de modal, e no meio do caminho é fácil
+ * salvar sem querer outro campo junto. Aqui só a situação é tocada.
+ *
+ * Devolve a situação anterior de cada um para a tela poder oferecer
+ * Desfazer — em lote, um clique errado custa caro e não há como reverter
+ * pela interface.
+ */
+export async function marcarSituacaoEmLote(
+  ids: string[],
+  alvo: "quitado" | "pendente",
+): Promise<ResultadoLote> {
+  const v = idsEmLote.safeParse(ids);
+  if (!v.success) {
+    return {
+      ok: false,
+      erro:
+        ids.length > MAX_LOTE
+          ? `São ${ids.length} lançamentos de uma vez. O limite é ${MAX_LOTE}.`
+          : "Seleção inválida.",
+    };
+  }
+
+  const supabase = await criarClienteServidor();
+
+  const { data: atuais, error: erroLeitura } = await supabase
+    .from("lancamentos")
+    .select("id, tipo, situacao")
+    .in("id", v.data);
+
+  if (erroLeitura) return { ok: false, erro: traduzir(erroLeitura.message) };
+
+  const antes: { id: string; situacao: Situacao }[] = [];
+  const porDestino = new Map<Situacao, string[]>();
+  let ignorados = 0;
+
+  for (const l of atuais ?? []) {
+    const alvoDele = situacaoAlvo(l.tipo as TipoLancamento, alvo);
+    if (!alvoDele || alvoDele === l.situacao) {
+      ignorados += 1;
+      continue;
+    }
+    antes.push({ id: l.id as string, situacao: l.situacao as Situacao });
+    porDestino.set(alvoDele, [...(porDestino.get(alvoDele) ?? []), l.id as string]);
+  }
+
+  if (antes.length === 0) return { ok: true, alterados: 0, ignorados, antes: [] };
+
+  for (const [situacao, lote] of porDestino) {
+    const { error } = await supabase
+      .from("lancamentos")
+      .update({ situacao })
+      .in("id", lote);
+    if (error) return { ok: false, erro: traduzir(error.message) };
+  }
+
+  revalidarTudo();
+  // Mesmo motivo de salvarLancamento: quem foi quitado perde o lembrete.
+  naAgenda(antes.map((a) => a.id));
+  return { ok: true, alterados: antes.length, ignorados, antes };
+}
+
+/** Devolve cada lançamento à situação que tinha antes do lote. */
+export async function restaurarSituacoes(
+  antes: { id: string; situacao: Situacao }[],
+): Promise<Resultado> {
+  const esquemaAntes = z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        situacao: z.enum(["pago", "a_pagar", "recebido", "a_receber", "guardado"]),
+      }),
+    )
+    .min(1)
+    .max(MAX_LOTE);
+
+  const v = esquemaAntes.safeParse(antes);
+  if (!v.success) return { ok: false, erro: "Não deu para desfazer." };
+
+  const supabase = await criarClienteServidor();
+
+  const porSituacao = new Map<Situacao, string[]>();
+  for (const a of v.data) {
+    porSituacao.set(a.situacao, [...(porSituacao.get(a.situacao) ?? []), a.id]);
+  }
+
+  for (const [situacao, lote] of porSituacao) {
+    const { error } = await supabase
+      .from("lancamentos")
+      .update({ situacao })
+      .in("id", lote);
+    if (error) return { ok: false, erro: traduzir(error.message) };
+  }
+
+  revalidarTudo();
+  naAgenda(v.data.map((a) => a.id));
+  return { ok: true, criados: v.data.length };
+}
+
+export type ResultadoVencimento =
+  | {
+      ok: true;
+      alterados: number;
+      ignorados: number;
+      antes: { id: string; data_vencimento: string | null }[];
+    }
+  | { ok: false; erro: string };
+
+/**
+ * Põe o vencimento de vários lançamentos no mesmo dia do mês, mantendo o
+ * mês de cada um.
+ *
+ * Existe para consertar séries geradas antes da correção do gerador, que
+ * faziam o vencimento escorregar (10, 11, 10, 10, 11...). Quem não tinha
+ * vencimento passa a ter, no mês da própria data de registro.
+ */
+export async function mudarDiaDoVencimentoEmLote(
+  ids: string[],
+  dia: number,
+): Promise<ResultadoVencimento> {
+  const v = idsEmLote.safeParse(ids);
+  if (!v.success) {
+    return {
+      ok: false,
+      erro:
+        ids.length > MAX_LOTE
+          ? `São ${ids.length} lançamentos de uma vez. O limite é ${MAX_LOTE}.`
+          : "Seleção inválida.",
+    };
+  }
+  if (!Number.isInteger(dia) || dia < 1 || dia > 31) {
+    return { ok: false, erro: "Escolha um dia entre 1 e 31." };
+  }
+
+  const supabase = await criarClienteServidor();
+  const { data: atuais, error: erroLeitura } = await supabase
+    .from("lancamentos")
+    .select("id, data_registro, data_vencimento")
+    .in("id", v.data);
+  if (erroLeitura) return { ok: false, erro: traduzir(erroLeitura.message) };
+
+  const antes: { id: string; data_vencimento: string | null }[] = [];
+  const porData = new Map<string, string[]>();
+  let ignorados = 0;
+
+  for (const l of atuais ?? []) {
+    const atual = (l.data_vencimento as string | null) ?? null;
+    const novo = trocarDiaDoMes(
+      dataQueVale({ data_vencimento: atual, data_registro: l.data_registro as string }),
+      dia,
+    );
+    if (atual?.slice(0, 10) === novo) {
+      ignorados += 1;
+      continue;
+    }
+    antes.push({ id: l.id as string, data_vencimento: atual });
+    porData.set(novo, [...(porData.get(novo) ?? []), l.id as string]);
+  }
+
+  if (antes.length === 0) return { ok: true, alterados: 0, ignorados, antes: [] };
+
+  for (const [data, lote] of porData) {
+    const { error } = await supabase
+      .from("lancamentos")
+      .update({ data_vencimento: data })
+      .in("id", lote);
+    if (error) return { ok: false, erro: traduzir(error.message) };
+  }
+
+  revalidarTudo();
+  // Data nova, lembrete novo: o evento na agenda muda de dia junto.
+  naAgenda(antes.map((a) => a.id));
+  return { ok: true, alterados: antes.length, ignorados, antes };
+}
+
+/** Devolve cada lançamento ao vencimento que tinha antes do lote. */
+export async function restaurarVencimentos(
+  antes: { id: string; data_vencimento: string | null }[],
+): Promise<Resultado> {
+  const v = z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        data_vencimento: z.string().regex(ISO).nullable(),
+      }),
+    )
+    .min(1)
+    .max(MAX_LOTE)
+    .safeParse(antes.map((a) => ({ ...a, data_vencimento: a.data_vencimento?.slice(0, 10) ?? null })));
+  if (!v.success) return { ok: false, erro: "Não deu para desfazer." };
+
+  const supabase = await criarClienteServidor();
+
+  // `null` é um grupo como outro qualquer: quem não tinha vencimento volta
+  // a não ter.
+  const porData = new Map<string | null, string[]>();
+  for (const a of v.data) {
+    porData.set(a.data_vencimento, [...(porData.get(a.data_vencimento) ?? []), a.id]);
+  }
+
+  for (const [data, lote] of porData) {
+    const { error } = await supabase
+      .from("lancamentos")
+      .update({ data_vencimento: data })
+      .in("id", lote);
+    if (error) return { ok: false, erro: traduzir(error.message) };
+  }
+
+  revalidarTudo();
+  naAgenda(v.data.map((a) => a.id));
+  return { ok: true, criados: v.data.length };
 }

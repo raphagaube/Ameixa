@@ -230,3 +230,69 @@ describe("vencimento", () => {
     expect(r[1].data_vencimento).toBeNull();
   });
 });
+
+describe("vencimento não escorrega com o tamanho do mês", () => {
+  // O bug que motivou a correção: registrado dia 28, vencendo dia 10. Com
+  // distância fixa em dias (13), a série vencia 10, 11, 10, 10, 11...
+  const conta = {
+    ...base,
+    dataRegistro: "2026-05-28",
+    dataVencimento: "2026-06-10",
+  };
+
+  it("parcelada mantém o dia 10 em todos os meses", () => {
+    const r = gerarSerie(
+      conta,
+      { repeticao: "parcelada", parcelaAtual: 1, parcelaTotal: 8 },
+      HOJE,
+    );
+    expect(r.map((o) => o.data_vencimento!.slice(8))).toEqual(
+      Array(8).fill("10"),
+    );
+    expect(r[1].data_vencimento).toBe("2026-07-10");
+    expect(r[4].data_vencimento).toBe("2026-10-10");
+  });
+
+  it("recorrente mensal mantém o dia 10", () => {
+    const r = gerarSerie(
+      conta,
+      { repeticao: "recorrente", frequencia: "mensal", ocorrencias: 12 },
+      HOJE,
+    );
+    expect(new Set(r.map((o) => o.data_vencimento!.slice(8)))).toEqual(
+      new Set(["10"]),
+    );
+  });
+
+  it("assinatura mantém o dia 10", () => {
+    const r = gerarSerie(conta, { repeticao: "assinatura", meses: 6 }, HOJE);
+    expect(r.every((o) => o.data_vencimento!.endsWith("-10"))).toBe(true);
+  });
+
+  it("vencimento dia 31 cai no último dia dos meses curtos, sem arrastar", () => {
+    const r = gerarSerie(
+      { ...base, dataRegistro: "2026-01-15", dataVencimento: "2026-01-31" },
+      { repeticao: "recorrente", frequencia: "mensal", ocorrencias: 4 },
+      HOJE,
+    );
+    expect(r.map((o) => o.data_vencimento)).toEqual([
+      "2026-01-31",
+      "2026-02-28",
+      "2026-03-31",
+      "2026-04-30",
+    ]);
+  });
+
+  it("semanal continua andando de 7 em 7 dias", () => {
+    const r = gerarSerie(
+      { ...base, dataRegistro: "2026-09-01", dataVencimento: "2026-09-03" },
+      { repeticao: "recorrente", frequencia: "semanal", ocorrencias: 3 },
+      HOJE,
+    );
+    expect(r.map((o) => o.data_vencimento)).toEqual([
+      "2026-09-03",
+      "2026-09-10",
+      "2026-09-17",
+    ]);
+  });
+});

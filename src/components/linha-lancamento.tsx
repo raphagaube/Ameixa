@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Check } from "lucide-react";
 import { useFormularioLancamento } from "@/components/casca-lancamentos";
 import { dataBr, moeda } from "@/lib/formato";
 import {
@@ -10,13 +10,26 @@ import {
 } from "@/lib/tipos/lancamentos";
 import { Dinheiro } from "@/components/dinheiro";
 
-/** Uma linha da lista do extrato. Clicar abre o formulário de edição. */
+/**
+ * Uma linha da lista do extrato. Clicar abre o formulário de edição.
+ *
+ * Em modo de seleção o clique passa a marcar e desmarcar em vez de abrir o
+ * formulário: com a caixa de seleção do lado, tocar na linha inteira é o
+ * gesto esperado no celular, e abrir o modal sem querer no meio de uma
+ * seleção de trinta itens perderia tudo.
+ */
 export function LinhaLancamento({
   l,
   mostrarData,
+  selecionavel,
+  selecionado,
+  aoAlternar,
 }: {
   l: LancamentoNaLista;
   mostrarData?: boolean;
+  selecionavel?: boolean;
+  selecionado?: boolean;
+  aoAlternar?: (id: string) => void;
 }) {
   const { editar } = useFormularioLancamento();
 
@@ -51,7 +64,8 @@ export function LinhaLancamento({
   return (
     <button
       type="button"
-      onClick={() => editar(l)}
+      onClick={() => (selecionavel ? aoAlternar?.(l.id) : editar(l))}
+      aria-pressed={selecionavel ? !!selecionado : undefined}
       className="flex w-full items-center text-left"
       style={{
         gap: 10,
@@ -61,6 +75,24 @@ export function LinhaLancamento({
         minHeight: 56,
       }}
     >
+      {selecionavel ? (
+        <span
+          aria-hidden
+          className="grid place-items-center"
+          style={{
+            width: 22,
+            height: 22,
+            flexShrink: 0,
+            borderRadius: 6,
+            border: `2px solid ${selecionado ? "var(--deep)" : "var(--ln2)"}`,
+            background: selecionado ? "var(--deep)" : "transparent",
+            color: "var(--on-ac)",
+          }}
+        >
+          {selecionado ? <Check size={14} strokeWidth={3} /> : null}
+        </span>
+      ) : null}
+
       <span
         aria-hidden
         className="grid place-items-center"

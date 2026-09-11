@@ -1,8 +1,14 @@
 "use client";
 
-import { Search, X } from "lucide-react";
+import { CheckSquare, Search, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import {
+  marcarSituacaoEmLote,
+  mudarDiaDoVencimentoEmLote,
+  restaurarSituacoes,
+  restaurarVencimentos,
+} from "@/app/(app)/lancamentos/acoes";
 import { LinhaLancamento } from "@/components/linha-lancamento";
 import { SeletorMes } from "@/components/seletor-mes";
 import { Botao } from "@/components/ui/botao";
@@ -11,7 +17,12 @@ import { CampoData } from "@/components/ui/campo-data";
 import { dataBr, moeda, nomeMes } from "@/lib/formato";
 import type { Ordem } from "@/lib/dados/lancamentos";
 import type { Categoria } from "@/lib/tipos/categorias";
-import { ROTULO_SITUACAO, type LancamentoNaLista } from "@/lib/tipos/lancamentos";
+import {
+  dataQueVale,
+  ROTULO_SITUACAO,
+  type LancamentoNaLista,
+  type Situacao,
+} from "@/lib/tipos/lancamentos";
 import type { Periodo } from "./page";
 import { Dinheiro } from "@/components/dinheiro";
 
@@ -53,6 +64,128 @@ export function PainelExtrato({
   const [responsavel, setResponsavel] = useState(params.get("responsavel") ?? "");
   const [faixaDe, setFaixaDe] = useState(params.get("de") ?? de);
   const [faixaAte, setFaixaAte] = useState(params.get("ate") ?? ate);
+
+  // Seleção em lote.
+  const [selecionando, setSelecionando] = useState(false);
+  const [marcados, setMarcados] = useState<Set<string>>(new Set());
+  const [corte, setCorte] = useState(ate);
+  const [aplicando, iniciarAplicacao] = useTransition();
+  const [recado, setRecado] = useState<string | null>(null);
+  const [diaVencimento, setDiaVencimento] = useState("");
+  const [desfazer, setDesfazer] = useState<
+    | { tipo: "situacao"; antes: { id: string; situacao: Situacao }[] }
+    | { tipo: "vencimento"; antes: { id: string; data_vencimento: string | null }[] }
+    | null
+  >(null);
+  const diaEscolhido = Number(diaVencimento);
+  const diaValido =
+    Number.isInteger(diaEscolhido) && diaEscolhido >= 1 && diaEscolhido <= 31;
+
+  const pendentes = useMemo(
+    () =>
+      lancamentos.filter(
+        (l) => l.situacao === "a_pagar" || l.situacao === "a_receber",
+      ),
+    [lancamentos],
+  );
+
+  const selecionados = useMemo(
+    () => lancamentos.filter((l) => marcados.has(l.id)),
+    [lancamentos, marcados],
+  );
+
+  const somaSelecionada = selecionados.reduce((s, l) => {
+    if (l.tipo === "aporte") return s;
+    return l.tipo === "receita" ? s + l.valor : s - l.valor;
+  }, 0);
+
+  const aportesNaSelecao = selecionados.filter((l) => l.tipo === "aporte").length;
+
+  function alternar(id: string) {
+    setMarcados((atual) => {
+      const proximo = new Set(atual);
+      if (proximo.has(id)) proximo.delete(id);
+      else proximo.add(id);
+      return proximo;
+    });
+  }
+
+  function sairDaSelecao() {
+    setSelecionando(false);
+    setMarcados(new Set());
+  }
+
+  /**
+   * Marca as pendências que já venceram até a data escolhida.
+   *
+   * A lista é filtrada por data de registro, mas o que decide se uma
+   * parcela já passou é o vencimento — as vinte e uma parcelas de um
+   * processo são registradas no mesmo dia e vencem ao longo de dois anos.
+   * Por isso o corte olha `dataQueVale`, e não a data da lista.
+   */
+  function selecionarVencidos() {
+    setMarcados(
+      new Set(
+        pendentes.filter((l) => dataQueVale(l) <= corte).map((l) => l.id),
+      ),
+    );
+  }
+
+  function aplicar(alvo: "quitado" | "pendente") {
+    const ids = [...marcados];
+    if (ids.length === 0) return;
+    iniciarAplicacao(async () => {
+      const r = await marcarSituacaoEmLote(ids, alvo);
+      if (!r.ok) {
+        setRecado(r.erro);
+        return;
+      }
+      setDesfazer(r.antes.length > 0 ? { tipo: "situacao", antes: r.antes } : null);
+      setRecado(
+        r.alterados === 0
+          ? "Nada mudou: nenhum dos escolhidos precisava dessa mudança."
+          : `${r.alterados} ${r.alterados === 1 ? "lançamento alterado" : "lançamentos alterados"}` +
+              (r.ignorados > 0 ? ` · ${r.ignorados} de fora` : ""),
+      );
+      sairDaSelecao();
+      router.refresh();
+    });
+  }
+
+  function aplicarDia() {
+    const ids = [...marcados];
+    if (ids.length === 0 || !diaValido) return;
+    iniciarAplicacao(async () => {
+      const r = await mudarDiaDoVencimentoEmLote(ids, diaEscolhido);
+      if (!r.ok) {
+        setRecado(r.erro);
+        return;
+      }
+      setDesfazer(r.antes.length > 0 ? { tipo: "vencimento", antes: r.antes } : null);
+      setRecado(
+        r.alterados === 0
+          ? `Nada mudou: todos já vencem no dia ${diaEscolhido}.`
+          : `${r.alterados} ${r.alterados === 1 ? "vencimento mudou" : "vencimentos mudaram"} para o dia ${diaEscolhido}` +
+              (r.ignorados > 0 ? ` · ${r.ignorados} já estavam certos` : ""),
+      );
+      sairDaSelecao();
+      router.refresh();
+    });
+  }
+
+  function aplicarDesfazer() {
+    const d = desfazer;
+    if (!d) return;
+    iniciarAplicacao(async () => {
+      const r =
+        d.tipo === "situacao"
+          ? await restaurarSituacoes(d.antes)
+          : await restaurarVencimentos(d.antes);
+      setRecado(r.ok ? "Desfeito." : r.erro);
+      setDesfazer(null);
+      router.refresh();
+    });
+  }
 
   const subcategorias =
     categorias.find((c) => c.id === categoria)?.subcategorias ?? [];
@@ -326,6 +459,186 @@ export function PainelExtrato({
         ))}
       </select>
 
+      {recado ? (
+        <div
+          className="flex items-center justify-between"
+          style={{
+            gap: 10,
+            padding: 12,
+            borderRadius: "var(--rs)",
+            background: "var(--ln2)",
+            fontSize: 13,
+          }}
+        >
+          <span>{recado}</span>
+          <span className="flex items-center" style={{ gap: 8, flexShrink: 0 }}>
+            {desfazer ? (
+              <button
+                type="button"
+                onClick={aplicarDesfazer}
+                disabled={aplicando}
+                style={{
+                  minHeight: 44,
+                  padding: "0 8px",
+                  background: "transparent",
+                  color: "var(--deep)",
+                  fontWeight: 700,
+                  fontSize: 13,
+                }}
+              >
+                Desfazer
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                setRecado(null);
+                setDesfazer(null);
+              }}
+              aria-label="Dispensar aviso"
+              style={{
+                minHeight: 44,
+                width: 44,
+                background: "transparent",
+                color: "var(--mut)",
+              }}
+            >
+              <X size={16} strokeWidth={1.5} aria-hidden />
+            </button>
+          </span>
+        </div>
+      ) : null}
+
+      {lancamentos.length === 0 ? null : !selecionando ? (
+        <Botao variante="contorno" onClick={() => setSelecionando(true)}>
+          <span className="flex items-center justify-center" style={{ gap: 6 }}>
+            <CheckSquare size={16} strokeWidth={1.5} aria-hidden />
+            Selecionar vários
+          </span>
+        </Botao>
+      ) : (
+        <section
+          className="flex flex-col"
+          style={{
+            gap: 10,
+            padding: 12,
+            borderRadius: "var(--rs)",
+            border: "1px solid var(--ln2)",
+          }}
+        >
+          <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>
+              {marcados.size}{" "}
+              {marcados.size === 1 ? "escolhido" : "escolhidos"}
+            </span>
+            {marcados.size > 0 ? (
+              <span
+                style={{
+                  fontSize: 13,
+                  color: somaSelecionada < 0 ? "var(--bad)" : "var(--ok)",
+                }}
+              >
+                {somaSelecionada < 0 ? "−" : "+"}
+                <Dinheiro>{moeda(Math.abs(somaSelecionada))}</Dinheiro>
+              </span>
+            ) : null}
+          </div>
+
+          <div className="flex" style={{ gap: 8 }}>
+            <Botao
+              variante="contorno"
+              onClick={() => setMarcados(new Set(lancamentos.map((l) => l.id)))}
+            >
+              Todos
+            </Botao>
+            <Botao variante="contorno" onClick={() => setMarcados(new Set())}>
+              Nenhum
+            </Botao>
+          </div>
+
+          {pendentes.length > 0 ? (
+            <>
+              <CampoData rotulo="Vencidos até" valor={corte} aoMudar={setCorte} />
+              <Botao variante="contorno" onClick={selecionarVencidos}>
+                Escolher pendências vencidas
+              </Botao>
+              <p style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.5 }}>
+                Usa o vencimento de cada lançamento — e a data do registro só
+                quando não há vencimento. Parcela que vence depois dessa data
+                fica de fora, mesmo tendo sido registrada antes.
+              </p>
+            </>
+          ) : null}
+
+          <label
+            className="flex flex-col"
+            style={{ gap: 4, fontSize: 12, color: "var(--mut)" }}
+          >
+            Dia do vencimento
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={31}
+              placeholder="Ex.: 10"
+              value={diaVencimento}
+              onChange={(e) => setDiaVencimento(e.target.value)}
+              style={{
+                minHeight: 44,
+                padding: "0 12px",
+                borderRadius: "var(--rs)",
+                border: "1px solid var(--ln2)",
+                fontSize: 16,
+                color: "var(--color-text)",
+                background: "transparent",
+              }}
+            />
+          </label>
+          <Botao
+            variante="contorno"
+            onClick={aplicarDia}
+            disabled={marcados.size === 0 || !diaValido}
+            carregando={aplicando}
+          >
+            Mudar o dia do vencimento
+          </Botao>
+          <p style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.5 }}>
+            Cada lançamento fica no mês em que já está; só o dia muda. Dia 31
+            em mês de 30 dias vira dia 30. Quem não tinha vencimento passa a
+            ter, no mês da data de registro.
+          </p>
+
+          {aportesNaSelecao > 0 ? (
+            <p style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.5 }}>
+              {aportesNaSelecao}{" "}
+              {aportesNaSelecao === 1 ? "aporte em meta" : "aportes em meta"} na
+              escolha —{" "}
+              {aportesNaSelecao === 1 ? "ele fica" : "eles ficam"} de fora, porque
+              aporte não é despesa nem receita.
+            </p>
+          ) : null}
+
+          <Botao
+            onClick={() => aplicar("quitado")}
+            disabled={marcados.size === 0}
+            carregando={aplicando}
+          >
+            Marcar como pago e recebido
+          </Botao>
+          <Botao
+            variante="contorno"
+            onClick={() => aplicar("pendente")}
+            disabled={marcados.size === 0}
+            carregando={aplicando}
+          >
+            Voltar para pendente
+          </Botao>
+          <Botao variante="texto" onClick={sairDaSelecao}>
+            Cancelar
+          </Botao>
+        </section>
+      )}
+
       <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
         <span style={{ fontSize: 12, color: "var(--mut)" }}>
           {periodo === "mes"
@@ -396,7 +709,13 @@ export function PainelExtrato({
                   </span>
                 </div>
                 {itens.map((l) => (
-                  <LinhaLancamento key={l.id} l={l} />
+                  <LinhaLancamento
+                    key={l.id}
+                    l={l}
+                    selecionavel={selecionando}
+                    selecionado={marcados.has(l.id)}
+                    aoAlternar={alternar}
+                  />
                 ))}
               </div>
             );
@@ -405,7 +724,14 @@ export function PainelExtrato({
       ) : (
         <div className="flex flex-col">
           {lancamentos.map((l) => (
-            <LinhaLancamento key={l.id} l={l} mostrarData />
+            <LinhaLancamento
+              key={l.id}
+              l={l}
+              mostrarData
+              selecionavel={selecionando}
+              selecionado={marcados.has(l.id)}
+              aoAlternar={alternar}
+            />
           ))}
         </div>
       )}

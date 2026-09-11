@@ -108,6 +108,37 @@ export function situacaoPadrao(
   return futuro ? "a_pagar" : "pago";
 }
 
+/**
+ * Para onde vai cada tipo numa mudança de situação em lote.
+ *
+ * Devolve `null` quando o lançamento não deve ser tocado. Aporte em meta é
+ * o caso: ele é 'guardado' e não tem par pago/pendente, e marcá-lo como
+ * recebido o transformaria em receita nos relatórios — exatamente o que a
+ * primeira regra inviolável proíbe.
+ */
+export function situacaoAlvo(
+  tipo: TipoLancamento,
+  alvo: "quitado" | "pendente",
+): Situacao | null {
+  if (tipo === "aporte") return null;
+  if (tipo === "receita") return alvo === "quitado" ? "recebido" : "a_receber";
+  return alvo === "quitado" ? "pago" : "a_pagar";
+}
+
+/**
+ * Mesma data, outro dia do mês. Usado para acertar o vencimento de uma
+ * série inteira: cada lançamento fica no mês em que já estava.
+ *
+ * Dia maior que o mês (31 em setembro) vira o último dia do mês, em vez de
+ * transbordar para o mês seguinte como o `Date` faria sozinho.
+ */
+export function trocarDiaDoMes(iso: string, dia: number): string {
+  const [a, m] = iso.slice(0, 10).split("-").map(Number);
+  const ultimo = new Date(a, m, 0).getDate();
+  const d = Math.min(Math.max(1, Math.trunc(dia)), ultimo);
+  return `${a}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
 /** As situações que fazem sentido para cada tipo, na ordem da interface. */
 export function situacoesDoTipo(tipo: TipoLancamento): Situacao[] {
   if (tipo === "receita") return ["recebido", "a_receber"];
