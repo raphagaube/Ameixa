@@ -107,9 +107,11 @@ export function Folha({
         aria-modal="true"
         aria-label={titulo}
         tabIndex={-1}
-        className="folha-entra absolute inset-x-0 bottom-0 mx-auto w-full outline-none"
+        className="folha-entra folha-painel absolute inset-x-0 bottom-0 mx-auto w-full outline-none"
         style={{
-          maxWidth: "var(--largura)",
+          // No notebook a folha vira janela no meio da tela: largura e raio
+          // passam por variáveis que só o CSS de tela grande redefine.
+          maxWidth: "var(--folha-largura, var(--largura))",
           maxHeight: alturaTeclado
             ? `calc(${alturaMaxima} - ${alturaTeclado}px)`
             : alturaMaxima,
@@ -118,7 +120,7 @@ export function Folha({
           overflowY: "auto",
           overscrollBehavior: "contain",
           background: "var(--sf)",
-          borderRadius: "var(--rf) var(--rf) 0 0",
+          borderRadius: "var(--folha-raio, var(--rf) var(--rf) 0 0)",
           paddingBottom: "calc(16px + env(safe-area-inset-bottom))",
         }}
       >

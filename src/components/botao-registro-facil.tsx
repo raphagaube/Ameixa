@@ -125,7 +125,9 @@ export function BotaoRegistroFacil({ onClick }: { onClick?: () => void }) {
 
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 z-50 flex justify-center"
+      // No notebook o lançamento sai do botão "Novo lançamento" da barra
+      // lateral, presente em toda tela.
+      className="so-celular pointer-events-none fixed inset-x-0 z-50 flex justify-center"
       style={{
         bottom: `calc(${deBaixo}px + env(safe-area-inset-bottom))`,
         transition: arrastando ? "none" : "bottom 140ms ease-out",

@@ -404,230 +404,232 @@ export function PainelRecorrentes({
         <p style={{ fontSize: 14, color: "var(--mut)" }}>Nenhuma série com esse filtro.</p>
       ) : null}
 
-      {visiveis.map((s) => {
-        const aberta = abertas.has(s.chave);
-        const topo = topoDe(s);
-        const original = topoOriginal(s);
-        const { itens: mudancas, erros } = alteracoes(s);
-        const dias = [...new Set(s.itens.map(diaDe))].sort((a, b) => a - b);
-        const valores = [...new Set(s.itens.map((l) => l.valor))];
-        const total = s.itens.reduce((n, l) => n + l.valor, 0);
-        const repetidaDe = repetidas[s.chave];
+      <div className="recorrentes-grade">
+        {visiveis.map((s) => {
+          const aberta = abertas.has(s.chave);
+          const topo = topoDe(s);
+          const original = topoOriginal(s);
+          const { itens: mudancas, erros } = alteracoes(s);
+          const dias = [...new Set(s.itens.map(diaDe))].sort((a, b) => a - b);
+          const valores = [...new Set(s.itens.map((l) => l.valor))];
+          const total = s.itens.reduce((n, l) => n + l.valor, 0);
+          const repetidaDe = repetidas[s.chave];
 
-        return (
-          <article
-            key={s.chave}
-            className="flex flex-col"
-            style={{
-              gap: 10,
-              padding: 12,
-              borderRadius: "var(--r)",
-              border: `1px solid ${mudancas.length ? "var(--deep)" : "var(--ln2)"}`,
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => alternar(s.chave)}
-              aria-expanded={aberta}
-              className="flex w-full items-center text-left"
-              style={{ gap: 8, minHeight: 44, background: "transparent", color: "var(--color-text)" }}
+          return (
+            <article
+              key={s.chave}
+              className="flex flex-col"
+              style={{
+                gap: 10,
+                padding: 12,
+                borderRadius: "var(--r)",
+                border: `1px solid ${mudancas.length ? "var(--deep)" : "var(--ln2)"}`,
+              }}
             >
-              {aberta ? (
-                <ChevronDown size={18} strokeWidth={1.5} aria-hidden style={{ flexShrink: 0 }} />
-              ) : (
-                <ChevronRight size={18} strokeWidth={1.5} aria-hidden style={{ flexShrink: 0 }} />
-              )}
-              <span className="min-w-0 flex-1">
-                <span className="block truncate" style={{ fontSize: 15, fontWeight: 600 }}>
-                  {s.base}
-                </span>
-                <span className="block" style={{ fontSize: 12, color: "var(--mut)" }}>
-                  {s.itens.length} {s.itens.length === 1 ? "pendente" : "pendentes"} ·{" "}
-                  {mesCurto(dataQueVale(s.itens[0]))}
-                  {s.itens.length > 1 ? ` → ${mesCurto(dataQueVale(s.itens[s.itens.length - 1]))}` : ""}
-                  {s.onde ? ` · ${s.onde}` : ""}
-                  {s.vinculada ? "" : " · agrupada pelo nome"}
-                </span>
-              </span>
-              <span className="text-right" style={{ flexShrink: 0 }}>
-                <span className="block" style={{ fontSize: 14, fontWeight: 600 }}>
-                  {valores.length === 1 ? (
-                    <Dinheiro>{moeda(valores[0])}</Dinheiro>
-                  ) : (
-                    "valores variados"
-                  )}
-                </span>
-                <span className="block" style={{ fontSize: 12, color: "var(--mut)" }}>
-                  {dias.length === 1 ? `dia ${dias[0]}` : `dias ${dias.join(", ")}`}
-                </span>
-              </span>
-            </button>
-
-            {repetidaDe ? (
-              <p
-                className="flex items-start"
-                style={{ gap: 6, fontSize: 12, color: "var(--deep)", lineHeight: 1.5 }}
-              >
-                <TriangleAlert size={14} strokeWidth={1.5} aria-hidden style={{ flexShrink: 0, marginTop: 2 }} />
-                <span>
-                  Parece a mesma conta que {repetidaDe.map((n) => `"${n}"`).join(", ")}: mesmo
-                  valor nos mesmos meses. Se for, exclua uma das duas para não contar a despesa
-                  duas vezes.
-                </span>
-              </p>
-            ) : null}
-
-            <div
-              className="grid"
-              style={{ gridTemplateColumns: "1fr 110px 64px", gap: 8, alignItems: "end" }}
-            >
-              <label className="flex flex-col" style={{ gap: 4, fontSize: 12, color: "var(--mut)" }}>
-                Nome
-                <input
-                  value={topo.base}
-                  onChange={(e) => mudarTopo(s, "base", e.target.value)}
-                  style={{ ...estiloCampo, ...(topo.base !== original.base ? destaque : null) }}
-                />
-              </label>
-              <label className="flex flex-col" style={{ gap: 4, fontSize: 12, color: "var(--mut)" }}>
-                Valor
-                <input
-                  inputMode="decimal"
-                  value={topo.valor}
-                  placeholder={valores.length > 1 ? "vários" : "0,00"}
-                  onChange={(e) => mudarTopo(s, "valor", e.target.value)}
-                  style={{ ...estiloCampo, ...(topo.valor !== original.valor ? destaque : null) }}
-                />
-              </label>
-              <label className="flex flex-col" style={{ gap: 4, fontSize: 12, color: "var(--mut)" }}>
-                Dia
-                <input
-                  inputMode="numeric"
-                  value={topo.dia}
-                  placeholder={dias.length > 1 ? "—" : ""}
-                  onChange={(e) => mudarTopo(s, "dia", e.target.value.replace(/\D/g, "").slice(0, 2))}
-                  style={{ ...estiloCampo, ...(topo.dia !== original.dia ? destaque : null) }}
-                />
-              </label>
-            </div>
-
-            {aberta ? (
-              <div className="flex flex-col" style={{ borderTop: "1px solid var(--ln2)" }}>
-                {s.itens.map((l) => {
-                  const r = linhaDe(l);
-                  const o = linhaOriginal(l);
-                  const g = linhas[l.id] ? paraGravar(l, r) : null;
-                  return (
-                    <div
-                      key={l.id}
-                      className="grid"
-                      style={{
-                        gridTemplateColumns: "56px 64px 1fr 110px",
-                        gap: 8,
-                        alignItems: "center",
-                        padding: "8px 0",
-                        borderBottom: "1px solid var(--ln2)",
-                      }}
-                    >
-                      <span style={{ fontSize: 12, color: "var(--mut)" }}>
-                        {mesCurto(dataQueVale(l))}
-                      </span>
-                      <input
-                        inputMode="numeric"
-                        aria-label={`Dia do vencimento de ${l.descricao}`}
-                        value={r.dia}
-                        onChange={(e) => mudarLinha(l, "dia", e.target.value.replace(/\D/g, "").slice(0, 2))}
-                        style={{ ...estiloCampo, ...(r.dia !== o.dia ? destaque : null) }}
-                      />
-                      <input
-                        aria-label={`Descrição de ${l.descricao}`}
-                        value={r.descricao}
-                        onChange={(e) => mudarLinha(l, "descricao", e.target.value)}
-                        style={{ ...estiloCampo, ...(r.descricao !== o.descricao ? destaque : null) }}
-                      />
-                      <input
-                        inputMode="decimal"
-                        aria-label={`Valor de ${l.descricao}`}
-                        value={r.valor}
-                        onChange={(e) => mudarLinha(l, "valor", e.target.value)}
-                        style={{ ...estiloCampo, ...(r.valor !== o.valor ? destaque : null) }}
-                      />
-                      {typeof g === "string" ? (
-                        <span
-                          role="alert"
-                          style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--bad)" }}
-                        >
-                          {g}
-                        </span>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-
-            {mudancas.length > 0 || erros > 0 ? (
-              <div className="flex flex-col" style={{ gap: 8 }}>
-                {erros > 0 ? (
-                  <span style={{ fontSize: 12, color: "var(--bad)" }}>
-                    {erros} {erros === 1 ? "linha com erro" : "linhas com erro"}
-                    {aberta ? "" : " — abra o cartão para ver"}
-                  </span>
-                ) : null}
-                <div className="flex" style={{ gap: 8 }}>
-                  <Botao variante="contorno" onClick={() => descartar(s)} disabled={gravando}>
-                    Descartar
-                  </Botao>
-                  <Botao
-                    onClick={() => gravar(mudancas)}
-                    disabled={mudancas.length === 0 || erros > 0}
-                    carregando={gravando}
-                  >
-                    Salvar {mudancas.length}
-                  </Botao>
-                </div>
-              </div>
-            ) : null}
-
-            {confirmando === s.chave ? (
-              <div
-                className="flex flex-col"
-                style={{ gap: 8, padding: 10, borderRadius: "var(--rs)", background: "var(--ln2)" }}
-              >
-                <span style={{ fontSize: 13, lineHeight: 1.5 }}>
-                  Excluir {s.itens.length}{" "}
-                  {s.itens.length === 1 ? "pendência" : "pendências"} de &quot;{s.base}&quot;, somando{" "}
-                  <Dinheiro>{moeda(total)}</Dinheiro>? O que já foi pago fica. Não dá para desfazer.
-                </span>
-                <div className="flex" style={{ gap: 8 }}>
-                  <Botao variante="contorno" onClick={() => setConfirmando(null)} disabled={gravando}>
-                    Cancelar
-                  </Botao>
-                  <Botao onClick={() => excluir(s)} carregando={gravando}>
-                    Excluir
-                  </Botao>
-                </div>
-              </div>
-            ) : (
               <button
                 type="button"
-                onClick={() => setConfirmando(s.chave)}
-                style={{
-                  alignSelf: "flex-start",
-                  minHeight: 44,
-                  padding: 0,
-                  background: "transparent",
-                  color: "var(--mut)",
-                  fontSize: 12,
-                  textDecoration: "underline",
-                }}
+                onClick={() => alternar(s.chave)}
+                aria-expanded={aberta}
+                className="flex w-full items-center text-left"
+                style={{ gap: 8, minHeight: 44, background: "transparent", color: "var(--color-text)" }}
               >
-                Excluir as {s.itens.length} pendentes desta série
+                {aberta ? (
+                  <ChevronDown size={18} strokeWidth={1.5} aria-hidden style={{ flexShrink: 0 }} />
+                ) : (
+                  <ChevronRight size={18} strokeWidth={1.5} aria-hidden style={{ flexShrink: 0 }} />
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate" style={{ fontSize: 15, fontWeight: 600 }}>
+                    {s.base}
+                  </span>
+                  <span className="block" style={{ fontSize: 12, color: "var(--mut)" }}>
+                    {s.itens.length} {s.itens.length === 1 ? "pendente" : "pendentes"} ·{" "}
+                    {mesCurto(dataQueVale(s.itens[0]))}
+                    {s.itens.length > 1 ? ` → ${mesCurto(dataQueVale(s.itens[s.itens.length - 1]))}` : ""}
+                    {s.onde ? ` · ${s.onde}` : ""}
+                    {s.vinculada ? "" : " · agrupada pelo nome"}
+                  </span>
+                </span>
+                <span className="text-right" style={{ flexShrink: 0 }}>
+                  <span className="block" style={{ fontSize: 14, fontWeight: 600 }}>
+                    {valores.length === 1 ? (
+                      <Dinheiro>{moeda(valores[0])}</Dinheiro>
+                    ) : (
+                      "valores variados"
+                    )}
+                  </span>
+                  <span className="block" style={{ fontSize: 12, color: "var(--mut)" }}>
+                    {dias.length === 1 ? `dia ${dias[0]}` : `dias ${dias.join(", ")}`}
+                  </span>
+                </span>
               </button>
-            )}
-          </article>
-        );
-      })}
+
+              {repetidaDe ? (
+                <p
+                  className="flex items-start"
+                  style={{ gap: 6, fontSize: 12, color: "var(--deep)", lineHeight: 1.5 }}
+                >
+                  <TriangleAlert size={14} strokeWidth={1.5} aria-hidden style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span>
+                    Parece a mesma conta que {repetidaDe.map((n) => `"${n}"`).join(", ")}: mesmo
+                    valor nos mesmos meses. Se for, exclua uma das duas para não contar a despesa
+                    duas vezes.
+                  </span>
+                </p>
+              ) : null}
+
+              <div
+                className="grid"
+                style={{ gridTemplateColumns: "1fr 110px 64px", gap: 8, alignItems: "end" }}
+              >
+                <label className="flex flex-col" style={{ gap: 4, fontSize: 12, color: "var(--mut)" }}>
+                  Nome
+                  <input
+                    value={topo.base}
+                    onChange={(e) => mudarTopo(s, "base", e.target.value)}
+                    style={{ ...estiloCampo, ...(topo.base !== original.base ? destaque : null) }}
+                  />
+                </label>
+                <label className="flex flex-col" style={{ gap: 4, fontSize: 12, color: "var(--mut)" }}>
+                  Valor
+                  <input
+                    inputMode="decimal"
+                    value={topo.valor}
+                    placeholder={valores.length > 1 ? "vários" : "0,00"}
+                    onChange={(e) => mudarTopo(s, "valor", e.target.value)}
+                    style={{ ...estiloCampo, ...(topo.valor !== original.valor ? destaque : null) }}
+                  />
+                </label>
+                <label className="flex flex-col" style={{ gap: 4, fontSize: 12, color: "var(--mut)" }}>
+                  Dia
+                  <input
+                    inputMode="numeric"
+                    value={topo.dia}
+                    placeholder={dias.length > 1 ? "—" : ""}
+                    onChange={(e) => mudarTopo(s, "dia", e.target.value.replace(/\D/g, "").slice(0, 2))}
+                    style={{ ...estiloCampo, ...(topo.dia !== original.dia ? destaque : null) }}
+                  />
+                </label>
+              </div>
+
+              {aberta ? (
+                <div className="flex flex-col" style={{ borderTop: "1px solid var(--ln2)" }}>
+                  {s.itens.map((l) => {
+                    const r = linhaDe(l);
+                    const o = linhaOriginal(l);
+                    const g = linhas[l.id] ? paraGravar(l, r) : null;
+                    return (
+                      <div
+                        key={l.id}
+                        className="grid"
+                        style={{
+                          gridTemplateColumns: "56px 64px 1fr 110px",
+                          gap: 8,
+                          alignItems: "center",
+                          padding: "8px 0",
+                          borderBottom: "1px solid var(--ln2)",
+                        }}
+                      >
+                        <span style={{ fontSize: 12, color: "var(--mut)" }}>
+                          {mesCurto(dataQueVale(l))}
+                        </span>
+                        <input
+                          inputMode="numeric"
+                          aria-label={`Dia do vencimento de ${l.descricao}`}
+                          value={r.dia}
+                          onChange={(e) => mudarLinha(l, "dia", e.target.value.replace(/\D/g, "").slice(0, 2))}
+                          style={{ ...estiloCampo, ...(r.dia !== o.dia ? destaque : null) }}
+                        />
+                        <input
+                          aria-label={`Descrição de ${l.descricao}`}
+                          value={r.descricao}
+                          onChange={(e) => mudarLinha(l, "descricao", e.target.value)}
+                          style={{ ...estiloCampo, ...(r.descricao !== o.descricao ? destaque : null) }}
+                        />
+                        <input
+                          inputMode="decimal"
+                          aria-label={`Valor de ${l.descricao}`}
+                          value={r.valor}
+                          onChange={(e) => mudarLinha(l, "valor", e.target.value)}
+                          style={{ ...estiloCampo, ...(r.valor !== o.valor ? destaque : null) }}
+                        />
+                        {typeof g === "string" ? (
+                          <span
+                            role="alert"
+                            style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--bad)" }}
+                          >
+                            {g}
+                          </span>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {mudancas.length > 0 || erros > 0 ? (
+                <div className="flex flex-col" style={{ gap: 8 }}>
+                  {erros > 0 ? (
+                    <span style={{ fontSize: 12, color: "var(--bad)" }}>
+                      {erros} {erros === 1 ? "linha com erro" : "linhas com erro"}
+                      {aberta ? "" : " — abra o cartão para ver"}
+                    </span>
+                  ) : null}
+                  <div className="flex" style={{ gap: 8 }}>
+                    <Botao variante="contorno" onClick={() => descartar(s)} disabled={gravando}>
+                      Descartar
+                    </Botao>
+                    <Botao
+                      onClick={() => gravar(mudancas)}
+                      disabled={mudancas.length === 0 || erros > 0}
+                      carregando={gravando}
+                    >
+                      Salvar {mudancas.length}
+                    </Botao>
+                  </div>
+                </div>
+              ) : null}
+
+              {confirmando === s.chave ? (
+                <div
+                  className="flex flex-col"
+                  style={{ gap: 8, padding: 10, borderRadius: "var(--rs)", background: "var(--ln2)" }}
+                >
+                  <span style={{ fontSize: 13, lineHeight: 1.5 }}>
+                    Excluir {s.itens.length}{" "}
+                    {s.itens.length === 1 ? "pendência" : "pendências"} de &quot;{s.base}&quot;, somando{" "}
+                    <Dinheiro>{moeda(total)}</Dinheiro>? O que já foi pago fica. Não dá para desfazer.
+                  </span>
+                  <div className="flex" style={{ gap: 8 }}>
+                    <Botao variante="contorno" onClick={() => setConfirmando(null)} disabled={gravando}>
+                      Cancelar
+                    </Botao>
+                    <Botao onClick={() => excluir(s)} carregando={gravando}>
+                      Excluir
+                    </Botao>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmando(s.chave)}
+                  style={{
+                    alignSelf: "flex-start",
+                    minHeight: 44,
+                    padding: 0,
+                    background: "transparent",
+                    color: "var(--mut)",
+                    fontSize: 12,
+                    textDecoration: "underline",
+                  }}
+                >
+                  Excluir as {s.itens.length} pendentes desta série
+                </button>
+              )}
+            </article>
+          );
+        })}
+      </div>
     </div>
   );
 }

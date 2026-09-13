@@ -10,7 +10,7 @@ import {
   Target,
 } from "lucide-react";
 
-const ABAS = [
+export const ABAS = [
   { href: "/", rotulo: "Início", Icone: House },
   { href: "/extrato", rotulo: "Extrato", Icone: ReceiptText },
   { href: "/relatorios", rotulo: "Relatórios", Icone: ChartPie },
@@ -24,7 +24,8 @@ export function BarraAbas() {
   return (
     <nav
       aria-label="Navegação principal"
-      className="fixed inset-x-0 bottom-0 z-40 border-t"
+      // No notebook quem navega é a barra lateral.
+      className="so-celular fixed inset-x-0 bottom-0 z-40 border-t"
       style={{
         background: "var(--sf)",
         borderColor: "var(--ln)",

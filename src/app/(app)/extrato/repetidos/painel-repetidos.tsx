@@ -170,9 +170,11 @@ export function PainelRepetidos({
 
       {paraExcluir.size > 0 ? (
         <div
-          className="fixed inset-x-0 z-40 mx-auto"
+          className="barra-rodape fixed inset-x-0 z-40 mx-auto"
           style={{
-            bottom: "calc(56px + env(safe-area-inset-bottom))",
+            // No notebook não há barra de abas embaixo: o CSS de tela grande
+            // redefine --rodape-fixo para a barra descer até o fim da tela.
+            bottom: "var(--rodape-fixo, calc(56px + env(safe-area-inset-bottom)))",
             maxWidth: "var(--largura)",
             padding: 12,
             background: "var(--sf)",

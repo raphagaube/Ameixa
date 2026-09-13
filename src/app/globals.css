@@ -358,3 +358,127 @@ button {
     font-weight: 600;
   }
 }
+
+/* ── Notebook ──────────────────────────────────────────────────────
+   As regras de tela grande só existem a partir de 1024px. Abaixo disso o
+   celular é exatamente o de antes: as grades abaixo reproduzem a mesma
+   coluna, com o mesmo espaçamento que as telas já usavam.
+
+   No notebook a navegação sai do rodapé e vira barra lateral, o conteúdo
+   ganha largura — 760px nas telas de leitura, 1180px nos painéis — e as
+   folhas viram janela no meio da tela. */
+
+.inicio-grade,
+.inicio-coluna,
+.relatorios-grade {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recorrentes-grade {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.so-notebook {
+  display: none;
+}
+
+@media screen and (min-width: 1024px) {
+  :root {
+    --barra-lateral: 240px;
+    --largura: 760px;
+    --pad-lateral: 32px;
+    /* Sem barra de abas nem botão flutuante no rodapé. */
+    --pad-inferior: 56px;
+    /* Folga para as barras fixas de rodapé (Organizar, Excluir repetidos). */
+    --pad-inferior-sem-botao: 104px;
+  }
+
+  .so-celular {
+    display: none !important;
+  }
+
+  .so-notebook {
+    display: flex;
+  }
+
+  .casca-area {
+    padding-left: var(--barra-lateral);
+  }
+
+  /* Painéis usam a largura; formulários continuam numa coluna legível. */
+  .casca-area > main[data-largura="larga"] {
+    --largura: 1180px;
+  }
+
+  .inicio-grade {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .relatorios-grade {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    align-items: start;
+  }
+
+  .recorrentes-grade {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    align-items: start;
+  }
+}
+
+/* Extrato: filtros e lista. No celular, a mesma coluna de gap 14px. */
+.extrato-grade,
+.extrato-filtros,
+.extrato-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media screen and (min-width: 1024px) {
+  /* Filtros numa coluna à esquerda que acompanha a rolagem; a lista usa o
+     resto da largura. */
+  .extrato-grade {
+    display: grid;
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+
+  .extrato-filtros {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+
+  /* A folha vira janela no meio da tela. A animação de entrada só mexe em
+     translateY, então centralizar por margem não briga com ela. */
+  .folha-painel {
+    --folha-largura: 600px;
+    --folha-raio: var(--rf);
+    top: 0;
+    bottom: 0;
+    margin: auto;
+    height: fit-content;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  /* Barras fixas de rodapé: começam depois da barra lateral, para ficarem
+     alinhadas ao conteúdo, e descem até o fim da tela. */
+  .barra-rodape {
+    --rodape-fixo: 0px;
+    left: var(--barra-lateral);
+  }
+}

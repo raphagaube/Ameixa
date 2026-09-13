@@ -275,471 +275,478 @@ export function PainelExtrato({
     <div className="flex flex-col" style={{ gap: 14, paddingTop: 22 }}>
       <h1 style={{ fontSize: 30 }}>Extrato</h1>
 
-      <Segmentos
-        opcoes={[
-          { valor: "dia" as const, texto: "Dia" },
-          { valor: "mes" as const, texto: "Mês" },
-          { valor: "ano" as const, texto: "Ano" },
-          { valor: "faixa" as const, texto: "Faixa" },
-        ]}
-        valor={periodo}
-        aoEscolher={(v) => irPara({ periodo: v })}
-      />
-
-      {periodo === "mes" ? <SeletorMes ano={ano} mes={mes} /> : null}
-
-      {periodo === "dia" ? (
-        <CampoData
-          rotulo="Dia"
-          valor={`${ano}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`}
-          aoMudar={(iso) => {
-            const [a, m, d] = iso.split("-");
-            irPara({ ano: a, mes: String(Number(m) - 1), dia: d });
-          }}
-        />
-      ) : null}
-
-      {periodo === "ano" ? (
-        <div
-          className="grid items-center"
-          style={{ gridTemplateColumns: "44px 1fr 44px", gap: 8 }}
-        >
-          <button
-            type="button"
-            onClick={() => irPara({ ano: String(ano - 1) })}
-            aria-label="Ano anterior"
-            style={{ ...estiloSelect, height: 44 }}
-          >
-            ‹
-          </button>
-          <div style={{ ...estiloSelect, textAlign: "center", fontWeight: 600 }}>
-            {ano}
-          </div>
-          <button
-            type="button"
-            onClick={() => irPara({ ano: String(ano + 1) })}
-            aria-label="Próximo ano"
-            style={{ ...estiloSelect, height: 44 }}
-          >
-            ›
-          </button>
-        </div>
-      ) : null}
-
-      {periodo === "faixa" ? (
-        <div className="flex flex-col" style={{ gap: 10 }}>
-          <CampoData rotulo="De" valor={faixaDe} aoMudar={setFaixaDe} />
-          <CampoData rotulo="Até" valor={faixaAte} aoMudar={setFaixaAte} />
-          <div className="flex" style={{ gap: 8 }}>
-            <Botao onClick={() => irPara({ de: faixaDe, ate: faixaAte })}>
-              Aplicar filtro
-            </Botao>
-            <Botao
-              variante="contorno"
-              onClick={() => irPara({ periodo: "mes", de: undefined, ate: undefined })}
-            >
-              Remover
-            </Botao>
-          </div>
-        </div>
-      ) : null}
-
-      <section
-        className="flex flex-col"
-        style={{
-          gap: 10,
-          border: "1px solid var(--ln)",
-          borderRadius: 14,
-          padding: 14,
-        }}
-      >
-        <div className="flex" style={{ gap: 8 }}>
-          <input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") aplicarBusca();
-            }}
-            placeholder="Buscar por descrição ou valor"
-            aria-label="Buscar por descrição ou valor"
-            style={{ ...estiloSelect, flex: 1 }}
+      {/* Filtros e lista: empilhados no celular, lado a lado no notebook. */}
+      <div className="extrato-grade">
+        <div className="extrato-filtros">
+          <Segmentos
+            opcoes={[
+              { valor: "dia" as const, texto: "Dia" },
+              { valor: "mes" as const, texto: "Mês" },
+              { valor: "ano" as const, texto: "Ano" },
+              { valor: "faixa" as const, texto: "Faixa" },
+            ]}
+            valor={periodo}
+            aoEscolher={(v) => irPara({ periodo: v })}
           />
-          <Botao
-            onClick={aplicarBusca}
-            style={{ width: "auto", paddingInline: 16 }}
-            aria-label="Buscar"
+
+          {periodo === "mes" ? <SeletorMes ano={ano} mes={mes} /> : null}
+
+          {periodo === "dia" ? (
+            <CampoData
+              rotulo="Dia"
+              valor={`${ano}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`}
+              aoMudar={(iso) => {
+                const [a, m, d] = iso.split("-");
+                irPara({ ano: a, mes: String(Number(m) - 1), dia: d });
+              }}
+            />
+          ) : null}
+
+          {periodo === "ano" ? (
+            <div
+              className="grid items-center"
+              style={{ gridTemplateColumns: "44px 1fr 44px", gap: 8 }}
+            >
+              <button
+                type="button"
+                onClick={() => irPara({ ano: String(ano - 1) })}
+                aria-label="Ano anterior"
+                style={{ ...estiloSelect, height: 44 }}
+              >
+                ‹
+              </button>
+              <div style={{ ...estiloSelect, textAlign: "center", fontWeight: 600 }}>
+                {ano}
+              </div>
+              <button
+                type="button"
+                onClick={() => irPara({ ano: String(ano + 1) })}
+                aria-label="Próximo ano"
+                style={{ ...estiloSelect, height: 44 }}
+              >
+                ›
+              </button>
+            </div>
+          ) : null}
+
+          {periodo === "faixa" ? (
+            <div className="flex flex-col" style={{ gap: 10 }}>
+              <CampoData rotulo="De" valor={faixaDe} aoMudar={setFaixaDe} />
+              <CampoData rotulo="Até" valor={faixaAte} aoMudar={setFaixaAte} />
+              <div className="flex" style={{ gap: 8 }}>
+                <Botao onClick={() => irPara({ de: faixaDe, ate: faixaAte })}>
+                  Aplicar filtro
+                </Botao>
+                <Botao
+                  variante="contorno"
+                  onClick={() => irPara({ periodo: "mes", de: undefined, ate: undefined })}
+                >
+                  Remover
+                </Botao>
+              </div>
+            </div>
+          ) : null}
+
+          <section
+            className="flex flex-col"
+            style={{
+              gap: 10,
+              border: "1px solid var(--ln)",
+              borderRadius: 14,
+              padding: 14,
+            }}
           >
-            <Search size={18} strokeWidth={2} aria-hidden />
-          </Botao>
+            <div className="flex" style={{ gap: 8 }}>
+              <input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") aplicarBusca();
+                }}
+                placeholder="Buscar por descrição ou valor"
+                aria-label="Buscar por descrição ou valor"
+                style={{ ...estiloSelect, flex: 1 }}
+              />
+              <Botao
+                onClick={aplicarBusca}
+                style={{ width: "auto", paddingInline: 16 }}
+                aria-label="Buscar"
+              >
+                <Search size={18} strokeWidth={2} aria-hidden />
+              </Botao>
+            </div>
+
+            <select
+              value={categoria}
+              onChange={(e) => {
+                setCategoria(e.target.value);
+                setSubcategoria("");
+              }}
+              aria-label="Categoria"
+              style={estiloSelect}
+            >
+              <option value="">Todas as categorias</option>
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
+              ))}
+            </select>
+
+            {subcategorias.length > 0 ? (
+              <select
+                value={subcategoria}
+                onChange={(e) => setSubcategoria(e.target.value)}
+                aria-label="Subcategoria"
+                style={estiloSelect}
+              >
+                <option value="">Todas as subcategorias</option>
+                {subcategorias.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nome}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+
+            <select
+              value={situacao}
+              onChange={(e) => setSituacao(e.target.value)}
+              aria-label="Situação"
+              style={estiloSelect}
+            >
+              <option value="">Qualquer situação</option>
+              {(["pago", "a_pagar", "recebido", "a_receber", "guardado"] as const).map(
+                (s) => (
+                  <option key={s} value={s}>
+                    {ROTULO_SITUACAO[s]}
+                  </option>
+                ),
+              )}
+            </select>
+
+            <input
+              value={responsavel}
+              onChange={(e) => setResponsavel(e.target.value)}
+              placeholder="Responsável"
+              aria-label="Responsável"
+              style={estiloSelect}
+            />
+
+            <div className="flex" style={{ gap: 8 }}>
+              <Botao
+                variante="contorno"
+                onClick={() => router.push(`/extrato/repetidos?de=${de}&ate=${ate}`)}
+              >
+                Buscar repetidos
+              </Botao>
+              <Botao variante="contorno" onClick={limparBusca}>
+                <span className="flex items-center justify-center" style={{ gap: 6 }}>
+                  <X size={16} strokeWidth={2} aria-hidden />
+                  Limpar
+                </span>
+              </Botao>
+            </div>
+          </section>
         </div>
 
-        <select
-          value={categoria}
-          onChange={(e) => {
-            setCategoria(e.target.value);
-            setSubcategoria("");
-          }}
-          aria-label="Categoria"
-          style={estiloSelect}
-        >
-          <option value="">Todas as categorias</option>
-          {categorias.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nome}
-            </option>
-          ))}
-        </select>
-
-        {subcategorias.length > 0 ? (
+        <div className="extrato-lista">
           <select
-            value={subcategoria}
-            onChange={(e) => setSubcategoria(e.target.value)}
-            aria-label="Subcategoria"
+            value={ordem}
+            onChange={(e) => irPara({ ordem: e.target.value })}
+            aria-label="Ordenação"
             style={estiloSelect}
           >
-            <option value="">Todas as subcategorias</option>
-            {subcategorias.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.nome}
+            {ORDENS.map((o) => (
+              <option key={o.valor} value={o.valor}>
+                {o.texto}
               </option>
             ))}
           </select>
-        ) : null}
 
-        <select
-          value={situacao}
-          onChange={(e) => setSituacao(e.target.value)}
-          aria-label="Situação"
-          style={estiloSelect}
-        >
-          <option value="">Qualquer situação</option>
-          {(["pago", "a_pagar", "recebido", "a_receber", "guardado"] as const).map(
-            (s) => (
-              <option key={s} value={s}>
-                {ROTULO_SITUACAO[s]}
-              </option>
-            ),
-          )}
-        </select>
-
-        <input
-          value={responsavel}
-          onChange={(e) => setResponsavel(e.target.value)}
-          placeholder="Responsável"
-          aria-label="Responsável"
-          style={estiloSelect}
-        />
-
-        <div className="flex" style={{ gap: 8 }}>
-          <Botao
-            variante="contorno"
-            onClick={() => router.push(`/extrato/repetidos?de=${de}&ate=${ate}`)}
-          >
-            Buscar repetidos
-          </Botao>
-          <Botao variante="contorno" onClick={limparBusca}>
-            <span className="flex items-center justify-center" style={{ gap: 6 }}>
-              <X size={16} strokeWidth={2} aria-hidden />
-              Limpar
-            </span>
-          </Botao>
-        </div>
-      </section>
-
-      <select
-        value={ordem}
-        onChange={(e) => irPara({ ordem: e.target.value })}
-        aria-label="Ordenação"
-        style={estiloSelect}
-      >
-        {ORDENS.map((o) => (
-          <option key={o.valor} value={o.valor}>
-            {o.texto}
-          </option>
-        ))}
-      </select>
-
-      {recado ? (
-        <div
-          className="flex items-center justify-between"
-          style={{
-            gap: 10,
-            padding: 12,
-            borderRadius: "var(--rs)",
-            background: "var(--ln2)",
-            fontSize: 13,
-          }}
-        >
-          <span>{recado}</span>
-          <span className="flex items-center" style={{ gap: 8, flexShrink: 0 }}>
-            {desfazer ? (
-              <button
-                type="button"
-                onClick={aplicarDesfazer}
-                disabled={aplicando}
-                style={{
-                  minHeight: 44,
-                  padding: "0 8px",
-                  background: "transparent",
-                  color: "var(--deep)",
-                  fontWeight: 700,
-                  fontSize: 13,
-                }}
-              >
-                Desfazer
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => {
-                setRecado(null);
-                setDesfazer(null);
-              }}
-              aria-label="Dispensar aviso"
+          {recado ? (
+            <div
+              className="flex items-center justify-between"
               style={{
-                minHeight: 44,
-                width: 44,
-                background: "transparent",
-                color: "var(--mut)",
-              }}
-            >
-              <X size={16} strokeWidth={1.5} aria-hidden />
-            </button>
-          </span>
-        </div>
-      ) : null}
-
-      {lancamentos.length === 0 ? null : !selecionando ? (
-        <div className="flex" style={{ gap: 8 }}>
-          <Botao variante="contorno" onClick={() => setSelecionando(true)}>
-            <span className="flex items-center justify-center" style={{ gap: 6 }}>
-              <CheckSquare size={16} strokeWidth={1.5} aria-hidden />
-              Selecionar vários
-            </span>
-          </Botao>
-          <Botao variante="contorno" onClick={() => router.push("/recorrentes")}>
-            Contas recorrentes
-          </Botao>
-        </div>
-      ) : (
-        <section
-          className="flex flex-col"
-          style={{
-            gap: 10,
-            padding: 12,
-            borderRadius: "var(--rs)",
-            border: "1px solid var(--ln2)",
-          }}
-        >
-          <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>
-              {marcados.size}{" "}
-              {marcados.size === 1 ? "escolhido" : "escolhidos"}
-            </span>
-            {marcados.size > 0 ? (
-              <span
-                style={{
-                  fontSize: 13,
-                  color: somaSelecionada < 0 ? "var(--bad)" : "var(--ok)",
-                }}
-              >
-                {somaSelecionada < 0 ? "−" : "+"}
-                <Dinheiro>{moeda(Math.abs(somaSelecionada))}</Dinheiro>
-              </span>
-            ) : null}
-          </div>
-
-          <div className="flex" style={{ gap: 8 }}>
-            <Botao
-              variante="contorno"
-              onClick={() => setMarcados(new Set(lancamentos.map((l) => l.id)))}
-            >
-              Todos
-            </Botao>
-            <Botao variante="contorno" onClick={() => setMarcados(new Set())}>
-              Nenhum
-            </Botao>
-          </div>
-
-          {pendentes.length > 0 ? (
-            <>
-              <CampoData rotulo="Vencidos até" valor={corte} aoMudar={setCorte} />
-              <Botao variante="contorno" onClick={selecionarVencidos}>
-                Escolher pendências vencidas
-              </Botao>
-              <p style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.5 }}>
-                Usa o vencimento de cada lançamento — e a data do registro só
-                quando não há vencimento. Parcela que vence depois dessa data
-                fica de fora, mesmo tendo sido registrada antes.
-              </p>
-            </>
-          ) : null}
-
-          <label
-            className="flex flex-col"
-            style={{ gap: 4, fontSize: 12, color: "var(--mut)" }}
-          >
-            Dia do vencimento
-            <input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={31}
-              placeholder="Ex.: 10"
-              value={diaVencimento}
-              onChange={(e) => setDiaVencimento(e.target.value)}
-              style={{
-                minHeight: 44,
-                padding: "0 12px",
+                gap: 10,
+                padding: 12,
                 borderRadius: "var(--rs)",
-                border: "1px solid var(--ln2)",
-                fontSize: 16,
-                color: "var(--color-text)",
-                background: "transparent",
+                background: "var(--ln2)",
+                fontSize: 13,
               }}
-            />
-          </label>
-          <Botao
-            variante="contorno"
-            onClick={aplicarDia}
-            disabled={marcados.size === 0 || !diaValido}
-            carregando={aplicando}
-          >
-            Mudar o dia do vencimento
-          </Botao>
-          <p style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.5 }}>
-            Cada lançamento fica no mês em que já está; só o dia muda. Dia 31
-            em mês de 30 dias vira dia 30. Quem não tinha vencimento passa a
-            ter, no mês da data de registro.
-          </p>
-
-          {aportesNaSelecao > 0 ? (
-            <p style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.5 }}>
-              {aportesNaSelecao}{" "}
-              {aportesNaSelecao === 1 ? "aporte em meta" : "aportes em meta"} na
-              escolha —{" "}
-              {aportesNaSelecao === 1 ? "ele fica" : "eles ficam"} de fora, porque
-              aporte não é despesa nem receita.
-            </p>
-          ) : null}
-
-          <Botao
-            onClick={() => aplicar("quitado")}
-            disabled={marcados.size === 0}
-            carregando={aplicando}
-          >
-            Marcar como pago e recebido
-          </Botao>
-          <Botao
-            variante="contorno"
-            onClick={() => aplicar("pendente")}
-            disabled={marcados.size === 0}
-            carregando={aplicando}
-          >
-            Voltar para pendente
-          </Botao>
-          <Botao variante="texto" onClick={sairDaSelecao}>
-            Cancelar
-          </Botao>
-        </section>
-      )}
-
-      <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
-        <span style={{ fontSize: 12, color: "var(--mut)" }}>
-          {periodo === "mes"
-            ? `${nomeMes(mes)} ${ano}`
-            : periodo === "ano"
-              ? String(ano)
-              : `${dataBr(de)} — ${dataBr(ate)}`}
-        </span>
-        <span style={{ fontSize: 12, color: "var(--mut)" }}>
-          {lancamentos.length}{" "}
-          {lancamentos.length === 1 ? "lançamento" : "lançamentos"} ·{" "}
-          <span style={{ color: total < 0 ? "var(--bad)" : "var(--ok)" }}>
-            {total < 0 ? "−" : "+"}
-            <Dinheiro>{moeda(Math.abs(total))}</Dinheiro>
-          </span>
-        </span>
-      </div>
-
-      {lancamentos.length === 0 ? (
-        /* A mensagem antiga culpava o período. Como os filtros sobrevivem na
-           URL, o dono voltava dias depois com "uber" ainda no campo de busca,
-           via o mês vazio e concluía que não tinha lançado nada. */
-        <div className="flex flex-col" style={{ gap: 10, padding: "24px 0" }}>
-          <p style={{ fontSize: 14, color: "var(--mut)" }}>
-            {temFiltro
-              ? "Nenhum lançamento com esses filtros."
-              : "Nenhum lançamento neste período."}
-          </p>
-          {temFiltro ? (
-            <>
-              <p style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.5 }}>
-                Filtros ligados: {resumoDosFiltros}.
-              </p>
-              <Botao variante="contorno" onClick={limparBusca}>
-                Limpar os filtros
-              </Botao>
-            </>
-          ) : null}
-        </div>
-      ) : porData ? (
-        <div className="flex flex-col" style={{ gap: 16 }}>
-          {grupos.map(([data, itens]) => {
-            const totalDia = itens.reduce((s, l) => {
-              if (l.tipo === "aporte") return s;
-              return l.tipo === "receita" ? s + l.valor : s - l.valor;
-            }, 0);
-            return (
-              <div key={data}>
-                <div
-                  className="flex items-baseline justify-between"
-                  style={{
-                    gap: 8,
-                    paddingBottom: 6,
-                    borderBottom: "1px solid var(--ln2)",
-                  }}
-                >
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--mut)" }}>
-                    {dataBr(data)}
-                  </span>
-                  <span
+            >
+              <span>{recado}</span>
+              <span className="flex items-center" style={{ gap: 8, flexShrink: 0 }}>
+                {desfazer ? (
+                  <button
+                    type="button"
+                    onClick={aplicarDesfazer}
+                    disabled={aplicando}
                     style={{
-                      fontSize: 12,
-                      color: totalDia < 0 ? "var(--bad)" : "var(--ok)",
+                      minHeight: 44,
+                      padding: "0 8px",
+                      background: "transparent",
+                      color: "var(--deep)",
+                      fontWeight: 700,
+                      fontSize: 13,
                     }}
                   >
-                    {totalDia < 0 ? "−" : "+"}
-                    <Dinheiro>{moeda(Math.abs(totalDia))}</Dinheiro>
+                    Desfazer
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecado(null);
+                    setDesfazer(null);
+                  }}
+                  aria-label="Dispensar aviso"
+                  style={{
+                    minHeight: 44,
+                    width: 44,
+                    background: "transparent",
+                    color: "var(--mut)",
+                  }}
+                >
+                  <X size={16} strokeWidth={1.5} aria-hidden />
+                </button>
+              </span>
+            </div>
+          ) : null}
+
+          {lancamentos.length === 0 ? null : !selecionando ? (
+            <div className="flex" style={{ gap: 8 }}>
+              <Botao variante="contorno" onClick={() => setSelecionando(true)}>
+                <span className="flex items-center justify-center" style={{ gap: 6 }}>
+                  <CheckSquare size={16} strokeWidth={1.5} aria-hidden />
+                  Selecionar vários
+                </span>
+              </Botao>
+              <Botao variante="contorno" onClick={() => router.push("/recorrentes")}>
+                Contas recorrentes
+              </Botao>
+            </div>
+          ) : (
+            <section
+              className="flex flex-col"
+              style={{
+                gap: 10,
+                padding: 12,
+                borderRadius: "var(--rs)",
+                border: "1px solid var(--ln2)",
+              }}
+            >
+              <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>
+                  {marcados.size}{" "}
+                  {marcados.size === 1 ? "escolhido" : "escolhidos"}
+                </span>
+                {marcados.size > 0 ? (
+                  <span
+                    style={{
+                      fontSize: 13,
+                      color: somaSelecionada < 0 ? "var(--bad)" : "var(--ok)",
+                    }}
+                  >
+                    {somaSelecionada < 0 ? "−" : "+"}
+                    <Dinheiro>{moeda(Math.abs(somaSelecionada))}</Dinheiro>
                   </span>
-                </div>
-                {itens.map((l) => (
-                  <LinhaLancamento
-                    key={l.id}
-                    l={l}
-                    selecionavel={selecionando}
-                    selecionado={marcados.has(l.id)}
-                    aoAlternar={alternar}
-                  />
-                ))}
+                ) : null}
               </div>
-            );
-          })}
+
+              <div className="flex" style={{ gap: 8 }}>
+                <Botao
+                  variante="contorno"
+                  onClick={() => setMarcados(new Set(lancamentos.map((l) => l.id)))}
+                >
+                  Todos
+                </Botao>
+                <Botao variante="contorno" onClick={() => setMarcados(new Set())}>
+                  Nenhum
+                </Botao>
+              </div>
+
+              {pendentes.length > 0 ? (
+                <>
+                  <CampoData rotulo="Vencidos até" valor={corte} aoMudar={setCorte} />
+                  <Botao variante="contorno" onClick={selecionarVencidos}>
+                    Escolher pendências vencidas
+                  </Botao>
+                  <p style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.5 }}>
+                    Usa o vencimento de cada lançamento — e a data do registro só
+                    quando não há vencimento. Parcela que vence depois dessa data
+                    fica de fora, mesmo tendo sido registrada antes.
+                  </p>
+                </>
+              ) : null}
+
+              <label
+                className="flex flex-col"
+                style={{ gap: 4, fontSize: 12, color: "var(--mut)" }}
+              >
+                Dia do vencimento
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={31}
+                  placeholder="Ex.: 10"
+                  value={diaVencimento}
+                  onChange={(e) => setDiaVencimento(e.target.value)}
+                  style={{
+                    minHeight: 44,
+                    padding: "0 12px",
+                    borderRadius: "var(--rs)",
+                    border: "1px solid var(--ln2)",
+                    fontSize: 16,
+                    color: "var(--color-text)",
+                    background: "transparent",
+                  }}
+                />
+              </label>
+              <Botao
+                variante="contorno"
+                onClick={aplicarDia}
+                disabled={marcados.size === 0 || !diaValido}
+                carregando={aplicando}
+              >
+                Mudar o dia do vencimento
+              </Botao>
+              <p style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.5 }}>
+                Cada lançamento fica no mês em que já está; só o dia muda. Dia 31
+                em mês de 30 dias vira dia 30. Quem não tinha vencimento passa a
+                ter, no mês da data de registro.
+              </p>
+
+              {aportesNaSelecao > 0 ? (
+                <p style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.5 }}>
+                  {aportesNaSelecao}{" "}
+                  {aportesNaSelecao === 1 ? "aporte em meta" : "aportes em meta"} na
+                  escolha —{" "}
+                  {aportesNaSelecao === 1 ? "ele fica" : "eles ficam"} de fora, porque
+                  aporte não é despesa nem receita.
+                </p>
+              ) : null}
+
+              <Botao
+                onClick={() => aplicar("quitado")}
+                disabled={marcados.size === 0}
+                carregando={aplicando}
+              >
+                Marcar como pago e recebido
+              </Botao>
+              <Botao
+                variante="contorno"
+                onClick={() => aplicar("pendente")}
+                disabled={marcados.size === 0}
+                carregando={aplicando}
+              >
+                Voltar para pendente
+              </Botao>
+              <Botao variante="texto" onClick={sairDaSelecao}>
+                Cancelar
+              </Botao>
+            </section>
+          )}
+
+          <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
+            <span style={{ fontSize: 12, color: "var(--mut)" }}>
+              {periodo === "mes"
+                ? `${nomeMes(mes)} ${ano}`
+                : periodo === "ano"
+                  ? String(ano)
+                  : `${dataBr(de)} — ${dataBr(ate)}`}
+            </span>
+            <span style={{ fontSize: 12, color: "var(--mut)" }}>
+              {lancamentos.length}{" "}
+              {lancamentos.length === 1 ? "lançamento" : "lançamentos"} ·{" "}
+              <span style={{ color: total < 0 ? "var(--bad)" : "var(--ok)" }}>
+                {total < 0 ? "−" : "+"}
+                <Dinheiro>{moeda(Math.abs(total))}</Dinheiro>
+              </span>
+            </span>
+          </div>
+
+          {lancamentos.length === 0 ? (
+            /* A mensagem antiga culpava o período. Como os filtros sobrevivem na
+               URL, o dono voltava dias depois com "uber" ainda no campo de busca,
+               via o mês vazio e concluía que não tinha lançado nada. */
+            <div className="flex flex-col" style={{ gap: 10, padding: "24px 0" }}>
+              <p style={{ fontSize: 14, color: "var(--mut)" }}>
+                {temFiltro
+                  ? "Nenhum lançamento com esses filtros."
+                  : "Nenhum lançamento neste período."}
+              </p>
+              {temFiltro ? (
+                <>
+                  <p style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.5 }}>
+                    Filtros ligados: {resumoDosFiltros}.
+                  </p>
+                  <Botao variante="contorno" onClick={limparBusca}>
+                    Limpar os filtros
+                  </Botao>
+                </>
+              ) : null}
+            </div>
+          ) : porData ? (
+            <div className="flex flex-col" style={{ gap: 16 }}>
+              {grupos.map(([data, itens]) => {
+                const totalDia = itens.reduce((s, l) => {
+                  if (l.tipo === "aporte") return s;
+                  return l.tipo === "receita" ? s + l.valor : s - l.valor;
+                }, 0);
+                return (
+                  <div key={data}>
+                    <div
+                      className="flex items-baseline justify-between"
+                      style={{
+                        gap: 8,
+                        paddingBottom: 6,
+                        borderBottom: "1px solid var(--ln2)",
+                      }}
+                    >
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--mut)" }}>
+                        {dataBr(data)}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: totalDia < 0 ? "var(--bad)" : "var(--ok)",
+                        }}
+                      >
+                        {totalDia < 0 ? "−" : "+"}
+                        <Dinheiro>{moeda(Math.abs(totalDia))}</Dinheiro>
+                      </span>
+                    </div>
+                    {itens.map((l) => (
+                      <LinhaLancamento
+                        key={l.id}
+                        l={l}
+                        selecionavel={selecionando}
+                        selecionado={marcados.has(l.id)}
+                        aoAlternar={alternar}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {lancamentos.map((l) => (
+                <LinhaLancamento
+                  key={l.id}
+                  l={l}
+                  mostrarData
+                  selecionavel={selecionando}
+                  selecionado={marcados.has(l.id)}
+                  aoAlternar={alternar}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="flex flex-col">
-          {lancamentos.map((l) => (
-            <LinhaLancamento
-              key={l.id}
-              l={l}
-              mostrarData
-              selecionavel={selecionando}
-              selecionado={marcados.has(l.id)}
-              aoAlternar={alternar}
-            />
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
