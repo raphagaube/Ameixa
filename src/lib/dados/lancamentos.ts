@@ -4,6 +4,8 @@ import { paraIso } from "@/lib/formato";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
 
+import { separarSufixo } from "@/lib/recorrentes";
+
 const CAMPOS = `
   id, tipo, valor, descricao, data_registro, data_vencimento, situacao,
   categoria_id, subcategoria_id, conta_id, cartao_id, forma_pagamento,
@@ -143,6 +145,62 @@ export async function pendenciasTodas(): Promise<LancamentoNaLista[]> {
   }
 
   return todas.map(normalizar);
+}
+
+/**
+ * Todas as ocorrências de uma série — pagas e pendentes —, da primeira à
+ * última.
+ *
+ * A chave é a mesma de `agruparSeries`: `s:<serie_id>` para a série que
+ * nasceu no formulário, e `d:<tipo>|<nome-base>|<valor>` para as que vieram
+ * sem vínculo (importação) e foram juntadas pelo nome e pelo valor.
+ */
+export async function ocorrenciasDaSerie(chave: string): Promise<LancamentoNaLista[]> {
+  const supabase = await criarClienteServidor();
+
+  if (chave.startsWith("s:")) {
+    const { data } = await supabase
+      .from("lancamentos")
+      .select(CAMPOS)
+      .eq("serie_id", chave.slice(2))
+      .order("data_registro", { ascending: true })
+      .limit(1000);
+    return naOrdemDaSerie(((data ?? []) as Bruto[]).map(normalizar));
+  }
+
+  if (!chave.startsWith("d:")) return [];
+  const partes = chave.slice(2).split("|");
+  if (partes.length < 3) return [];
+  const tipo = partes[0];
+  const valor = partes[partes.length - 1];
+  const base = partes.slice(1, -1).join("|");
+  if (!["despesa", "receita"].includes(tipo) || !/^\d+(\.\d{1,2})?$/.test(valor)) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("lancamentos")
+    .select(CAMPOS)
+    .is("serie_id", null)
+    .eq("tipo", tipo)
+    .eq("valor", valor)
+    .order("data_registro", { ascending: true })
+    .limit(1000);
+
+  return naOrdemDaSerie(
+    ((data ?? []) as Bruto[])
+      .map(normalizar)
+      .filter((l) => separarSufixo(l.descricao).base.toLocaleLowerCase("pt-BR") === base),
+  );
+}
+
+/** Parcela numerada manda na ordem; sem número, vale a data de registro. */
+function naOrdemDaSerie(lista: LancamentoNaLista[]): LancamentoNaLista[] {
+  return [...lista].sort(
+    (a, b) =>
+      (a.parcela_atual ?? 0) - (b.parcela_atual ?? 0) ||
+      a.data_registro.localeCompare(b.data_registro),
+  );
 }
 
 /** Os últimos lançamentos, para o bloco do Início. */

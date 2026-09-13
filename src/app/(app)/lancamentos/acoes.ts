@@ -14,7 +14,9 @@ import { gerarSerie, type ConfigSerie } from "@/lib/serie";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import {
   dataQueVale,
+  ROTULO_SITUACAO,
   situacaoAlvo,
+  situacoesDoTipo,
   trocarDiaDoMes,
   type Situacao,
   type TipoLancamento,
@@ -558,6 +560,10 @@ const itemEdicao = z.object({
     .positive("O valor precisa ser maior que zero.")
     .max(1_000_000_000, "Valor alto demais."),
   data_vencimento: z.string().regex(ISO, "Data inválida.").nullable(),
+  // Opcionais: a lista de séries só mexe nos campos acima; a tela da série
+  // completa também corrige a data de registro e a situação.
+  data_registro: z.string().regex(ISO, "Data de registro inválida.").optional(),
+  situacao: z.enum(["pago", "a_pagar", "recebido", "a_receber", "guardado"]).optional(),
 });
 
 export type ItemEdicao = z.infer<typeof itemEdicao>;
@@ -570,16 +576,17 @@ export type ResultadoEdicao =
 const EM_PARALELO = 8;
 
 /**
- * Grava descrição, valor e vencimento de várias linhas de uma vez.
+ * Grava várias linhas de uma vez: descrição, valor e vencimento sempre, e
+ * data de registro e situação quando vierem.
  *
  * Cada linha pode ter valores diferentes (o mês de cada vencimento é
  * outro), então não dá para um único `update ... in (...)`. As linhas vão
  * em grupos pequenos em paralelo.
  *
  * Só linhas que mudaram de fato são gravadas. O que elas tinham antes volta
- * na resposta: desfazer é chamar esta mesma função com esses valores.
- * Se algo falhar no meio, a resposta traz o `antes` do que já foi gravado,
- * para o Desfazer ainda funcionar.
+ * na resposta, com todos os campos: desfazer é chamar esta mesma função com
+ * esses valores. Se algo falhar no meio, a resposta traz o `antes` do que já
+ * foi gravado, para o Desfazer ainda funcionar.
  */
 export async function editarLancamentosEmLote(
   itens: ItemEdicao[],
@@ -596,7 +603,7 @@ export async function editarLancamentosEmLote(
   const supabase = await criarClienteServidor();
   const { data: atuais, error: erroLeitura } = await supabase
     .from("lancamentos")
-    .select("id, descricao, valor, data_vencimento")
+    .select("id, tipo, descricao, valor, data_registro, data_vencimento, situacao")
     .in(
       "id",
       v.data.map((i) => i.id),
@@ -605,17 +612,52 @@ export async function editarLancamentosEmLote(
     return { ok: false, erro: traduzir(erroLeitura.message), antes: [] };
   }
 
-  const porId = new Map(
+  type Atual = {
+    id: string;
+    tipo: TipoLancamento;
+    descricao: string;
+    valor: number;
+    data_registro: string;
+    data_vencimento: string | null;
+    situacao: Situacao;
+  };
+
+  const porId = new Map<string, Atual>(
     (atuais ?? []).map((a) => [
       a.id as string,
       {
         id: a.id as string,
+        tipo: a.tipo as TipoLancamento,
         descricao: a.descricao as string,
         valor: Number(a.valor),
+        data_registro: String(a.data_registro).slice(0, 10),
         data_vencimento: ((a.data_vencimento as string | null) ?? null)?.slice(0, 10) ?? null,
+        situacao: a.situacao as Situacao,
       },
     ]),
   );
+
+  // Despesa não pode virar "recebido", nem receita "pago": a situação tem que
+  // existir para o tipo, senão os relatórios contam o dinheiro do lado errado.
+  for (const i of v.data) {
+    const a = porId.get(i.id);
+    if (a && i.situacao && !situacoesDoTipo(a.tipo).includes(i.situacao)) {
+      return {
+        ok: false,
+        erro: `"${i.descricao}" não pode ficar como ${ROTULO_SITUACAO[i.situacao]}.`,
+        antes: [],
+      };
+    }
+  }
+
+  const paraAntes = (a: Atual): ItemEdicao => ({
+    id: a.id,
+    descricao: a.descricao,
+    valor: a.valor,
+    data_vencimento: a.data_vencimento,
+    data_registro: a.data_registro,
+    situacao: a.situacao,
+  });
 
   const mudar = v.data.filter((i) => {
     const a = porId.get(i.id);
@@ -623,7 +665,9 @@ export async function editarLancamentosEmLote(
       !!a &&
       (a.descricao !== i.descricao ||
         a.valor !== i.valor ||
-        a.data_vencimento !== i.data_vencimento)
+        a.data_vencimento !== i.data_vencimento ||
+        (i.data_registro !== undefined && a.data_registro !== i.data_registro) ||
+        (i.situacao !== undefined && a.situacao !== i.situacao))
     );
   });
 
@@ -638,12 +682,14 @@ export async function editarLancamentosEmLote(
             descricao: i.descricao,
             valor: i.valor,
             data_vencimento: i.data_vencimento,
+            ...(i.data_registro ? { data_registro: i.data_registro } : {}),
+            ...(i.situacao ? { situacao: i.situacao } : {}),
           })
           .eq("id", i.id),
       ),
     );
     respostas.forEach((r, x) => {
-      if (!r.error) antes.push(porId.get(grupo[x].id)!);
+      if (!r.error) antes.push(paraAntes(porId.get(grupo[x].id)!));
     });
     const falha = respostas.find((r) => r.error);
     if (falha?.error) {

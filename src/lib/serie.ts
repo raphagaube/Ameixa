@@ -210,3 +210,16 @@ export function gerarSerie(
 
   return lista;
 }
+
+/**
+ * A data da ocorrência `i` de uma série que começa em `iso`, com o mesmo
+ * passo que o gerador usa. Serve para consertar uma série já criada: acertar
+ * a data de uma linha e recalcular as seguintes a partir dela.
+ */
+export function dataNoPasso(
+  iso: string,
+  i: number,
+  frequencia: Frequencia = "mensal",
+): string {
+  return paraIso(avancar(comoData(iso), i, frequencia));
+}

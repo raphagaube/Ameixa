@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronRight, Search, TriangleAlert, X } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import {
@@ -463,6 +464,20 @@ export function PainelRecorrentes({
                   </span>
                 </span>
               </button>
+
+              <Link
+                href={`/recorrentes/serie?chave=${encodeURIComponent(s.chave)}`}
+                className="flex items-center"
+                style={{
+                  alignSelf: "flex-start",
+                  minHeight: 44,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--deep)",
+                }}
+              >
+                Abrir a série completa, inclusive as já pagas →
+              </Link>
 
               {repetidaDe ? (
                 <p

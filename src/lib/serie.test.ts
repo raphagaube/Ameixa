@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_OCORRENCIAS, gerarSerie, type BaseSerie } from "./serie";
+import { MAX_OCORRENCIAS, dataNoPasso, gerarSerie, type BaseSerie } from "./serie";
 
 const HOJE = "2026-09-01";
 
@@ -294,5 +294,19 @@ describe("vencimento não escorrega com o tamanho do mês", () => {
       "2026-09-10",
       "2026-09-17",
     ]);
+  });
+});
+
+describe("dataNoPasso", () => {
+  it("mensal mantém o dia e respeita o fim do mês sem arrastar", () => {
+    expect(dataNoPasso("2026-10-10", 0)).toBe("2026-10-10");
+    expect(dataNoPasso("2026-10-10", 3)).toBe("2027-01-10");
+    expect(dataNoPasso("2026-01-31", 1)).toBe("2026-02-28");
+    expect(dataNoPasso("2026-01-31", 2)).toBe("2026-03-31");
+  });
+
+  it("semanal e anual andam no passo certo", () => {
+    expect(dataNoPasso("2026-09-03", 2, "semanal")).toBe("2026-09-17");
+    expect(dataNoPasso("2026-09-03", 1, "anual")).toBe("2027-09-03");
   });
 });
