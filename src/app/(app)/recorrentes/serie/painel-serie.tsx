@@ -1,9 +1,13 @@
 "use client";
 
-import { X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Fragment, useState, useTransition } from "react";
-import { editarLancamentosEmLote, type ItemEdicao } from "@/app/(app)/lancamentos/acoes";
+import {
+  editarLancamentosEmLote,
+  excluirLancamentosEmLote,
+  type ItemEdicao,
+} from "@/app/(app)/lancamentos/acoes";
 import { Dinheiro } from "@/components/dinheiro";
 import { Botao } from "@/components/ui/botao";
 import { dataBr, moeda } from "@/lib/formato";
@@ -131,6 +135,8 @@ export function PainelSerie({
   const [recado, setRecado] = useState<string | null>(null);
   const [desfazer, setDesfazer] = useState<ItemEdicao[] | null>(null);
   const [gravando, iniciar] = useTransition();
+  const [marcados, setMarcados] = useState<Set<string>>(new Set());
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
 
   const linhaDe = (l: LancamentoNaLista) => linhas[l.id] ?? linhaOriginal(l);
 
@@ -217,6 +223,48 @@ export function PainelSerie({
       setLinhas((a) => Object.fromEntries(Object.entries(a).filter(([id]) => !ids.has(id))));
       setDesfazer(null);
       setRecado(r.ok ? "Desfeito." : r.erro);
+      router.refresh();
+    });
+  }
+
+  const selecionados = itens.filter((l) => marcados.has(l.id));
+  const todosMarcados = itens.length > 0 && selecionados.length === itens.length;
+  const pagosSelecionados = selecionados.filter((l) => pago(l.situacao)).length;
+  const somaSelecionada = selecionados.reduce((n, l) => n + l.valor, 0);
+
+  function alternarMarcado(id: string) {
+    setConfirmandoExclusao(false);
+    setMarcados((atual) => {
+      const prox = new Set(atual);
+      if (prox.has(id)) prox.delete(id);
+      else prox.add(id);
+      return prox;
+    });
+  }
+
+  function alternarTodos() {
+    setConfirmandoExclusao(false);
+    setMarcados(todosMarcados ? new Set() : new Set(itens.map((l) => l.id)));
+  }
+
+  function excluirSelecionados() {
+    const ids = selecionados.map((l) => l.id);
+    if (ids.length === 0) return;
+    iniciar(async () => {
+      const r = await excluirLancamentosEmLote(ids);
+      setConfirmandoExclusao(false);
+      if (!r.ok) {
+        setRecado(r.erro);
+        return;
+      }
+      const apagados = new Set(ids);
+      setLinhas((a) => Object.fromEntries(Object.entries(a).filter(([id]) => !apagados.has(id))));
+      setMarcados(new Set());
+      // Desfazer grava de volta valores em linhas que já não existem.
+      setDesfazer(null);
+      setRecado(
+        `${r.excluidos} ${r.excluidos === 1 ? "lançamento excluído" : "lançamentos excluídos"}.`,
+      );
       router.refresh();
     });
   }
@@ -377,6 +425,66 @@ export function PainelSerie({
         </div>
       ) : null}
 
+      {selecionados.length > 0 ? (
+        <div
+          className="flex flex-wrap items-center justify-between"
+          style={{
+            gap: 10,
+            padding: 12,
+            borderRadius: "var(--rs)",
+            border: "1px solid var(--bad)",
+            background: "var(--sf)",
+          }}
+        >
+          {confirmandoExclusao ? (
+            <>
+              <span role="alert" style={{ fontSize: 13, lineHeight: 1.5 }}>
+                Excluir {selecionados.length}{" "}
+                {selecionados.length === 1 ? "lançamento" : "lançamentos"}, somando{" "}
+                <Dinheiro>{moeda(somaSelecionada)}</Dinheiro>
+                {pagosSelecionados > 0
+                  ? `, com ${pagosSelecionados} ${pagosSelecionados === 1 ? "já pago" : "já pagos"}`
+                  : ""}
+                ? Não dá para desfazer.
+              </span>
+              <div className="flex" style={{ gap: 8, minWidth: 320 }}>
+                <Botao
+                  variante="contorno"
+                  onClick={() => setConfirmandoExclusao(false)}
+                  disabled={gravando}
+                >
+                  Cancelar
+                </Botao>
+                <Botao onClick={excluirSelecionados} carregando={gravando}>
+                  Excluir de vez
+                </Botao>
+              </div>
+            </>
+          ) : (
+            <>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>
+                {selecionados.length} {selecionados.length === 1 ? "selecionado" : "selecionados"} ·{" "}
+                <Dinheiro>{moeda(somaSelecionada)}</Dinheiro>
+              </span>
+              <div className="flex" style={{ gap: 8, minWidth: 320 }}>
+                <Botao variante="contorno" onClick={() => setMarcados(new Set())}>
+                  Limpar seleção
+                </Botao>
+                <Botao variante="contorno" onClick={() => setConfirmandoExclusao(true)}>
+                  <span
+                    className="flex items-center justify-center"
+                    style={{ gap: 6, color: "var(--bad)" }}
+                  >
+                    <Trash2 size={16} strokeWidth={1.5} aria-hidden />
+                    Excluir
+                  </span>
+                </Botao>
+              </div>
+            </>
+          )}
+        </div>
+      ) : null}
+
       <div
         style={{
           overflowX: "auto",
@@ -385,9 +493,23 @@ export function PainelSerie({
           background: "var(--sf)",
         }}
       >
-        <table style={{ width: "100%", minWidth: 1040, borderCollapse: "collapse" }}>
+        <table style={{ width: "100%", minWidth: 1090, borderCollapse: "collapse" }}>
           <thead>
             <tr>
+              <th style={{ ...th, width: 48 }}>
+                <label
+                  className="flex items-center justify-center"
+                  style={{ minHeight: 44, cursor: "pointer" }}
+                >
+                  <input
+                    type="checkbox"
+                    aria-label="Selecionar todos"
+                    checked={todosMarcados}
+                    onChange={alternarTodos}
+                    style={{ width: 18, height: 18, minHeight: 18 }}
+                  />
+                </label>
+              </th>
               <th style={{ ...th, width: 64 }}>#</th>
               <th style={{ ...th, width: 132 }}>Situação</th>
               <th style={{ ...th, width: 158 }}>Registro</th>
@@ -405,7 +527,21 @@ export function PainelSerie({
               const marca = (mudouCampo: boolean) => (mudouCampo ? destaque : null);
               return (
                 <Fragment key={l.id}>
-                  <tr>
+                  <tr style={marcados.has(l.id) ? { background: "var(--tint)" } : undefined}>
+                    <td style={td}>
+                      <label
+                        className="flex items-center justify-center"
+                        style={{ minHeight: 44, cursor: "pointer" }}
+                      >
+                        <input
+                          type="checkbox"
+                          aria-label={`Selecionar ${l.descricao}`}
+                          checked={marcados.has(l.id)}
+                          onChange={() => alternarMarcado(l.id)}
+                          style={{ width: 18, height: 18, minHeight: 18 }}
+                        />
+                      </label>
+                    </td>
                     <td style={td}>
                       <span style={{ fontSize: 13, fontWeight: 600 }}>
                         {l.parcela_atual ? `${l.parcela_atual}/${l.parcela_total}` : i + 1}
@@ -500,7 +636,7 @@ export function PainelSerie({
                   {erro ? (
                     <tr>
                       <td
-                        colSpan={7}
+                        colSpan={8}
                         role="alert"
                         style={{ padding: "0 8px 8px", fontSize: 12, color: "var(--bad)" }}
                       >

@@ -44,16 +44,29 @@ export function lerExcel(dados: ArrayBuffer): LinhaCru[] {
   // primeira, o dono recebia "a planilha não tem linhas além do
   // cabeçalho" — falso do ponto de vista dele, que estava olhando para as
   // mil linhas na tela.
-  let matriz: unknown[][] = [];
-  for (const nome of pasta.SheetNames) {
-    const candidata = XLSX.utils.sheet_to_json<unknown[]>(pasta.Sheets[nome], {
+  const matrizDa = (nome: string) =>
+    XLSX.utils.sheet_to_json<unknown[]>(pasta.Sheets[nome], {
       header: 1,
       blankrows: false,
       defval: "",
     });
-    if (candidata.length >= 2) {
-      matriz = candidata;
-      break;
+
+  // A planilha do próprio Ameixa tem a aba "Lançamentos" e, atrás dela,
+  // instruções e listas. Com essa aba presente, é ela que vale — mesmo
+  // vazia: um modelo baixado e ainda não preenchido não pode ser lido pela
+  // aba de instruções.
+  const doAmeixa = pasta.SheetNames.find((n) => normalizarCabecalho(n) === "lancamentos");
+
+  let matriz: unknown[][] = [];
+  if (doAmeixa) {
+    matriz = matrizDa(doAmeixa);
+  } else {
+    for (const nome of pasta.SheetNames) {
+      const candidata = matrizDa(nome);
+      if (candidata.length >= 2) {
+        matriz = candidata;
+        break;
+      }
     }
   }
 

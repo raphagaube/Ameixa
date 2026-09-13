@@ -121,3 +121,16 @@ export function baixarJson(dados: unknown, nomeArquivo: string) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+/** Baixa um arquivo binário montado no navegador — a planilha .xlsx do Ameixa. */
+export function baixarArquivo(nomeArquivo: string, dados: ArrayBuffer, tipo: string) {
+  const blob = new Blob([dados], { type: tipo });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nomeArquivo;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}

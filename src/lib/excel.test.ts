@@ -148,3 +148,34 @@ describe("qual aba é lida", () => {
     expect(linhas[0].descricao).toBe("Mercado");
   });
 });
+
+describe("planilha do Ameixa, com várias abas", () => {
+  const pasta = (abas: [string, unknown[][]][]) => {
+    const p = XLSX.utils.book_new();
+    for (const [nome, linhas] of abas) {
+      XLSX.utils.book_append_sheet(p, XLSX.utils.aoa_to_sheet(linhas), nome);
+    }
+    return XLSX.write(p, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+  };
+
+  it("lê a aba Lançamentos mesmo que ela não seja a primeira", () => {
+    const r = lerExcel(
+      pasta([
+        ["Instruções", [["Como preencher"], ["Data", "Sim"]]],
+        ["Lançamentos", [["Data", "Descrição", "Valor"], ["01/09/2026", "Mercado", "10,00"]]],
+      ]),
+    );
+    expect(r).toHaveLength(1);
+    expect(r[0]["descricao"]).toBe("Mercado");
+  });
+
+  it("modelo não preenchido não é lido pela aba de instruções", () => {
+    const r = lerExcel(
+      pasta([
+        ["Lançamentos", [["Data", "Descrição", "Valor"]]],
+        ["Instruções", [["Coluna", "Como escrever"], ["Data", "dd/mm/aaaa"]]],
+      ]),
+    );
+    expect(r).toEqual([]);
+  });
+});

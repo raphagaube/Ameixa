@@ -16,15 +16,23 @@ export type CampoAlvo =
   | "status"
   | "categoria"
   | "responsavel"
-  | "observacao";
+  | "observacao"
+  | "vencimento"
+  | "subcategoria"
+  | "conta"
+  | "forma";
 
 export const CAMPOS: { campo: CampoAlvo; rotulo: string; obrigatorio: boolean }[] = [
   { campo: "data", rotulo: "Data", obrigatorio: true },
+  { campo: "vencimento", rotulo: "Vencimento", obrigatorio: false },
   { campo: "descricao", rotulo: "Descrição", obrigatorio: true },
   { campo: "valor", rotulo: "Valor", obrigatorio: true },
   { campo: "tipo", rotulo: "Tipo (despesa/receita)", obrigatorio: false },
   { campo: "status", rotulo: "Situação (pago/recebido)", obrigatorio: false },
   { campo: "categoria", rotulo: "Categoria", obrigatorio: false },
+  { campo: "subcategoria", rotulo: "Subcategoria", obrigatorio: false },
+  { campo: "conta", rotulo: "Conta / banco", obrigatorio: false },
+  { campo: "forma", rotulo: "Forma de pagamento", obrigatorio: false },
   { campo: "responsavel", rotulo: "Responsável", obrigatorio: false },
   { campo: "observacao", rotulo: "Observação", obrigatorio: false },
 ];
@@ -41,6 +49,10 @@ const APELIDOS: Record<CampoAlvo, string[]> = {
   categoria: ["categoria", "classificacao", "grupo"],
   responsavel: ["responsavel", "pessoa", "quem", "titular"],
   observacao: ["observacao", "obs", "nota", "comentario", "detalhe"],
+  vencimento: ["vencimento", "data vencimento", "data de vencimento", "vence", "venc"],
+  subcategoria: ["subcategoria", "sub categoria", "subgrupo"],
+  conta: ["conta", "conta / banco", "conta banco", "banco"],
+  forma: ["forma de pagamento", "forma pagamento", "meio de pagamento", "forma", "meio"],
 };
 
 /**
@@ -82,6 +94,10 @@ export type LinhaPrevia = {
   categoriaTexto: string;
   responsavel: string | null;
   observacao: string | null;
+  vencimento: string | null;
+  subcategoriaTexto: string;
+  contaTexto: string;
+  forma: string | null;
   problema: string | null;
 };
 
@@ -89,7 +105,14 @@ function lerSituacao(
   bruto: string,
   tipo: "receita" | "despesa",
 ): "pago" | "a_pagar" | "recebido" | "a_receber" {
-  const s = bruto.trim().toLowerCase();
+  // "Já pago" é como o próprio app escreve a situação. Sem tirar o "já" e o
+  // acento, a planilha exportada voltava como "a pagar" ao ser importada.
+  const s = bruto
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/^ja\s+/, "");
   if (tipo === "receita") {
     return s.startsWith("receb") ? "recebido" : s ? "a_receber" : "recebido";
   }
@@ -120,10 +143,14 @@ export function analisarLinhas(
         ? "receita"
         : "despesa";
 
+    const vencimentoTexto = pegar(l, "vencimento").trim();
+    const vencimento = vencimentoTexto ? lerData(vencimentoTexto) : null;
+
     const faltas: string[] = [];
     if (!data) faltas.push("data");
     if (valor === null || valor === 0) faltas.push("valor");
     if (!descricao) faltas.push("descrição");
+    if (vencimentoTexto && !vencimento) faltas.push("vencimento válido");
 
     return {
       numero: i + 2, // +2: a linha 1 é o cabeçalho e a contagem começa em 1
@@ -135,6 +162,10 @@ export function analisarLinhas(
       categoriaTexto: pegar(l, "categoria").trim(),
       responsavel: pegar(l, "responsavel").trim() || null,
       observacao: pegar(l, "observacao").trim() || null,
+      vencimento,
+      subcategoriaTexto: pegar(l, "subcategoria").trim(),
+      contaTexto: pegar(l, "conta").trim(),
+      forma: pegar(l, "forma").trim().slice(0, 40) || null,
       problema: faltas.length > 0 ? `sem ${faltas.join(", ")}` : null,
     };
   });
@@ -209,5 +240,27 @@ export function casarCategoria(
     return n.length >= 4 && (alvo.startsWith(n) || n.startsWith(alvo));
   });
 
+  return parcial?.id ?? null;
+}
+
+/**
+ * Casa um nome escrito na planilha com um item do app — conta ou
+ * subcategoria. Primeiro o nome exato, sem acento e sem caixa; depois o que
+ * começa igual, desde que o nome tenha pelo menos quatro letras.
+ */
+export function casarPorNome<T extends { id: string; nome: string }>(
+  texto: string,
+  itens: T[],
+): string | null {
+  const alvo = normalizarNomeCategoria(texto);
+  if (!alvo) return null;
+
+  const exata = itens.find((i) => normalizarNomeCategoria(i.nome) === alvo);
+  if (exata) return exata.id;
+
+  const parcial = itens.find((i) => {
+    const n = normalizarNomeCategoria(i.nome);
+    return n.length >= 4 && (alvo.startsWith(n) || n.startsWith(alvo));
+  });
   return parcial?.id ?? null;
 }

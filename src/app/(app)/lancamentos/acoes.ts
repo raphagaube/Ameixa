@@ -752,3 +752,31 @@ export async function excluirPendentesEmLote(
   limparDaAgenda(orfaos);
   return { ok: true, excluidos: pendentes.length, ignorados };
 }
+
+/**
+ * Apaga os lançamentos escolhidos, pagos ou não.
+ *
+ * Diferente de excluirPendentesEmLote: na tela da série completa o dono
+ * escolhe linha a linha, vê quantas já estavam pagas e confirma. Os eventos
+ * da agenda são lidos antes do delete, pelo mesmo motivo de
+ * excluirLancamento.
+ */
+export async function excluirLancamentosEmLote(ids: string[]): Promise<ResultadoExclusao> {
+  const v = idsEmLote.safeParse(ids);
+  if (!v.success) return { ok: false, erro: "Seleção inválida." };
+
+  const supabase = await criarClienteServidor();
+  const orfaos = await eventosDe(supabase, { ids: v.data });
+
+  const { data, error } = await supabase
+    .from("lancamentos")
+    .delete()
+    .in("id", v.data)
+    .select("id");
+  if (error) return { ok: false, erro: traduzir(error.message) };
+
+  revalidarTudo();
+  limparDaAgenda(orfaos);
+  const excluidos = data?.length ?? 0;
+  return { ok: true, excluidos, ignorados: v.data.length - excluidos };
+}

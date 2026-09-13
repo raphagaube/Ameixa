@@ -210,6 +210,38 @@ function naOrdemDaSerie(lista: LancamentoNaLista[]): LancamentoNaLista[] {
   });
 }
 
+/**
+ * Lançamentos para a planilha, sem teto — todos, ou os de um período.
+ *
+ * Paginado: o extrato corta em 500 e o PostgREST, sem `range`, em mil. Uma
+ * planilha de "todos os lançamentos" que viesse cortada seria pior que
+ * nenhuma, porque ninguém repara. Erro no meio devolve `null`, e não a
+ * metade que chegou.
+ */
+export async function lancamentosParaPlanilha(f: {
+  de?: string;
+  ate?: string;
+}): Promise<LancamentoNaLista[] | null> {
+  const supabase = await criarClienteServidor();
+  const PAGINA = 1000;
+  const todos: Bruto[] = [];
+
+  for (let inicio = 0; ; inicio += PAGINA) {
+    let q = supabase.from("lancamentos").select(CAMPOS).neq("tipo", "aporte");
+    if (f.de) q = q.gte("data_registro", f.de);
+    if (f.ate) q = q.lte("data_registro", f.ate);
+    const { data, error } = await q
+      .order("data_registro", { ascending: true })
+      .order("id", { ascending: true })
+      .range(inicio, inicio + PAGINA - 1);
+    if (error || !data) return null;
+    todos.push(...(data as Bruto[]));
+    if (data.length < PAGINA) break;
+  }
+
+  return todos.map(normalizar);
+}
+
 /** Os últimos lançamentos, para o bloco do Início. */
 export async function ultimosLancamentos(n = 4): Promise<LancamentoNaLista[]> {
   const supabase = await criarClienteServidor();

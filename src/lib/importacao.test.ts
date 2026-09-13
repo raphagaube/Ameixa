@@ -4,6 +4,7 @@ import {
   analisarLinhas,
   casarCategoria,
   normalizarNomeCategoria,
+  casarPorNome,
   palpitarMapeamento,
   resumir,
 } from "./importacao";
@@ -178,5 +179,110 @@ describe("casamento de categoria", () => {
 
   it("normaliza como esperado", () => {
     expect(normalizarNomeCategoria("ALIMENTAÇÃO (x, y)")).toBe("alimentacao");
+  });
+});
+
+describe("colunas novas da planilha do Ameixa", () => {
+  const cabecalho = [
+    "data",
+    "vencimento",
+    "descricao",
+    "valor",
+    "tipo",
+    "situacao",
+    "categoria",
+    "subcategoria",
+    "conta",
+    "forma de pagamento",
+    "responsavel",
+    "observacao",
+  ];
+
+  it("reconhece sozinho todas as colunas do modelo", () => {
+    expect(palpitarMapeamento(cabecalho)).toEqual({
+      data: "data",
+      vencimento: "vencimento",
+      descricao: "descricao",
+      valor: "valor",
+      tipo: "tipo",
+      status: "situacao",
+      categoria: "categoria",
+      subcategoria: "subcategoria",
+      conta: "conta",
+      forma: "forma de pagamento",
+      responsavel: "responsavel",
+      observacao: "observacao",
+    });
+  });
+
+  const analisar = (p: Record<string, string>) =>
+    analisarLinhas(
+      [
+        {
+          data: "10/09/2026",
+          vencimento: "",
+          descricao: "Luz",
+          valor: "100,00",
+          tipo: "Despesa",
+          situacao: "",
+          categoria: "",
+          subcategoria: "",
+          conta: "",
+          "forma de pagamento": "",
+          responsavel: "",
+          observacao: "",
+          ...p,
+        },
+      ],
+      palpitarMapeamento(cabecalho),
+    )[0];
+
+  it("lê vencimento, subcategoria, conta e forma de pagamento", () => {
+    expect(
+      analisar({
+        vencimento: "15/09/2026",
+        subcategoria: "Luz",
+        conta: "PAG BANK",
+        "forma de pagamento": "Pix",
+      }),
+    ).toMatchObject({
+      vencimento: "2026-09-15",
+      subcategoriaTexto: "Luz",
+      contaTexto: "PAG BANK",
+      forma: "Pix",
+      problema: null,
+    });
+  });
+
+  it("vencimento em branco fica vazio; ilegível é apontado", () => {
+    expect(analisar({}).vencimento).toBeNull();
+    expect(analisar({ vencimento: "amanhã" }).problema).toContain("vencimento");
+  });
+
+  it("entende a situação do jeito que o próprio app escreve", () => {
+    expect(analisar({ situacao: "Já pago" }).situacao).toBe("pago");
+    expect(analisar({ situacao: "Pago" }).situacao).toBe("pago");
+    expect(analisar({ situacao: "A pagar" }).situacao).toBe("a_pagar");
+    expect(analisar({ tipo: "Receita", situacao: "Já recebido" }).situacao).toBe("recebido");
+    expect(analisar({ tipo: "Receita", situacao: "A receber" }).situacao).toBe("a_receber");
+  });
+});
+
+describe("casarPorNome", () => {
+  const contas = [
+    { id: "1", nome: "PAG BANK" },
+    { id: "2", nome: "PAG BANK COFRINHO" },
+    { id: "3", nome: "Caixa Econômica" },
+  ];
+
+  it("prefere o nome exato, sem acento nem caixa", () => {
+    expect(casarPorNome("pag bank", contas)).toBe("1");
+    expect(casarPorNome("PAG BANK COFRINHO", contas)).toBe("2");
+    expect(casarPorNome("caixa economica", contas)).toBe("3");
+  });
+
+  it("nome desconhecido ou vazio não inventa", () => {
+    expect(casarPorNome("Nubank", contas)).toBeNull();
+    expect(casarPorNome("", contas)).toBeNull();
   });
 });

@@ -15,7 +15,10 @@ import { AlternarTema } from "@/components/alternar-tema";
 import { AVISO_RETORNO, type MotivoRetorno } from "@/lib/agenda/oauth";
 import { drenarFila } from "@/lib/agenda/sincronizar";
 import { LogoAmeixa } from "@/components/logo-ameixa";
+import { BaixarPlanilhas } from "@/app/(app)/importar/baixar-planilhas";
 import { statusAgenda } from "@/lib/dados/agenda";
+import { dadosDeApoio } from "@/lib/dados/apoio";
+import { listasDaPlanilha } from "@/lib/listas-planilha";
 import { perfilDoUsuario } from "@/lib/dados/perfil";
 import { usuarioAtual } from "@/lib/supabase/servidor";
 import { AgendaGoogle } from "./agenda-google";
@@ -42,11 +45,13 @@ export default async function Ajustes({
 }: {
   searchParams: Promise<{ agenda?: string }>;
 }) {
-  const [perfil, usuario, agenda, busca] = await Promise.all([
+  const [perfil, usuario, agenda, busca, apoio] = await Promise.all([
     perfilDoUsuario(),
     usuarioAtual(),
     statusAgenda(),
     searchParams,
+    // Já buscado pelo layout do app, e em cache: não custa outra ida ao banco.
+    dadosDeApoio(),
   ]);
 
   // O retorno do OAuth volta por aqui. A tradução vive junto do fluxo, para
@@ -97,6 +102,7 @@ export default async function Ajustes({
       <section className="flex flex-col" style={{ gap: 12 }}>
         <h2 style={{ fontSize: 17 }}>Dados</h2>
         <ExportarDados />
+        <BaixarPlanilhas listas={listasDaPlanilha(apoio)} />
         <RestaurarBotao />
       </section>
 

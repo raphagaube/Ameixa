@@ -24,6 +24,9 @@ const linha = z.object({
   conta_id: z.string().uuid().nullable().optional(),
   observacao: z.string().max(2000).nullable().optional(),
   responsavel: z.string().max(60).nullable().optional(),
+  data_vencimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  subcategoria_id: z.string().uuid().nullable().optional(),
+  forma_pagamento: z.string().trim().max(40).nullable().optional(),
 });
 
 export type LinhaImportada = z.input<typeof linha>;
@@ -96,6 +99,10 @@ export async function importarLancamentos(
     conta_id: l.conta_id ?? null,
     observacao: l.observacao ?? null,
     responsavel: l.responsavel ?? null,
+    data_vencimento: l.data_vencimento ?? null,
+    // Subcategoria só existe dentro de uma categoria.
+    subcategoria_id: l.categoria_id ? (l.subcategoria_id ?? null) : null,
+    forma_pagamento: l.forma_pagamento || null,
     importado: true,
     // Só vira pendência o que ficou sem categoria — com ela, o lançamento já
     // nasce completo e não engorda a lista de coisas a fazer.

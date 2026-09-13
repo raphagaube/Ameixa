@@ -11,12 +11,15 @@ import {
   CAMPOS,
   analisarLinhas,
   casarCategoria,
+  casarPorNome,
   palpitarMapeamento,
   resumir,
   type CampoAlvo,
   type Mapeamento,
 } from "@/lib/importacao";
 import { importarLancamentos } from "@/app/(app)/ajustes/importar";
+import type { ListasPlanilha } from "@/lib/listas-planilha";
+import { BaixarPlanilhas } from "./baixar-planilhas";
 import { buscarPlanilhaGoogle } from "./buscar-planilha";
 import { Dinheiro } from "@/components/dinheiro";
 
@@ -24,14 +27,21 @@ type Origem = "google" | "arquivo" | "backup";
 type Passo = 1 | 2 | 3 | 4;
 
 type Ref = { id: string; nome: string; cor?: string };
-type Cat = { id: string; nome: string; tipo: "despesa" | "receita" };
+type Cat = {
+  id: string;
+  nome: string;
+  tipo: "despesa" | "receita";
+  subcategorias: { id: string; nome: string }[];
+};
 
 export function Assistente({
   contas,
   categorias,
+  listas,
 }: {
   contas: Ref[];
   categorias: Cat[];
+  listas: ListasPlanilha;
 }) {
   const router = useRouter();
 
@@ -150,23 +160,39 @@ export function Assistente({
     iniciar(async () => {
       const paraEnviar = previas
         .filter((p) => !p.problema)
-        .map((p) => ({
-          tipo: p.tipo,
-          valor: Math.abs(p.valor!),
-          descricao: p.descricao,
-          data_registro: p.data!,
-          situacao: p.situacao,
-          categoria_id:
+        .map((p) => {
+          const categoriaId =
             usarCategoria && mapa.categoria
               ? casarCategoria(p.categoriaTexto, categorias, p.tipo)
-              : null,
-          conta_id: contaId || null,
-          responsavel: p.responsavel,
-          // Guarda o nome original da categoria, para não se perder quando
-          // não houver correspondente no app.
-          observacao:
-            [p.observacao, p.categoriaTexto].filter(Boolean).join(" · ") || null,
-        }));
+              : null;
+          const categoria = categorias.find((c) => c.id === categoriaId);
+          return {
+            tipo: p.tipo,
+            valor: Math.abs(p.valor!),
+            descricao: p.descricao,
+            data_registro: p.data!,
+            data_vencimento: p.vencimento,
+            situacao: p.situacao,
+            categoria_id: categoriaId,
+            subcategoria_id:
+              categoria && p.subcategoriaTexto
+                ? casarPorNome(p.subcategoriaTexto, categoria.subcategorias)
+                : null,
+            // A conta escrita na linha manda; sem ela, vale a conta escolhida
+            // para o lote.
+            conta_id: (p.contaTexto ? casarPorNome(p.contaTexto, contas) : null) ?? (contaId || null),
+            forma_pagamento: p.forma,
+            responsavel: p.responsavel,
+            // Guarda o nome original da categoria só quando ela não casou com
+            // nenhuma do app. Guardando sempre, reimportar a planilha do
+            // próprio Ameixa colava o nome da categoria na observação a cada
+            // volta.
+            observacao:
+              [p.observacao, categoriaId ? null : p.categoriaTexto]
+                .filter(Boolean)
+                .join(" · ") || null,
+          };
+        });
 
       const r = await importarLancamentos(paraEnviar, quantoARepetidos);
       if (r.ok) {
@@ -429,6 +455,7 @@ export function Assistente({
               />
             </label>
           ) : null}
+          <BaixarPlanilhas listas={listas} />
         </>
       ) : null}
 
