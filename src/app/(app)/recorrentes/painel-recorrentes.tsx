@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronRight, Search, TriangleAlert, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { atualizarAgendaNaTela } from "@/lib/agenda/atualizar-na-tela";
 import { useMemo, useState, useTransition } from "react";
 import {
   editarLancamentosEmLote,
@@ -121,6 +122,22 @@ export function PainelRecorrentes({
   const [recado, setRecado] = useState<string | null>(null);
   const [desfazer, setDesfazer] = useState<ItemEdicao[] | null>(null);
   const [gravando, iniciar] = useTransition();
+  const [avisoAgenda, setAvisoAgenda] = useState<string | null>(null);
+
+  /**
+   * Leva as mudanças ao Google Agenda enquanto o dono está na tela. Lote
+   * grande vai para a fila, e sem isto ela só andava ao abrir os Ajustes.
+   */
+  async function sincronizarAgenda() {
+    setAvisoAgenda("Atualizando o Google Agenda…");
+    const restam = await atualizarAgendaNaTela();
+    setAvisoAgenda(
+      restam > 0
+        ? `${restam} ${restam === 1 ? "compromisso ficou" : "compromissos ficaram"} na fila do Google Agenda. Em Ajustes, toque em Tentar agora.`
+        : "Google Agenda atualizado.",
+    );
+  }
+
 
   const visiveis = useMemo(() => {
     const q = busca.trim().toLocaleLowerCase("pt-BR");
@@ -225,6 +242,7 @@ export function PainelRecorrentes({
             : `${antes.length} ${antes.length === 1 ? "lançamento salvo" : "lançamentos salvos"}.`),
       );
       router.refresh();
+      void sincronizarAgenda();
     });
   }
 
@@ -238,6 +256,7 @@ export function PainelRecorrentes({
       setDesfazer(null);
       setRecado(r.ok ? "Desfeito." : r.erro);
       router.refresh();
+      void sincronizarAgenda();
     });
   }
 
@@ -256,6 +275,7 @@ export function PainelRecorrentes({
           (r.ignorados > 0 ? ` ${r.ignorados} já estavam pagas e ficaram.` : ""),
       );
       router.refresh();
+      void sincronizarAgenda();
     });
   }
 
@@ -320,6 +340,12 @@ export function PainelRecorrentes({
           </button>
         ) : null}
       </div>
+
+      {avisoAgenda ? (
+        <p role="status" style={{ fontSize: 12, color: "var(--mut)" }}>
+          {avisoAgenda}
+        </p>
+      ) : null}
 
       {recado ? (
         <div

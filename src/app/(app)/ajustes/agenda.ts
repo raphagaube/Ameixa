@@ -139,3 +139,19 @@ export async function desconectarAgenda(): Promise<
   revalidatePath("/ajustes");
   return ok ? { ok: true } : { ok: false, erro: "Não deu para desconectar." };
 }
+
+/**
+ * Uma rodada curta da fila, para as telas de edição em lote irem esvaziando
+ * enquanto o dono espera. Curta pelo mesmo motivo de POR_VEZ: cada item é uma
+ * ida ao Google, e a fila tira os itens antes de enviar — uma rodada que
+ * estourasse o tempo perderia o que já tinha tirado.
+ */
+export async function enviarFilaDaAgenda(): Promise<{ enviados: number; restantes: number }> {
+  const r = await drenarFila(POR_VEZ);
+  const supabase = await criarClienteServidor();
+  const { count } = await supabase
+    .from("fila_agenda")
+    .select("*", { count: "exact", head: true });
+  revalidatePath("/ajustes");
+  return { enviados: r.feitos, restantes: count ?? 0 };
+}

@@ -2,6 +2,7 @@
 
 import { CheckSquare, Search, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { atualizarAgendaNaTela } from "@/lib/agenda/atualizar-na-tela";
 import { useMemo, useState, useTransition } from "react";
 import {
   marcarSituacaoEmLote,
@@ -70,6 +71,22 @@ export function PainelExtrato({
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [corte, setCorte] = useState(ate);
   const [aplicando, iniciarAplicacao] = useTransition();
+  const [avisoAgenda, setAvisoAgenda] = useState<string | null>(null);
+
+  /**
+   * Leva as mudanças ao Google Agenda enquanto o dono está na tela. Lote
+   * grande vai para a fila, e sem isto ela só andava ao abrir os Ajustes.
+   */
+  async function sincronizarAgenda() {
+    setAvisoAgenda("Atualizando o Google Agenda…");
+    const restam = await atualizarAgendaNaTela();
+    setAvisoAgenda(
+      restam > 0
+        ? `${restam} ${restam === 1 ? "compromisso ficou" : "compromissos ficaram"} na fila do Google Agenda. Em Ajustes, toque em Tentar agora.`
+        : "Google Agenda atualizado.",
+    );
+  }
+
   const [recado, setRecado] = useState<string | null>(null);
   const [diaVencimento, setDiaVencimento] = useState("");
   const [desfazer, setDesfazer] = useState<
@@ -149,6 +166,7 @@ export function PainelExtrato({
       );
       sairDaSelecao();
       router.refresh();
+      void sincronizarAgenda();
     });
   }
 
@@ -170,6 +188,7 @@ export function PainelExtrato({
       );
       sairDaSelecao();
       router.refresh();
+      void sincronizarAgenda();
     });
   }
 
@@ -184,6 +203,7 @@ export function PainelExtrato({
       setRecado(r.ok ? "Desfeito." : r.erro);
       setDesfazer(null);
       router.refresh();
+      void sincronizarAgenda();
     });
   }
 
@@ -463,6 +483,12 @@ export function PainelExtrato({
               </option>
             ))}
           </select>
+
+          {avisoAgenda ? (
+            <p role="status" style={{ fontSize: 12, color: "var(--mut)" }}>
+              {avisoAgenda}
+            </p>
+          ) : null}
 
           {recado ? (
             <div

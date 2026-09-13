@@ -2,6 +2,7 @@
 
 import { Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { atualizarAgendaNaTela } from "@/lib/agenda/atualizar-na-tela";
 import { Fragment, useState, useTransition } from "react";
 import {
   editarLancamentosEmLote,
@@ -135,6 +136,22 @@ export function PainelSerie({
   const [recado, setRecado] = useState<string | null>(null);
   const [desfazer, setDesfazer] = useState<ItemEdicao[] | null>(null);
   const [gravando, iniciar] = useTransition();
+  const [avisoAgenda, setAvisoAgenda] = useState<string | null>(null);
+
+  /**
+   * Leva as mudanças ao Google Agenda enquanto o dono está na tela. Lote
+   * grande vai para a fila, e sem isto ela só andava ao abrir os Ajustes.
+   */
+  async function sincronizarAgenda() {
+    setAvisoAgenda("Atualizando o Google Agenda…");
+    const restam = await atualizarAgendaNaTela();
+    setAvisoAgenda(
+      restam > 0
+        ? `${restam} ${restam === 1 ? "compromisso ficou" : "compromissos ficaram"} na fila do Google Agenda. Em Ajustes, toque em Tentar agora.`
+        : "Google Agenda atualizado.",
+    );
+  }
+
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
 
@@ -210,6 +227,7 @@ export function PainelSerie({
             : `${antes.length} ${antes.length === 1 ? "lançamento salvo" : "lançamentos salvos"}.`),
       );
       router.refresh();
+      void sincronizarAgenda();
     });
   }
 
@@ -224,6 +242,7 @@ export function PainelSerie({
       setDesfazer(null);
       setRecado(r.ok ? "Desfeito." : r.erro);
       router.refresh();
+      void sincronizarAgenda();
     });
   }
 
@@ -266,6 +285,7 @@ export function PainelSerie({
         `${r.excluidos} ${r.excluidos === 1 ? "lançamento excluído" : "lançamentos excluídos"}.`,
       );
       router.refresh();
+      void sincronizarAgenda();
     });
   }
 
@@ -348,6 +368,12 @@ export function PainelSerie({
           </label>
         </div>
       </section>
+
+      {avisoAgenda ? (
+        <p role="status" style={{ fontSize: 12, color: "var(--mut)" }}>
+          {avisoAgenda}
+        </p>
+      ) : null}
 
       {recado ? (
         <div

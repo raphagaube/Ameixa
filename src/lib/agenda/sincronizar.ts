@@ -431,3 +431,33 @@ export async function drenarFila(limite = 20): Promise<ResultadoSync> {
     return { feitos: 0, adiados: 0 };
   }
 }
+
+/**
+ * Põe na fila a exclusão de vários eventos de uma vez.
+ *
+ * Para exclusão em lote: apagar dezenas de eventos "depois da resposta"
+ * podia estourar o tempo no meio, e o que não foi apagado ficava na agenda
+ * sem ninguém para tentar de novo. Na fila, as telas e os Ajustes levam até
+ * o fim — com as mesmas novas tentativas de qualquer outro item.
+ */
+export async function enfileirarApagarVarios(
+  cargas: { calendario_id: string; evento_id: string }[],
+) {
+  if (cargas.length === 0) return;
+  try {
+    const supabase = await criarClienteServidor();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("fila_agenda").insert(
+      cargas.map((c) => ({
+        user_id: user.id,
+        acao: "apagar",
+        carga: { calendario_id: c.calendario_id, evento_id: c.evento_id },
+      })),
+    );
+  } catch {
+    // Nem a fila pode derrubar a exclusão, que já aconteceu.
+  }
+}

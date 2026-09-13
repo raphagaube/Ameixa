@@ -6,6 +6,7 @@ import { z } from "zod";
 import {
   apagarEventoOrfao,
   enfileirar,
+  enfileirarApagarVarios,
   LIMITE_NA_HORA,
   sincronizarLancamentos,
 } from "@/lib/agenda/sincronizar";
@@ -130,7 +131,7 @@ export async function salvarLancamento(
     // É por aqui que passa "marcar como paga", então é aqui que o evento
     // perde o lembrete. Depois da resposta: a agenda é conveniência, o
     // lançamento é o dado.
-    naAgenda([d.id]);
+    await naAgenda([d.id]);
     return { ok: true, criados: 1 };
   }
 
@@ -166,7 +167,7 @@ export async function salvarLancamento(
   if (error) return { ok: false, erro: traduzir(error.message) };
 
   revalidarTudo();
-  naAgenda((criados ?? []).map((c) => c.id));
+  await naAgenda((criados ?? []).map((c) => c.id));
   return { ok: true, criados: ocorrencias.length };
 }
 
@@ -177,11 +178,18 @@ export async function salvarLancamento(
  * grande vai direto para a fila em vez de segurar a função por doze idas e
  * voltas ao Google.
  */
-function naAgenda(ids: string[]) {
+async function naAgenda(ids: string[]) {
   if (ids.length === 0) return;
+  // Lote grande entra na fila ANTES da resposta, e não depois dela: as telas
+  // de edição em lote esvaziam a fila logo em seguida, e com o enfileiramento
+  // atrasado elas encontravam a fila ainda vazia — e as mudanças ficavam
+  // paradas até alguém abrir os Ajustes.
+  if (ids.length > LIMITE_NA_HORA) {
+    await enfileirar(ids, "salvar");
+    return;
+  }
   after(async () => {
-    if (ids.length > LIMITE_NA_HORA) await enfileirar(ids, "salvar");
-    else await sincronizarLancamentos(ids);
+    await sincronizarLancamentos(ids);
   });
 }
 
@@ -210,7 +218,7 @@ export async function excluirLancamento(
         .eq("serie_id", data.serie_id);
       if (error) return { ok: false, erro: traduzir(error.message) };
       revalidarTudo();
-      limparDaAgenda(orfaos);
+      await limparDaAgenda(orfaos);
       return { ok: true, criados: 0 };
     }
   }
@@ -224,7 +232,7 @@ export async function excluirLancamento(
   if (error) return { ok: false, erro: traduzir(error.message) };
 
   revalidarTudo();
-  limparDaAgenda(orfaos);
+  await limparDaAgenda(orfaos);
   return { ok: true, criados: 0 };
 }
 
@@ -255,8 +263,15 @@ async function eventosDe(
   return data ?? [];
 }
 
-function limparDaAgenda(orfaos: Orfao[]) {
+async function limparDaAgenda(orfaos: Orfao[]) {
   if (orfaos.length === 0) return;
+  // Mesmo motivo de naAgenda, e aqui pesa mais: apagar dezenas de eventos
+  // depois da resposta podia estourar o tempo no meio, e os eventos de
+  // lançamentos já apagados ficavam na agenda sem ninguém para tentar de novo.
+  if (orfaos.length > LIMITE_NA_HORA) {
+    await enfileirarApagarVarios(orfaos);
+    return;
+  }
   after(async () => {
     for (const o of orfaos) await apagarEventoOrfao(o);
   });
@@ -397,7 +412,7 @@ export async function marcarSituacaoEmLote(
 
   revalidarTudo();
   // Mesmo motivo de salvarLancamento: quem foi quitado perde o lembrete.
-  naAgenda(antes.map((a) => a.id));
+  await naAgenda(antes.map((a) => a.id));
   return { ok: true, alterados: antes.length, ignorados, antes };
 }
 
@@ -434,7 +449,7 @@ export async function restaurarSituacoes(
   }
 
   revalidarTudo();
-  naAgenda(v.data.map((a) => a.id));
+  await naAgenda(v.data.map((a) => a.id));
   return { ok: true, criados: v.data.length };
 }
 
@@ -510,7 +525,7 @@ export async function mudarDiaDoVencimentoEmLote(
 
   revalidarTudo();
   // Data nova, lembrete novo: o evento na agenda muda de dia junto.
-  naAgenda(antes.map((a) => a.id));
+  await naAgenda(antes.map((a) => a.id));
   return { ok: true, alterados: antes.length, ignorados, antes };
 }
 
@@ -548,7 +563,7 @@ export async function restaurarVencimentos(
   }
 
   revalidarTudo();
-  naAgenda(v.data.map((a) => a.id));
+  await naAgenda(v.data.map((a) => a.id));
   return { ok: true, criados: v.data.length };
 }
 
@@ -695,7 +710,7 @@ export async function editarLancamentosEmLote(
     if (falha?.error) {
       if (antes.length) {
         revalidarTudo();
-        naAgenda(antes.map((a) => a.id));
+        await naAgenda(antes.map((a) => a.id));
       }
       return {
         ok: false,
@@ -707,7 +722,7 @@ export async function editarLancamentosEmLote(
 
   if (antes.length) {
     revalidarTudo();
-    naAgenda(antes.map((a) => a.id));
+    await naAgenda(antes.map((a) => a.id));
   }
   return { ok: true, alterados: antes.length, antes };
 }
@@ -749,7 +764,7 @@ export async function excluirPendentesEmLote(
   if (error) return { ok: false, erro: traduzir(error.message) };
 
   revalidarTudo();
-  limparDaAgenda(orfaos);
+  await limparDaAgenda(orfaos);
   return { ok: true, excluidos: pendentes.length, ignorados };
 }
 
@@ -776,7 +791,7 @@ export async function excluirLancamentosEmLote(ids: string[]): Promise<Resultado
   if (error) return { ok: false, erro: traduzir(error.message) };
 
   revalidarTudo();
-  limparDaAgenda(orfaos);
+  await limparDaAgenda(orfaos);
   const excluidos = data?.length ?? 0;
   return { ok: true, excluidos, ignorados: v.data.length - excluidos };
 }
