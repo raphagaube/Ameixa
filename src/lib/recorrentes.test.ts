@@ -3,6 +3,7 @@ import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
 import {
   agruparSeries,
   nomesParecidos,
+  numeroDaParcela,
   possiveisRepetidas,
   separarSufixo,
   trocarBase,
@@ -176,5 +177,18 @@ describe("possiveisRepetidas exige nome parecido", () => {
     const guarda = s.find((x) => x.base === "Guarda da Rua")!;
     expect(r.get(guarda.chave)).toEqual(["Guarda da rua / vigilante noturno"]);
     expect(r.has(s.find((x) => x.base === "Sabesp chácara")!.chave)).toBe(false);
+  });
+});
+
+describe("numeroDaParcela", () => {
+  it("lê o número dos formatos da planilha e do app", () => {
+    expect(numeroDaParcela("Gfibra Internet Chácara (5/6)")).toBe(5);
+    expect(numeroDaParcela("Candeias Ubatuba — 10/10")).toBe(10);
+    expect(numeroDaParcela("Netflix — assinatura 3/12")).toBe(3);
+  });
+
+  it("não inventa número onde não há numeração", () => {
+    expect(numeroDaParcela("Dae")).toBeNull();
+    expect(numeroDaParcela("Candeias Ubatuba 21 à 28/12")).toBeNull();
   });
 });

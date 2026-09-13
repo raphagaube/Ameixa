@@ -362,8 +362,9 @@ export function PainelSerie({
           }}
         >
           <span style={{ fontSize: 13, fontWeight: 600 }}>
-            {mudancas.length} {mudancas.length === 1 ? "alteração" : "alterações"} ainda não
-            salvas{erros > 0 ? ` · ${erros} ${erros === 1 ? "linha com erro" : "linhas com erro"}` : ""}
+            {mudancas.length}{" "}
+            {mudancas.length === 1 ? "alteração ainda não salva" : "alterações ainda não salvas"}
+            {erros > 0 ? ` · ${erros} ${erros === 1 ? "linha com erro" : "linhas com erro"}` : ""}
           </span>
           <div className="flex" style={{ gap: 8, minWidth: 320 }}>
             <Botao variante="contorno" onClick={() => setLinhas({})} disabled={gravando}>

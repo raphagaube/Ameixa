@@ -18,6 +18,19 @@ export function separarSufixo(descricao: string): { base: string; sufixo: string
   return { base: descricao.slice(0, m.index).trim(), sufixo: m[0] };
 }
 
+/**
+ * O número da ocorrência escrito na descrição: 5 em "(5/6)" ou em "— 5/6".
+ *
+ * Série que veio de importação não tem `parcela_atual` gravado — o número
+ * só existe no texto. Sem lê-lo daqui, a série ficava ordenada pela data
+ * de registro, que na importação costuma vir embaralhada.
+ */
+export function numeroDaParcela(descricao: string): number | null {
+  const { sufixo } = separarSufixo(descricao);
+  const m = sufixo.match(/(\d+)\s*\/\s*\d+/);
+  return m ? Number(m[1]) : null;
+}
+
 /** Troca o nome mantendo a numeração da ocorrência. */
 export function trocarBase(descricao: string, novaBase: string): string {
   return novaBase.trim() + separarSufixo(descricao).sufixo;

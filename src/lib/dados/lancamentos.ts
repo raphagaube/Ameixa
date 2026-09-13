@@ -4,7 +4,7 @@ import { paraIso } from "@/lib/formato";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
 
-import { separarSufixo } from "@/lib/recorrentes";
+import { numeroDaParcela, separarSufixo } from "@/lib/recorrentes";
 
 const CAMPOS = `
   id, tipo, valor, descricao, data_registro, data_vencimento, situacao,
@@ -194,13 +194,20 @@ export async function ocorrenciasDaSerie(chave: string): Promise<LancamentoNaLis
   );
 }
 
-/** Parcela numerada manda na ordem; sem número, vale a data de registro. */
+/**
+ * Da primeira ocorrência à última.
+ *
+ * O número da parcela manda — o gravado no campo ou, na série importada, o
+ * escrito na descrição "(5/6)". Sem número, vale a data de registro.
+ */
 function naOrdemDaSerie(lista: LancamentoNaLista[]): LancamentoNaLista[] {
-  return [...lista].sort(
-    (a, b) =>
-      (a.parcela_atual ?? 0) - (b.parcela_atual ?? 0) ||
-      a.data_registro.localeCompare(b.data_registro),
-  );
+  const numero = (l: LancamentoNaLista) => l.parcela_atual ?? numeroDaParcela(l.descricao);
+  return [...lista].sort((a, b) => {
+    const na = numero(a);
+    const nb = numero(b);
+    if (na !== null && nb !== null && na !== nb) return na - nb;
+    return a.data_registro.localeCompare(b.data_registro);
+  });
 }
 
 /** Os últimos lançamentos, para o bloco do Início. */

@@ -383,7 +383,8 @@ export function PainelRecorrentes({
         >
           <span style={{ fontSize: 13, fontWeight: 600 }}>
             {totalMudancas} {totalMudancas === 1 ? "alteração" : "alterações"} em {seriesMudadas}{" "}
-            {seriesMudadas === 1 ? "série" : "séries"}, ainda não salvas
+            {seriesMudadas === 1 ? "série" : "séries"},{" "}
+            {totalMudancas === 1 ? "ainda não salva" : "ainda não salvas"}
             {totalErros > 0 ? ` · ${totalErros} com erro` : ""}
           </span>
           <div className="flex" style={{ gap: 8 }}>
