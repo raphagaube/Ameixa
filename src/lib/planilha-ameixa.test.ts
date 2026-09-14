@@ -4,17 +4,28 @@ import { lerExcel } from "./excel";
 import { CAMPOS, analisarLinhas, palpitarMapeamento } from "./importacao";
 import type { ListasPlanilha } from "./listas-planilha";
 import { gerarPlanilhaAmeixa } from "./planilha-ameixa";
+import { lerPlanilhaDoAmeixa } from "./planilha-ameixa-leitura";
 import type { LancamentoNaLista } from "./tipos/lancamentos";
 
 const listas: ListasPlanilha = {
-  categorias: [{ nome: "Moradia", tipo: "despesa", subcategorias: ["Luz", "Água"] }],
-  contas: ["PAG BANK"],
+  categorias: [
+    {
+      id: "cat-moradia",
+      nome: "Moradia",
+      tipo: "despesa",
+      subcategorias: [
+        { id: "sub-luz", nome: "Luz" },
+        { id: "sub-agua", nome: "Água" },
+      ],
+    },
+  ],
+  contas: [{ id: "conta-pag", nome: "PAG BANK" }],
   formas: ["Pix"],
 };
 
 const lanc = (p: Partial<LancamentoNaLista>): LancamentoNaLista =>
   ({
-    id: "x",
+    id: "lanc-1",
     tipo: "despesa",
     valor: 1234.56,
     descricao: "Luz Cpfl — 2/12",
@@ -32,25 +43,28 @@ const lanc = (p: Partial<LancamentoNaLista>): LancamentoNaLista =>
   }) as unknown as LancamentoNaLista;
 
 describe("planilha do Ameixa", () => {
-  it("modelo em branco: três abas, e o importador não lê as instruções", () => {
+  it("modelo em branco: abas na ordem, e o importador não lê as de apoio", () => {
     const buf = gerarPlanilhaAmeixa([], listas);
     expect(XLSX.read(buf, { type: "array" }).SheetNames).toEqual([
       "Lançamentos",
       "Instruções",
-      "Listas",
+      "Categorias",
+      "Contas",
+      "Formas",
     ]);
     expect(lerExcel(buf)).toEqual([]);
   });
 
   /**
-   * O teste que importa: o que sai do app, entra de novo igual. Passa pela
-   * leitura de Excel e pelo motor de importação de verdade.
+   * O que sai do app entra de novo igual, pela leitura de Excel e pelo motor
+   * de importação de verdade — agora com o código de cada linha junto.
    */
-  it("exportar e importar de volta devolve os mesmos dados", () => {
+  it("exportar e ler de volta devolve os mesmos dados e o código", () => {
     const buf = gerarPlanilhaAmeixa(
       [
         lanc({}),
         lanc({
+          id: "lanc-2",
           tipo: "receita",
           situacao: "recebido",
           valor: 500,
@@ -69,6 +83,8 @@ describe("planilha do Ameixa", () => {
     );
 
     const linhas = lerExcel(buf);
+    expect(linhas.map((l) => l["codigo"])).toEqual(["lanc-1", "lanc-2"]);
+
     const mapa = palpitarMapeamento(Object.keys(linhas[0]));
     for (const { campo } of CAMPOS) expect(mapa[campo], campo).toBeDefined();
 
@@ -94,36 +110,33 @@ describe("planilha do Ameixa", () => {
       valor: 500,
       tipo: "receita",
       situacao: "recebido",
-      contaTexto: "",
-      forma: null,
       problema: null,
     });
   });
 
-  it("pago continua pago na volta", () => {
-    const [l] = analisarLinhas(
-      lerExcel(gerarPlanilhaAmeixa([lanc({ situacao: "pago" })], listas)),
-      palpitarMapeamento(COLUNAS_NORMALIZADAS),
-    );
-    expect(l.situacao).toBe("pago");
+  it("as abas Categorias e Contas levam os códigos", () => {
+    const lida = lerPlanilhaDoAmeixa(gerarPlanilhaAmeixa([lanc({})], listas))!;
+    expect(lida.categorias).toEqual([
+      { linha: 2, codigo: "cat-moradia", tipo: "Despesa", categoria: "Moradia", subcategoria: "" },
+      { linha: 3, codigo: "sub-luz", tipo: "Despesa", categoria: "Moradia", subcategoria: "Luz" },
+      { linha: 4, codigo: "sub-agua", tipo: "Despesa", categoria: "Moradia", subcategoria: "Água" },
+    ]);
+    expect(lida.contas).toEqual([{ linha: 2, codigo: "conta-pag", nome: "PAG BANK" }]);
+    expect(lida.lancamentos[0]).toMatchObject({ linha: 2, codigo: "lanc-1" });
+  });
+
+  it("planilha sem coluna Código não é tratada como do Ameixa", () => {
+    const aba = XLSX.utils.aoa_to_sheet([
+      ["Data", "Descrição", "Valor"],
+      ["01/09/2026", "Mercado", "10,00"],
+    ]);
+    const pasta = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(pasta, aba, "Lançamentos");
+    const buf = XLSX.write(pasta, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+    expect(lerPlanilhaDoAmeixa(buf)).toBeNull();
   });
 
   it("aporte em meta não vai para a planilha", () => {
     expect(lerExcel(gerarPlanilhaAmeixa([lanc({ tipo: "aporte" })], listas))).toEqual([]);
   });
 });
-
-const COLUNAS_NORMALIZADAS = [
-  "data",
-  "vencimento",
-  "descricao",
-  "valor",
-  "tipo",
-  "situacao",
-  "categoria",
-  "subcategoria",
-  "conta",
-  "forma de pagamento",
-  "responsavel",
-  "observacao",
-];

@@ -4,17 +4,20 @@ import type { LancamentoNaLista, Situacao } from "@/lib/tipos/lancamentos";
 
 /**
  * A planilha do próprio Ameixa: o modelo em branco para preencher e a
- * exportação dos lançamentos, no mesmo formato — que o importador lê sem
- * precisar acertar coluna nenhuma.
+ * exportação dos lançamentos, no mesmo formato.
  *
- * Três abas, nesta ordem: "Lançamentos", a que se preenche e a que o
- * importador procura pelo nome; "Instruções"; e "Listas", com os nomes de
- * categorias, contas e formas que o importador reconhece.
+ * Abas, nesta ordem: "Lançamentos" (a que se preenche, e a que o importador
+ * procura pelo nome), "Instruções", "Categorias", "Contas" e "Formas".
+ *
+ * A coluna "Código" é o que faz a planilha voltar para o app como
+ * atualização: linha com código altera o lançamento que já existe, e nas
+ * abas Categorias e Contas o código permite renomear. Sem código, a linha é
+ * um lançamento novo.
  */
 
 export const ABA_LANCAMENTOS = "Lançamentos";
 
-/** Cabeçalhos, na ordem. Cada um casa sozinho com um campo do importador. */
+/** Cabeçalhos, na ordem. O código fica por último, fora do caminho de quem preenche. */
 export const COLUNAS_PLANILHA = [
   "Data",
   "Vencimento",
@@ -28,9 +31,10 @@ export const COLUNAS_PLANILHA = [
   "Forma de pagamento",
   "Responsável",
   "Observação",
+  "Código",
 ] as const;
 
-const LARGURAS = [12, 12, 38, 13, 10, 12, 22, 22, 20, 20, 16, 32];
+const LARGURAS = [12, 12, 38, 13, 10, 12, 22, 22, 20, 20, 16, 32, 38];
 const COLUNA_VALOR = 3;
 
 /**
@@ -66,6 +70,7 @@ export function linhaDaPlanilha(l: LancamentoNaLista): (string | number | Date |
     l.forma_pagamento ?? "",
     l.responsavel ?? "",
     l.observacao ?? "",
+    l.id,
   ];
 }
 
@@ -112,50 +117,86 @@ function abaInstrucoes(): XLSX.WorkSheet {
       "Pago, A pagar, Recebido ou A receber. Em branco vira Pago (ou Recebido, na receita).",
       "A pagar",
     ],
-    ["Categoria", "Não", "Nome de uma categoria do app — veja a aba Listas.", "Moradia"],
+    ["Categoria", "Não", "Nome de uma categoria do app — veja a aba Categorias.", "Moradia"],
     ["Subcategoria", "Não", "Nome de uma subcategoria da categoria escolhida.", "Luz"],
     [
       "Conta",
       "Não",
-      "Nome de uma conta do app. Em branco, vale a conta escolhida na hora de importar.",
+      "Nome de uma conta do app — veja a aba Contas. Em branco, vale a conta escolhida ao importar.",
       "PAG BANK",
     ],
-    ["Forma de pagamento", "Não", "Pix, Débito, Crédito, Boleto…", "Pix"],
+    ["Forma de pagamento", "Não", "Pix, Débito, Crédito, Boleto… — veja a aba Formas.", "Pix"],
     ["Responsável", "Não", "Quem fez o lançamento.", ""],
     ["Observação", "Não", "Texto livre.", ""],
+    [
+      "Código",
+      "Não",
+      "Preenchido pelo app. Não mude nem apague: é ele que liga a linha ao lançamento que já existe.",
+      "",
+    ],
+    [],
+    ["Atualizar o que já existe"],
+    ["• Linha COM código atualiza o lançamento do app. Linha SEM código vira um lançamento novo."],
+    [
+      "• Para renomear uma categoria, subcategoria ou conta, mude o nome nas abas Categorias ou Contas e mantenha o código.",
+    ],
+    [
+      "• Na aba Categorias, a linha com Subcategoria em branco é a própria categoria. Nas linhas de subcategoria, a coluna Categoria é só referência.",
+    ],
+    ["• Apagar uma linha da planilha não apaga nada no app."],
+    ["• Antes de gravar, o app mostra tudo o que vai mudar e pede confirmação."],
+    [
+      "• Guarde o arquivo original sem editar: importá-lo de novo volta os lançamentos e os nomes para como estavam.",
+    ],
     [],
     ["Importante"],
     ["• Preencha a aba Lançamentos, uma linha por lançamento, sem mudar os títulos da primeira linha."],
-    [
-      "• Importar esta planilha cria lançamentos novos. Ela não altera os que já existem no app — para isso, use as telas de edição.",
-    ],
-    [
-      "• Se a planilha tiver linhas que já estão no app, o Ameixa avisa antes de gravar e pergunta se deve pular ou importar de novo.",
-    ],
-    ["• Categoria, subcategoria e conta com nome diferente do app ficam em branco, e o lançamento vai para Pendências."],
+    ["• Categoria, subcategoria ou conta com nome que o app não reconhece é apontada antes de gravar."],
     ["• Aportes em metas não entram na planilha: eles não são despesa nem receita."],
   ]);
-  aba["!cols"] = [{ wch: 22 }, { wch: 12 }, { wch: 72 }, { wch: 16 }];
+  aba["!cols"] = [{ wch: 22 }, { wch: 12 }, { wch: 80 }, { wch: 16 }];
   return aba;
 }
 
-function abaListas(listas: ListasPlanilha): XLSX.WorkSheet {
-  const linhas: string[][] = [["Tipo", "Categoria", "Subcategorias"]];
+function abaCategorias(listas: ListasPlanilha): XLSX.WorkSheet {
+  const linhas: string[][] = [["Tipo", "Categoria", "Subcategoria", "Código"]];
   for (const c of listas.categorias) {
-    linhas.push([c.tipo === "receita" ? "Receita" : "Despesa", c.nome, c.subcategorias.join(", ")]);
+    const tipo = c.tipo === "receita" ? "Receita" : "Despesa";
+    linhas.push([tipo, c.nome, "", c.id]);
+    for (const s of c.subcategorias) linhas.push([tipo, c.nome, s.nome, s.id]);
   }
-  linhas.push([], ["Contas"], ...listas.contas.map((n) => [n]));
-  linhas.push([], ["Formas de pagamento"], ...listas.formas.map((n) => [n]));
-  linhas.push([], ["Situações"], ["Pago"], ["A pagar"], ["Recebido"], ["A receber"]);
-
   const aba = XLSX.utils.aoa_to_sheet(linhas);
-  aba["!cols"] = [{ wch: 14 }, { wch: 30 }, { wch: 70 }];
+  aba["!cols"] = [{ wch: 12 }, { wch: 30 }, { wch: 30 }, { wch: 38 }];
+  return aba;
+}
+
+function abaContas(listas: ListasPlanilha): XLSX.WorkSheet {
+  const aba = XLSX.utils.aoa_to_sheet([
+    ["Conta", "Código"],
+    ...listas.contas.map((c) => [c.nome, c.id]),
+  ]);
+  aba["!cols"] = [{ wch: 30 }, { wch: 38 }];
+  return aba;
+}
+
+function abaFormas(listas: ListasPlanilha): XLSX.WorkSheet {
+  const aba = XLSX.utils.aoa_to_sheet([
+    ["Forma de pagamento"],
+    ...listas.formas.map((f) => [f]),
+    [],
+    ["Situações"],
+    ["Pago"],
+    ["A pagar"],
+    ["Recebido"],
+    ["A receber"],
+  ]);
+  aba["!cols"] = [{ wch: 30 }];
   return aba;
 }
 
 /**
  * Monta o arquivo .xlsx. Sem lançamentos, é o modelo em branco — só o
- * cabeçalho na aba Lançamentos, com as outras duas abas de apoio.
+ * cabeçalho na aba Lançamentos, com as abas de apoio.
  */
 export function gerarPlanilhaAmeixa(
   lancamentos: LancamentoNaLista[],
@@ -164,6 +205,8 @@ export function gerarPlanilhaAmeixa(
   const pasta = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(pasta, abaLancamentos(lancamentos), ABA_LANCAMENTOS);
   XLSX.utils.book_append_sheet(pasta, abaInstrucoes(), "Instruções");
-  XLSX.utils.book_append_sheet(pasta, abaListas(listas), "Listas");
+  XLSX.utils.book_append_sheet(pasta, abaCategorias(listas), "Categorias");
+  XLSX.utils.book_append_sheet(pasta, abaContas(listas), "Contas");
+  XLSX.utils.book_append_sheet(pasta, abaFormas(listas), "Formas");
   return XLSX.write(pasta, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
 }

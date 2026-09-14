@@ -19,6 +19,9 @@ import {
 } from "@/lib/importacao";
 import { importarLancamentos } from "@/app/(app)/ajustes/importar";
 import type { ListasPlanilha } from "@/lib/listas-planilha";
+import type { PlanilhaDoAmeixa } from "@/lib/planilha-ameixa-leitura";
+import { analisarAtualizacao, type ResumoAtualizacao } from "./atualizar-ameixa";
+import { AtualizarPeloAmeixa } from "./atualizar-pelo-ameixa";
 import { BaixarPlanilhas } from "./baixar-planilhas";
 import { buscarPlanilhaGoogle } from "./buscar-planilha";
 import { Dinheiro } from "@/components/dinheiro";
@@ -56,6 +59,13 @@ export function Assistente({
   const [usarCategoria, setUsarCategoria] = useState(true);
 
   const [erro, setErro] = useState<string | null>(null);
+  // Planilha gerada pelo próprio Ameixa, com códigos: segue o caminho de
+  // atualizar o que já existe, com prévia, em vez da importação comum.
+  const [ameixa, setAmeixa] = useState<{
+    planilha: PlanilhaDoAmeixa;
+    resumo: Extract<ResumoAtualizacao, { ok: true }>;
+    nome: string;
+  } | null>(null);
   const [repetidas, setRepetidas] = useState<number | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
   const [ocupado, iniciar] = useTransition();
@@ -104,8 +114,20 @@ export function Assistente({
     const nome = arquivo.name.toLowerCase();
     try {
       if (nome.endsWith(".xlsx") || nome.endsWith(".xls")) {
+        const dados = await arquivo.arrayBuffer();
+        const { lerPlanilhaDoAmeixa } = await import("@/lib/planilha-ameixa-leitura");
+        const doAmeixa = lerPlanilhaDoAmeixa(dados);
+        if (doAmeixa) {
+          const r = await analisarAtualizacao(doAmeixa);
+          if (!r.ok) {
+            setErro(r.erro);
+            return;
+          }
+          setAmeixa({ planilha: doAmeixa, resumo: r, nome: arquivo.name });
+          return;
+        }
         const { lerExcel } = await import("@/lib/excel");
-        const linhas = lerExcel(await arquivo.arrayBuffer());
+        const linhas = lerExcel(dados);
         if (linhas.length === 0) {
           setErro("A planilha não tem linhas além do cabeçalho.");
           return;
@@ -306,6 +328,25 @@ export function Assistente({
       </span>
     </button>
   );
+
+  if (ameixa) {
+    return (
+      <AtualizarPeloAmeixa
+        planilha={ameixa.planilha}
+        resumo={ameixa.resumo}
+        nomeArquivo={ameixa.nome}
+        aoVoltar={() => setAmeixa(null)}
+        aoImportarNovas={(novas) => {
+          setAmeixa(null);
+          setNomeArquivo(`${ameixa.nome} — linhas novas`);
+          setBrutas(novas);
+          setMapa(palpitarMapeamento(Object.keys(novas[0] ?? {})));
+          setErro(null);
+          setPasso(2);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col" style={{ gap: 16 }}>
