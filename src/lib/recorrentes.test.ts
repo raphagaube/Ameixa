@@ -224,3 +224,23 @@ describe("outrasSeries", () => {
     expect(outrasSeries(todos, new Set(principal.map((x) => x.chave)))).toEqual([]);
   });
 });
+
+describe("outrasSeries descarta repetição no mesmo mês", () => {
+  it("dois lançamentos iguais no mesmo mês, sem vínculo, não são série", () => {
+    const repetido = () =>
+      l({ descricao: "Acordo faculdade xingu", valor: 1371.4, situacao: "pago", data_registro: "2026-02-28" });
+    expect(outrasSeries([repetido(), repetido()], new Set())).toEqual([]);
+  });
+
+  it("sem vínculo, em meses diferentes, continua sendo série", () => {
+    const mes = (m: string) =>
+      l({ descricao: "Faculdade - Rapha", valor: 719.46, situacao: "pago", data_registro: `2025-${m}-03` });
+    expect(outrasSeries([mes("07"), mes("08")], new Set())).toHaveLength(1);
+  });
+
+  it("com vínculo de série vale mesmo no mesmo mês", () => {
+    const parcela = () =>
+      l({ serie_id: "x", descricao: "Compra — 1/2", valor: 50, situacao: "pago", data_registro: "2026-03-10" });
+    expect(outrasSeries([parcela(), parcela()], new Set())).toHaveLength(1);
+  });
+});

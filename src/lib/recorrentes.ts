@@ -175,6 +175,10 @@ export function outrasSeries(
 ): SerieResumida[] {
   return agruparSeries(todos)
     .filter((s) => !jaListadas.has(s.chave))
+    // Sem vínculo de série, o agrupamento é só pelo nome e pelo valor — e aí
+    // duas compras iguais no mesmo mês (em geral, um lançamento importado duas
+    // vezes) viravam "série". Conta recorrente aparece em meses diferentes.
+    .filter((s) => s.vinculada || new Set(s.itens.map((l) => dataQueVale(l).slice(0, 7))).size >= 2)
     .map((s) => {
       const valores = new Set(s.itens.map((l) => l.valor.toFixed(2)));
       return {
