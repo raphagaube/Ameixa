@@ -4,6 +4,7 @@ import {
   agruparSeries,
   nomesParecidos,
   numeroDaParcela,
+  outrasSeries,
   possiveisRepetidas,
   separarSufixo,
   trocarBase,
@@ -190,5 +191,36 @@ describe("numeroDaParcela", () => {
   it("não inventa número onde não há numeração", () => {
     expect(numeroDaParcela("Dae")).toBeNull();
     expect(numeroDaParcela("Candeias Ubatuba 21 à 28/12")).toBeNull();
+  });
+});
+
+describe("outrasSeries", () => {
+  const mensalidade = (situacao: "pago" | "a_pagar", mes: string) =>
+    l({
+      serie_id: "fac",
+      descricao: "FACULDADE RAPHAEL",
+      valor: 789.4,
+      situacao,
+      data_vencimento: `2026-${mes}-03`,
+    });
+
+  it("acha a série toda paga, que a lista principal não mostra", () => {
+    const todos = [mensalidade("pago", "05"), mensalidade("pago", "06"), mensalidade("pago", "07")];
+    const principal = agruparSeries(todos.filter((x) => x.situacao === "a_pagar"));
+    const [s] = outrasSeries(todos, new Set(principal.map((x) => x.chave)));
+    expect(s).toMatchObject({
+      base: "FACULDADE RAPHAEL",
+      quantidade: 3,
+      pendentes: 0,
+      valor: 789.4,
+      primeira: "2026-05-03",
+      ultima: "2026-07-03",
+    });
+  });
+
+  it("não repete a série que já está na lista principal", () => {
+    const todos = [mensalidade("pago", "07"), mensalidade("a_pagar", "08")];
+    const principal = agruparSeries(todos.filter((x) => x.situacao === "a_pagar"));
+    expect(outrasSeries(todos, new Set(principal.map((x) => x.chave)))).toEqual([]);
   });
 });

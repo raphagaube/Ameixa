@@ -13,7 +13,7 @@ import {
 import { Dinheiro } from "@/components/dinheiro";
 import { Botao } from "@/components/ui/botao";
 import { moeda, nomeMes } from "@/lib/formato";
-import { trocarBase, type Serie } from "@/lib/recorrentes";
+import { trocarBase, type Serie, type SerieResumida } from "@/lib/recorrentes";
 import {
   dataQueVale,
   trocarDiaDoMes,
@@ -108,9 +108,12 @@ const destaque: React.CSSProperties = {
 export function PainelRecorrentes({
   series,
   repetidas,
+  outras,
 }: {
   series: Serie[];
   repetidas: Record<string, string[]>;
+  /** Séries fora da lista principal (em geral, já quitadas): só aparecem na busca. */
+  outras: SerieResumida[];
 }) {
   const router = useRouter();
   const [busca, setBusca] = useState("");
@@ -149,6 +152,12 @@ export function PainelRecorrentes({
           s.itens.some((l) => l.descricao.toLocaleLowerCase("pt-BR").includes(q))),
     );
   }, [series, busca, soRepetidas, repetidas]);
+
+  const termo = busca.trim().toLocaleLowerCase("pt-BR");
+  const outrasVisiveis =
+    termo.length >= 2
+      ? outras.filter((s) => s.base.toLocaleLowerCase("pt-BR").includes(termo))
+      : [];
 
   const linhaDe = (l: LancamentoNaLista) => linhas[l.id] ?? linhaOriginal(l);
   const topoDe = (s: Serie) => topos[s.chave] ?? topoOriginal(s);
@@ -279,7 +288,7 @@ export function PainelRecorrentes({
     });
   }
 
-  if (series.length === 0) {
+  if (series.length === 0 && outras.length === 0) {
     return (
       <p style={{ fontSize: 14, color: "var(--mut)", padding: "24px 0" }}>
         Nenhuma conta recorrente com pendências.
@@ -295,6 +304,9 @@ export function PainelRecorrentes({
         {series.length} {series.length === 1 ? "série" : "séries"} com contas a pagar ou a
         receber. Mude o nome, o valor ou o dia no topo de um cartão e todos os meses
         pendentes dele acompanham. O que já foi pago não muda.
+        {outras.length > 0
+          ? ` ${outras.length === 1 ? "Outra série, sem conta pendente, não aparece" : `Outras ${outras.length} séries, sem conta pendente, não aparecem`} aqui — busque pelo nome para encontrar.`
+          : ""}
       </p>
 
       <div className="flex items-center" style={{ gap: 8 }}>
@@ -428,7 +440,7 @@ export function PainelRecorrentes({
         </div>
       ) : null}
 
-      {visiveis.length === 0 ? (
+      {visiveis.length === 0 && outrasVisiveis.length === 0 ? (
         <p style={{ fontSize: 14, color: "var(--mut)" }}>Nenhuma série com esse filtro.</p>
       ) : null}
 
@@ -672,6 +684,61 @@ export function PainelRecorrentes({
           );
         })}
       </div>
+
+      {outrasVisiveis.length > 0 ? (
+        <section className="flex flex-col" style={{ gap: 10 }}>
+          <div>
+            <h2 style={{ fontSize: 15 }}>Outras séries</h2>
+            <p style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.5, marginTop: 2 }}>
+              Sem conta pendente, por isso ficam fora da lista acima. Abra a série para ver e
+              editar cada lançamento.
+            </p>
+          </div>
+          <div className="recorrentes-grade">
+            {outrasVisiveis.map((s) => (
+              <article
+                key={s.chave}
+                className="flex flex-col"
+                style={{ gap: 6, padding: 12, borderRadius: "var(--r)", border: "1px solid var(--ln2)" }}
+              >
+                <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
+                  <span className="truncate" style={{ fontSize: 15, fontWeight: 600 }}>
+                    {s.base}
+                  </span>
+                  <span style={{ fontSize: 14, fontWeight: 600, flexShrink: 0 }}>
+                    {s.valor !== null ? <Dinheiro>{moeda(s.valor)}</Dinheiro> : "valores variados"}
+                  </span>
+                </div>
+                <span style={{ fontSize: 12, color: "var(--mut)" }}>
+                  {s.quantidade} {s.quantidade === 1 ? "lançamento" : "lançamentos"} ·{" "}
+                  {s.pendentes === 0
+                    ? s.tipo === "receita"
+                      ? "tudo recebido"
+                      : "tudo pago"
+                    : `${s.pendentes} pendente${s.pendentes === 1 ? "" : "s"}`}{" "}
+                  · {mesCurto(s.primeira)}
+                  {s.quantidade > 1 ? ` → ${mesCurto(s.ultima)}` : ""}
+                  {s.onde ? ` · ${s.onde}` : ""}
+                  {s.vinculada ? "" : " · agrupada pelo nome"}
+                </span>
+                <Link
+                  href={`/recorrentes/serie?chave=${encodeURIComponent(s.chave)}`}
+                  className="flex items-center"
+                  style={{
+                    alignSelf: "flex-start",
+                    minHeight: 44,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "var(--deep)",
+                  }}
+                >
+                  Abrir a série completa →
+                </Link>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

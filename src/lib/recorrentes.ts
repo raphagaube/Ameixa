@@ -146,3 +146,49 @@ export function possiveisRepetidas(series: Serie[]): Map<string, string[]> {
   }
   return out;
 }
+
+export type SerieResumida = {
+  chave: string;
+  base: string;
+  tipo: TipoLancamento;
+  vinculada: boolean;
+  quantidade: number;
+  pendentes: number;
+  /** `null` quando os lançamentos da série têm valores diferentes. */
+  valor: number | null;
+  primeira: string;
+  ultima: string;
+  onde: string | null;
+};
+
+/**
+ * As séries que não estão na lista principal de contas recorrentes — em
+ * geral, as já quitadas.
+ *
+ * A lista principal é para corrigir o que ainda vai vencer, e por isso só
+ * tem séries com pendência. Mas a busca precisa achar as outras também: uma
+ * mensalidade toda paga sumindo da busca parece conta apagada.
+ */
+export function outrasSeries(
+  todos: LancamentoNaLista[],
+  jaListadas: Set<string>,
+): SerieResumida[] {
+  return agruparSeries(todos)
+    .filter((s) => !jaListadas.has(s.chave))
+    .map((s) => {
+      const valores = new Set(s.itens.map((l) => l.valor.toFixed(2)));
+      return {
+        chave: s.chave,
+        base: s.base,
+        tipo: s.tipo,
+        vinculada: s.vinculada,
+        quantidade: s.itens.length,
+        pendentes: s.itens.filter((l) => l.situacao === "a_pagar" || l.situacao === "a_receber")
+          .length,
+        valor: valores.size === 1 ? s.itens[0].valor : null,
+        primeira: dataQueVale(s.itens[0]),
+        ultima: dataQueVale(s.itens[s.itens.length - 1]),
+        onde: s.onde,
+      };
+    });
+}
