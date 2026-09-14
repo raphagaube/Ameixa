@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { excluirLancamentosEmLote } from "@/app/(app)/lancamentos/acoes";
 import { enfileirar } from "@/lib/agenda/sincronizar";
 import {
+  periodoDaPlanilha,
   planejarAtualizacao,
   type AppAtual,
   type LancamentoAtual,
@@ -12,34 +14,28 @@ import {
 } from "@/lib/atualizacao-ameixa";
 import type { LinhaCru } from "@/lib/csv";
 import type { PlanilhaDoAmeixa } from "@/lib/planilha-ameixa-leitura";
+import { expandirPlanilha, type PlanilhaCompacta } from "@/lib/planilha-compacta";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const esquema = z.object({
+  colunas: z.array(z.string().max(80)).max(60),
   lancamentos: z
-    .array(
-      z.object({
-        linha: z.number().int(),
-        codigo: z.string().max(80),
-        cru: z.record(z.string(), z.string().max(5000)),
-      }),
-    )
+    .array(z.tuple([z.number().int(), z.string().max(80), z.array(z.string().max(5000)).max(60)]))
     .max(20000),
   categorias: z
     .array(
-      z.object({
-        linha: z.number().int(),
-        codigo: z.string().max(80),
-        tipo: z.string().max(40),
-        categoria: z.string().max(200),
-        subcategoria: z.string().max(200),
-      }),
+      z.tuple([
+        z.number().int(),
+        z.string().max(80),
+        z.string().max(40),
+        z.string().max(200),
+        z.string().max(200),
+      ]),
     )
     .max(3000),
-  contas: z
-    .array(z.object({ linha: z.number().int(), codigo: z.string().max(80), nome: z.string().max(200) }))
-    .max(500),
+  contas: z.array(z.tuple([z.number().int(), z.string().max(80), z.string().max(200)])).max(500),
 });
 
 type Cliente = Awaited<ReturnType<typeof criarClienteServidor>>;
@@ -47,6 +43,11 @@ type Cliente = Awaited<ReturnType<typeof criarClienteServidor>>;
 /** Quantos lançamentos por rodada: cabe folgado no tempo de uma função. */
 const POR_RODADA = 200;
 const EM_PARALELO = 8;
+
+function ler(entrada: PlanilhaCompacta): PlanilhaDoAmeixa | null {
+  const v = esquema.safeParse(entrada);
+  return v.success ? expandirPlanilha(v.data as PlanilhaCompacta) : null;
+}
 
 /**
  * Lê do banco o que a planilha cita. Pedaços de 150 códigos por consulta:
@@ -99,6 +100,54 @@ async function carregarApp(supabase: Cliente, codigos: string[]): Promise<AppAtu
   };
 }
 
+type ItemExcluir = { id: string; descricao: string; data: string; valor: number; tipo: string };
+
+/**
+ * O que está no app dentro do período da planilha e não está nela.
+ *
+ * O período vem só das linhas com código (ver `periodoDaPlanilha`). Aportes
+ * em meta ficam de fora sempre: eles nunca vão para a planilha, e sem esta
+ * trava todos os aportes do período seriam apagados. Planilha sem nenhuma
+ * linha com código não tem período, e aí nada é excluído.
+ */
+async function exclusoesNoPeriodo(
+  supabase: Cliente,
+  planilha: PlanilhaDoAmeixa,
+): Promise<{ de: string | null; ate: string | null; itens: ItemExcluir[] } | null> {
+  const { de, ate } = periodoDaPlanilha(planilha);
+  if (!de || !ate) return { de: null, ate: null, itens: [] };
+
+  const naPlanilha = new Set(planilha.lancamentos.map((l) => l.codigo).filter(Boolean));
+  const itens: ItemExcluir[] = [];
+
+  for (let inicio = 0; ; inicio += 1000) {
+    const { data, error } = await supabase
+      .from("lancamentos")
+      .select("id, descricao, valor, data_registro, tipo")
+      .gte("data_registro", de)
+      .lte("data_registro", ate)
+      .neq("tipo", "aporte")
+      .order("data_registro", { ascending: true })
+      .order("id", { ascending: true })
+      .range(inicio, inicio + 999);
+    if (error || !data) return null;
+    for (const l of data as { id: string; descricao: string; valor: unknown; data_registro: string; tipo: string }[]) {
+      if (!naPlanilha.has(l.id)) {
+        itens.push({
+          id: l.id,
+          descricao: l.descricao,
+          data: String(l.data_registro).slice(0, 10),
+          valor: Number(l.valor),
+          tipo: l.tipo,
+        });
+      }
+    }
+    if (data.length < 1000) break;
+  }
+
+  return { de, ate, itens };
+}
+
 export type ResumoAtualizacao =
   | {
       ok: true;
@@ -107,19 +156,30 @@ export type ResumoAtualizacao =
       novas: number;
       problemas: Problema[];
       semMudanca: number;
+      exclusoes: {
+        de: string | null;
+        ate: string | null;
+        quantidade: number;
+        itens: Omit<ItemExcluir, "id">[];
+      };
     }
   | { ok: false; erro: string };
 
-/** A prévia: o que vai mudar, sem gravar nada. */
-export async function analisarAtualizacao(entrada: PlanilhaDoAmeixa): Promise<ResumoAtualizacao> {
-  const v = esquema.safeParse(entrada);
-  if (!v.success) return { ok: false, erro: "Não consegui entender essa planilha." };
+/** A prévia: o que vai mudar e o que vai sair, sem gravar nada. */
+export async function analisarAtualizacao(entrada: PlanilhaCompacta): Promise<ResumoAtualizacao> {
+  const planilha = ler(entrada);
+  if (!planilha) return { ok: false, erro: "Não consegui entender essa planilha." };
 
   const supabase = await criarClienteServidor();
-  const app = await carregarApp(supabase, v.data.lancamentos.map((l) => l.codigo));
-  if (!app) return { ok: false, erro: "Não deu para ler os seus dados agora. Tente de novo." };
+  const [app, exclusoes] = await Promise.all([
+    carregarApp(supabase, planilha.lancamentos.map((l) => l.codigo)),
+    exclusoesNoPeriodo(supabase, planilha),
+  ]);
+  if (!app || !exclusoes) {
+    return { ok: false, erro: "Não deu para ler os seus dados agora. Tente de novo." };
+  }
 
-  const plano = planejarAtualizacao(v.data, app);
+  const plano = planejarAtualizacao(planilha, app);
   return {
     ok: true,
     renomes: plano.renomes,
@@ -127,6 +187,17 @@ export async function analisarAtualizacao(entrada: PlanilhaDoAmeixa): Promise<Re
     novas: plano.novas.length,
     problemas: plano.problemas,
     semMudanca: plano.semMudanca,
+    exclusoes: {
+      de: exclusoes.de,
+      ate: exclusoes.ate,
+      quantidade: exclusoes.itens.length,
+      itens: exclusoes.itens.slice(0, 500).map(({ descricao, data, valor, tipo }) => ({
+        descricao,
+        data,
+        valor,
+        tipo,
+      })),
+    },
   };
 }
 
@@ -136,6 +207,7 @@ export type ResultadoAtualizacao =
       renomeados: number;
       atualizados: number;
       restantes: number;
+      excluidos: number;
       falhas: string[];
       novas: LinhaCru[];
     }
@@ -145,22 +217,27 @@ const TABELA = { categoria: "categorias", subcategoria: "subcategorias", conta: 
 const ROTULO = { categoria: "A categoria", subcategoria: "A subcategoria", conta: "A conta" } as const;
 
 /**
- * Aplica uma rodada: todos os nomes e até POR_RODADA lançamentos.
+ * Aplica uma rodada: todos os nomes e até POR_RODADA lançamentos. Na rodada
+ * em que não sobra mais nada para atualizar — e só com `excluir` ligado —,
+ * exclui o que está no período e não está na planilha.
  *
- * O plano é recalculado a cada chamada com o banco na mão — não se confia no
- * que veio do navegador. E como o que já foi gravado deixa de aparecer como
- * mudança, a próxima rodada pega naturalmente os que faltam: rodada que cai
- * no meio não deixa nada pela metade nem aplica nada duas vezes.
+ * O plano e as exclusões são recalculados a cada chamada com o banco na mão:
+ * não se confia no que veio do navegador. O que já foi gravado deixa de
+ * aparecer como mudança, então rodada que cai no meio não deixa nada pela
+ * metade nem aplica nada duas vezes.
  */
-export async function aplicarAtualizacao(entrada: PlanilhaDoAmeixa): Promise<ResultadoAtualizacao> {
-  const v = esquema.safeParse(entrada);
-  if (!v.success) return { ok: false, erro: "Não consegui entender essa planilha." };
+export async function aplicarAtualizacao(
+  entrada: PlanilhaCompacta,
+  excluir: boolean,
+): Promise<ResultadoAtualizacao> {
+  const planilha = ler(entrada);
+  if (!planilha) return { ok: false, erro: "Não consegui entender essa planilha." };
 
   const supabase = await criarClienteServidor();
-  const app = await carregarApp(supabase, v.data.lancamentos.map((l) => l.codigo));
+  const app = await carregarApp(supabase, planilha.lancamentos.map((l) => l.codigo));
   if (!app) return { ok: false, erro: "Não deu para ler os seus dados agora. Tente de novo." };
 
-  const plano = planejarAtualizacao(v.data, app);
+  const plano = planejarAtualizacao(planilha, app);
   const falhas: string[] = [];
 
   // Nomes primeiro: os lançamentos da rodada já foram casados contra eles.
@@ -211,7 +288,30 @@ export async function aplicarAtualizacao(entrada: PlanilhaDoAmeixa): Promise<Res
   }
   await enfileirar(paraAgenda, "salvar");
 
-  if (renomeados || alterados.length) {
+  const restantes = Math.max(0, plano.mudancas.length - alterados.length);
+
+  // Exclusão só no fim, depois de todas as atualizações, e recalculada agora.
+  // A exclusão em si passa pela mesma ação das telas, que limpa a agenda.
+  let excluidos = 0;
+  if (excluir && restantes === 0) {
+    const ex = await exclusoesNoPeriodo(supabase, planilha);
+    if (!ex) {
+      falhas.push("Não deu para conferir o que excluir; nada foi excluído.");
+    } else {
+      const ids = ex.itens.map((i) => i.id);
+      for (let k = 0; k < ids.length; k += 500) {
+        const r = await excluirLancamentosEmLote(ids.slice(k, k + 500));
+        if (r.ok) {
+          excluidos += r.excluidos;
+        } else {
+          falhas.push(`Parei de excluir no meio: ${r.erro}`);
+          break;
+        }
+      }
+    }
+  }
+
+  if (renomeados || alterados.length || excluidos) {
     for (const p of ["/", "/extrato", "/recorrentes", "/pendencias", "/relatorios", "/orcamentos", "/categorias", "/cartoes"]) {
       revalidatePath(p);
     }
@@ -221,7 +321,8 @@ export async function aplicarAtualizacao(entrada: PlanilhaDoAmeixa): Promise<Res
     ok: true,
     renomeados,
     atualizados: alterados.length,
-    restantes: Math.max(0, plano.mudancas.length - alterados.length),
+    restantes,
+    excluidos,
     falhas,
     novas: plano.novas,
   };

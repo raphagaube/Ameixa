@@ -20,6 +20,7 @@ import {
 import { importarLancamentos } from "@/app/(app)/ajustes/importar";
 import type { ListasPlanilha } from "@/lib/listas-planilha";
 import type { PlanilhaDoAmeixa } from "@/lib/planilha-ameixa-leitura";
+import { compactarPlanilha } from "@/lib/planilha-compacta";
 import { analisarAtualizacao, type ResumoAtualizacao } from "./atualizar-ameixa";
 import { AtualizarPeloAmeixa } from "./atualizar-pelo-ameixa";
 import { BaixarPlanilhas } from "./baixar-planilhas";
@@ -59,6 +60,7 @@ export function Assistente({
   const [usarCategoria, setUsarCategoria] = useState(true);
 
   const [erro, setErro] = useState<string | null>(null);
+  const [conferindo, setConferindo] = useState(false);
   // Planilha gerada pelo próprio Ameixa, com códigos: segue o caminho de
   // atualizar o que já existe, com prévia, em vez da importação comum.
   const [ameixa, setAmeixa] = useState<{
@@ -118,12 +120,23 @@ export function Assistente({
         const { lerPlanilhaDoAmeixa } = await import("@/lib/planilha-ameixa-leitura");
         const doAmeixa = lerPlanilhaDoAmeixa(dados);
         if (doAmeixa) {
-          const r = await analisarAtualizacao(doAmeixa);
-          if (!r.ok) {
-            setErro(r.erro);
-            return;
+          // O arquivo já foi lido. Daqui para frente, erro é da conferência
+          // com o app — e a mensagem precisa dizer isso, não "não consegui ler".
+          setConferindo(true);
+          try {
+            const r = await analisarAtualizacao(compactarPlanilha(doAmeixa));
+            if (!r.ok) {
+              setErro(r.erro);
+              return;
+            }
+            setAmeixa({ planilha: doAmeixa, resumo: r, nome: arquivo.name });
+          } catch {
+            setErro(
+              "Li a planilha, mas não consegui conferir com o app agora. Tente de novo em instantes.",
+            );
+          } finally {
+            setConferindo(false);
           }
-          setAmeixa({ planilha: doAmeixa, resumo: r, nome: arquivo.name });
           return;
         }
         const { lerExcel } = await import("@/lib/excel");
@@ -394,6 +407,12 @@ export function Assistente({
           }}
         >
           {erro}
+        </p>
+      ) : null}
+
+      {conferindo ? (
+        <p role="status" style={{ fontSize: 13, color: "var(--mut)" }}>
+          Conferindo a planilha com o app…
         </p>
       ) : null}
 

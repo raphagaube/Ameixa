@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { planejarAtualizacao, type AppAtual, type LancamentoAtual } from "./atualizacao-ameixa";
+import {
+  periodoDaPlanilha,
+  planejarAtualizacao,
+  type AppAtual,
+  type LancamentoAtual,
+} from "./atualizacao-ameixa";
 import type { ListasPlanilha } from "./listas-planilha";
 import { gerarPlanilhaAmeixa } from "./planilha-ameixa";
 import { lerPlanilhaDoAmeixa } from "./planilha-ameixa-leitura";
@@ -171,5 +176,25 @@ describe("planejarAtualizacao", () => {
     const plano = planejarAtualizacao(p, app);
     expect(plano.renomes).toEqual([]);
     expect(plano.problemas[0].motivo).toContain("já existe");
+  });
+});
+
+describe("periodoDaPlanilha", () => {
+  it("vai da primeira à última data das linhas com código", () => {
+    expect(periodoDaPlanilha(exportar(montarApp()))).toEqual({ de: "2026-05-28", ate: "2026-09-12" });
+  });
+
+  it("linha nova não estica o período, e sem linha com código não há período", () => {
+    const p = exportar(montarApp());
+    p.lancamentos.push({
+      linha: 9,
+      codigo: "",
+      cru: { ...linhaDe(p, "l-luz").cru, data: "01/01/2020", codigo: "" },
+    });
+    expect(periodoDaPlanilha(p)).toEqual({ de: "2026-05-28", ate: "2026-09-12" });
+    expect(periodoDaPlanilha({ ...p, lancamentos: p.lancamentos.filter((l) => !l.codigo) })).toEqual({
+      de: null,
+      ate: null,
+    });
   });
 });

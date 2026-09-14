@@ -1,4 +1,4 @@
-import type { LinhaCru } from "@/lib/csv";
+import { lerData, type LinhaCru } from "@/lib/csv";
 import {
   analisarLinhas,
   casarCategoria,
@@ -342,4 +342,24 @@ export function planejarAtualizacao(
   }
 
   return { renomes, mudancas, novas, problemas, semMudanca };
+}
+
+/**
+ * O período que a planilha cobre: da primeira à última data de registro das
+ * linhas COM código — as que vieram do app.
+ *
+ * Linhas novas não contam: um modelo em branco com três lançamentos de março
+ * não pode dizer que março inteiro está na planilha e apagar o resto do mês.
+ * Sem nenhuma linha com código, não há período, e nada é excluído.
+ */
+export function periodoDaPlanilha(planilha: PlanilhaDoAmeixa): {
+  de: string | null;
+  ate: string | null;
+} {
+  const datas = planilha.lancamentos
+    .filter((l) => l.codigo)
+    .map((l) => lerData(l.cru["data"] ?? ""))
+    .filter((d): d is string => !!d)
+    .sort();
+  return { de: datas[0] ?? null, ate: datas[datas.length - 1] ?? null };
 }
