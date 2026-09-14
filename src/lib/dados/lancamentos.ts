@@ -39,6 +39,11 @@ export type Ordem = "recentes" | "antigos" | "maior" | "menor";
 export type FiltroExtrato = {
   de?: string;
   ate?: string;
+  /**
+   * Qual data o período olha: a do registro (padrão) ou o vencimento — com a
+   * data do registro valendo para quem não tem vencimento.
+   */
+  datasPor?: "registro" | "vencimento";
   texto?: string;
   categoriaId?: string;
   subcategoriaId?: string;
@@ -65,25 +70,46 @@ export async function lancamentosDoPeriodo(
   let q = supabase.from("lancamentos").select(CAMPOS);
 
   if (f.semAportes) q = q.neq("tipo", "aporte");
-  if (f.de) q = q.gte("data_registro", f.de);
-  if (f.ate) q = q.lte("data_registro", f.ate);
+
+  // O período pelo vencimento e a busca por descrição ou valor são dois
+  // filtros "ou"; vão num parâmetro só, os dois dentro de um "e".
+  const grupos: string[] = [];
+  const porVencimento = f.datasPor === "vencimento";
+  if (porVencimento && (f.de || f.ate)) {
+    // Vale o vencimento; quem não tem vencimento conta pela data do registro.
+    const faixa = (coluna: string) =>
+      [f.de ? `${coluna}.gte.${f.de}` : null, f.ate ? `${coluna}.lte.${f.ate}` : null]
+        .filter(Boolean)
+        .join(",");
+    grupos.push(
+      `or(and(${faixa("data_vencimento")}),and(data_vencimento.is.null,${faixa("data_registro")}))`,
+    );
+  } else {
+    if (f.de) q = q.gte("data_registro", f.de);
+    if (f.ate) q = q.lte("data_registro", f.ate);
+  }
   if (f.texto) {
     // O mesmo campo procura por descrição e por valor: digitar 363 acha a
     // conta de R$ 363,00, não só um estabelecimento chamado 363.
     const busca = interpretarBusca(f.texto);
     const ou = filtroOu(busca);
-    if (ou) q = q.or(ou);
+    if (ou) grupos.push(`or(${ou})`);
     else if (busca.texto) q = q.ilike("descricao", `%${busca.texto}%`);
   }
+  if (grupos.length === 1) q = q.or(grupos[0].slice("or(".length, -1));
+  else if (grupos.length > 1) q = q.or(`and(${grupos.join(",")})`);
+
   if (f.categoriaId) q = q.eq("categoria_id", f.categoriaId);
   if (f.subcategoriaId) q = q.eq("subcategoria_id", f.subcategoriaId);
   if (f.situacao) q = q.eq("situacao", f.situacao);
   if (f.forma) q = q.eq("forma_pagamento", f.forma);
   if (f.responsavel) q = q.ilike("responsavel", `%${f.responsavel}%`);
 
-  switch (f.ordem ?? "recentes") {
+  const ordem = f.ordem ?? "recentes";
+  const colunaData = porVencimento ? "data_vencimento" : "data_registro";
+  switch (ordem) {
     case "antigos":
-      q = q.order("data_registro", { ascending: true });
+      q = q.order(colunaData, { ascending: true, nullsFirst: false });
       break;
     case "maior":
       q = q.order("valor", { ascending: false });
@@ -92,7 +118,7 @@ export async function lancamentosDoPeriodo(
       q = q.order("valor", { ascending: true });
       break;
     default:
-      q = q.order("data_registro", { ascending: false });
+      q = q.order(colunaData, { ascending: false, nullsFirst: false });
   }
   // O teto era fixo em 500. No relatório "Todo o período" isso cortava a
   // lista sem uma palavra — quem tem mil lançamentos imprimia 500 e não
@@ -101,7 +127,17 @@ export async function lancamentosDoPeriodo(
 
   const { data, error } = await q;
   if (error || !data) return [];
-  return (data as Bruto[]).map(normalizar);
+  const lista = (data as Bruto[]).map(normalizar);
+
+  // Pelo vencimento, quem não tem vencimento entra na ordem pela data do
+  // registro — o banco sozinho mandaria todos eles para o fim.
+  if (porVencimento && (ordem === "recentes" || ordem === "antigos")) {
+    const vale = (l: LancamentoNaLista) => l.data_vencimento ?? l.data_registro;
+    lista.sort((a, b) =>
+      ordem === "antigos" ? vale(a).localeCompare(vale(b)) : vale(b).localeCompare(vale(a)),
+    );
+  }
+  return lista;
 }
 
 /** Lançamentos do Registro Fácil que ainda faltam completar. */

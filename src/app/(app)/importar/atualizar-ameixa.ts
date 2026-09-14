@@ -5,17 +5,19 @@ import { z } from "zod";
 import { excluirLancamentosEmLote } from "@/app/(app)/lancamentos/acoes";
 import { enfileirar } from "@/lib/agenda/sincronizar";
 import {
+  casarNovas,
   periodoDaPlanilha,
   planejarAtualizacao,
   type AppAtual,
   type LancamentoAtual,
+  type LancamentoParaCasar,
+  type Nova,
   type Problema,
   type Renome,
 } from "@/lib/atualizacao-ameixa";
-import type { LinhaCru } from "@/lib/csv";
 import type { PlanilhaDoAmeixa } from "@/lib/planilha-ameixa-leitura";
 import { expandirPlanilha, type PlanilhaCompacta } from "@/lib/planilha-compacta";
-import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { criarClienteServidor, usuarioAtual } from "@/lib/supabase/servidor";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -100,7 +102,40 @@ async function carregarApp(supabase: Cliente, codigos: string[]): Promise<AppAtu
   };
 }
 
-type ItemExcluir = { id: string; descricao: string; data: string; valor: number; tipo: string };
+/**
+ * Confere as linhas novas contra o app: as que já entraram numa aplicação
+ * anterior da mesma planilha não são criadas de novo (ver `casarNovas`).
+ */
+async function casarNovasComApp(
+  supabase: Cliente,
+  planilha: PlanilhaDoAmeixa,
+  novas: Nova[],
+): Promise<{ aCriar: Nova[]; jaNoApp: string[] } | null> {
+  if (novas.length === 0) return { aCriar: [], jaNoApp: [] };
+
+  const datas = novas.map((n) => n.novos.data_registro).sort();
+  const existentes: LancamentoParaCasar[] = [];
+  for (let inicio = 0; ; inicio += 1000) {
+    const { data, error } = await supabase
+      .from("lancamentos")
+      .select("id, tipo, valor, descricao, data_registro")
+      .gte("data_registro", datas[0])
+      .lte("data_registro", datas[datas.length - 1])
+      .neq("tipo", "aporte")
+      .order("id", { ascending: true })
+      .range(inicio, inicio + 999);
+    if (error || !data) return null;
+    for (const l of data as { id: string; tipo: string; valor: unknown; descricao: string; data_registro: string }[]) {
+      existentes.push({ ...l, valor: Number(l.valor) });
+    }
+    if (data.length < 1000) break;
+  }
+
+  const codigos = new Set(planilha.lancamentos.map((l) => l.codigo).filter(Boolean));
+  return casarNovas(novas, existentes, codigos);
+}
+
+type ItemLista = { id: string; descricao: string; data: string; valor: number; tipo: string };
 
 /**
  * O que está no app dentro do período da planilha e não está nela.
@@ -108,17 +143,20 @@ type ItemExcluir = { id: string; descricao: string; data: string; valor: number;
  * O período vem só das linhas com código (ver `periodoDaPlanilha`). Aportes
  * em meta ficam de fora sempre: eles nunca vão para a planilha, e sem esta
  * trava todos os aportes do período seriam apagados. Planilha sem nenhuma
- * linha com código não tem período, e aí nada é excluído.
+ * linha com código não tem período, e aí nada é excluído. `manter` são os
+ * lançamentos que correspondem a linhas novas da planilha — eles estão nela,
+ * só que sem código.
  */
 async function exclusoesNoPeriodo(
   supabase: Cliente,
   planilha: PlanilhaDoAmeixa,
-): Promise<{ de: string | null; ate: string | null; itens: ItemExcluir[] } | null> {
+  manter: Set<string>,
+): Promise<{ de: string | null; ate: string | null; itens: ItemLista[] } | null> {
   const { de, ate } = periodoDaPlanilha(planilha);
   if (!de || !ate) return { de: null, ate: null, itens: [] };
 
   const naPlanilha = new Set(planilha.lancamentos.map((l) => l.codigo).filter(Boolean));
-  const itens: ItemExcluir[] = [];
+  const itens: ItemLista[] = [];
 
   for (let inicio = 0; ; inicio += 1000) {
     const { data, error } = await supabase
@@ -132,7 +170,7 @@ async function exclusoesNoPeriodo(
       .range(inicio, inicio + 999);
     if (error || !data) return null;
     for (const l of data as { id: string; descricao: string; valor: unknown; data_registro: string; tipo: string }[]) {
-      if (!naPlanilha.has(l.id)) {
+      if (!naPlanilha.has(l.id) && !manter.has(l.id)) {
         itens.push({
           id: l.id,
           descricao: l.descricao,
@@ -148,55 +186,111 @@ async function exclusoesNoPeriodo(
   return { de, ate, itens };
 }
 
+/** Grava as linhas novas, em blocos, e manda as pendentes para a agenda. */
+async function criarNovas(supabase: Cliente, novas: Nova[]): Promise<{ criados: number; falhas: string[] }> {
+  const user = await usuarioAtual();
+  if (!user) return { criados: 0, falhas: ["Sessão expirada: as linhas novas não foram criadas. Entre de novo."] };
+
+  let criados = 0;
+  const falhas: string[] = [];
+  for (let k = 0; k < novas.length; k += 400) {
+    const bloco = novas.slice(k, k + 400);
+    const { data, error } = await supabase
+      .from("lancamentos")
+      .insert(
+        bloco.map((n) => ({
+          ...n.novos,
+          user_id: user.id,
+          importado: true,
+          // Como na importação comum: sem categoria, vira pendência para completar.
+          incompleto: !n.novos.categoria_id,
+        })),
+      )
+      .select("id, situacao");
+    if (error) {
+      falhas.push(
+        bloco.length === 1
+          ? `A linha ${bloco[0].linha} (${bloco[0].descricao}) não foi criada.`
+          : `${bloco.length} linhas novas, a partir da linha ${bloco[0].linha}, não foram criadas.`,
+      );
+      continue;
+    }
+    criados += bloco.length;
+    await enfileirar(
+      ((data ?? []) as { id: string; situacao: string }[])
+        .filter((l) => l.situacao === "a_pagar" || l.situacao === "a_receber")
+        .map((l) => l.id),
+      "salvar",
+    );
+  }
+  return { criados, falhas };
+}
+
+const paraLista = ({ descricao, data, valor, tipo }: ItemLista) => ({ descricao, data, valor, tipo });
+
 export type ResumoAtualizacao =
   | {
       ok: true;
       renomes: Renome[];
       mudancas: { linha: number; descricao: string; campos: string[] }[];
-      novas: number;
       problemas: Problema[];
       semMudanca: number;
+      /** Linhas sem código que viram lançamentos novos. */
+      entradas: {
+        quantidade: number;
+        /** Linhas sem código que já estão no app, iguais, e não entram de novo. */
+        jaNoApp: number;
+        itens: Omit<ItemLista, "id">[];
+      };
       exclusoes: {
         de: string | null;
         ate: string | null;
         quantidade: number;
-        itens: Omit<ItemExcluir, "id">[];
+        itens: Omit<ItemLista, "id">[];
       };
     }
   | { ok: false; erro: string };
 
-/** A prévia: o que vai mudar e o que vai sair, sem gravar nada. */
+/** A prévia: o que vai mudar, entrar e sair, sem gravar nada. */
 export async function analisarAtualizacao(entrada: PlanilhaCompacta): Promise<ResumoAtualizacao> {
   const planilha = ler(entrada);
   if (!planilha) return { ok: false, erro: "Não consegui entender essa planilha." };
 
+  const falhaDeLeitura = { ok: false as const, erro: "Não deu para ler os seus dados agora. Tente de novo." };
   const supabase = await criarClienteServidor();
-  const [app, exclusoes] = await Promise.all([
-    carregarApp(supabase, planilha.lancamentos.map((l) => l.codigo)),
-    exclusoesNoPeriodo(supabase, planilha),
-  ]);
-  if (!app || !exclusoes) {
-    return { ok: false, erro: "Não deu para ler os seus dados agora. Tente de novo." };
-  }
+  const app = await carregarApp(supabase, planilha.lancamentos.map((l) => l.codigo));
+  if (!app) return falhaDeLeitura;
 
   const plano = planejarAtualizacao(planilha, app);
+  const casadas = await casarNovasComApp(supabase, planilha, plano.novas);
+  if (!casadas) return falhaDeLeitura;
+  const exclusoes = await exclusoesNoPeriodo(supabase, planilha, new Set(casadas.jaNoApp));
+  if (!exclusoes) return falhaDeLeitura;
+
   return {
     ok: true,
     renomes: plano.renomes,
     mudancas: plano.mudancas.map((m) => ({ linha: m.linha, descricao: m.descricao, campos: m.campos })),
-    novas: plano.novas.length,
     problemas: plano.problemas,
     semMudanca: plano.semMudanca,
+    entradas: {
+      quantidade: casadas.aCriar.length,
+      jaNoApp: casadas.jaNoApp.length,
+      itens: casadas.aCriar.slice(0, 500).map((n) =>
+        paraLista({
+          id: "",
+          descricao: n.novos.descricao,
+          data: n.novos.data_registro,
+          valor: n.novos.valor,
+          tipo: n.novos.tipo,
+        }),
+      ),
+    },
     exclusoes: {
       de: exclusoes.de,
       ate: exclusoes.ate,
       quantidade: exclusoes.itens.length,
-      itens: exclusoes.itens.slice(0, 500).map(({ descricao, data, valor, tipo }) => ({
-        descricao,
-        data,
-        valor,
-        tipo,
-      })),
+      itens: exclusoes.itens.slice(0, 500).map(paraLista),
     },
   };
 }
@@ -208,8 +302,8 @@ export type ResultadoAtualizacao =
       atualizados: number;
       restantes: number;
       excluidos: number;
+      criados: number;
       falhas: string[];
-      novas: LinhaCru[];
     }
   | { ok: false; erro: string };
 
@@ -218,12 +312,13 @@ const ROTULO = { categoria: "A categoria", subcategoria: "A subcategoria", conta
 
 /**
  * Aplica uma rodada: todos os nomes e até POR_RODADA lançamentos. Na rodada
- * em que não sobra mais nada para atualizar — e só com `excluir` ligado —,
- * exclui o que está no período e não está na planilha.
+ * em que não sobra mais nada para atualizar, exclui o que está no período e
+ * não está na planilha (só com `excluir` ligado) e cria as linhas novas.
  *
- * O plano e as exclusões são recalculados a cada chamada com o banco na mão:
- * não se confia no que veio do navegador. O que já foi gravado deixa de
- * aparecer como mudança, então rodada que cai no meio não deixa nada pela
+ * O plano, as exclusões e as linhas novas são recalculados a cada chamada com
+ * o banco na mão: não se confia no que veio do navegador. O que já foi gravado
+ * deixa de aparecer como mudança — e linha nova já criada casa com o
+ * lançamento que ela gerou —, então rodada que cai no meio não deixa nada pela
  * metade nem aplica nada duas vezes.
  */
 export async function aplicarAtualizacao(
@@ -290,28 +385,44 @@ export async function aplicarAtualizacao(
 
   const restantes = Math.max(0, plano.mudancas.length - alterados.length);
 
-  // Exclusão só no fim, depois de todas as atualizações, e recalculada agora.
-  // A exclusão em si passa pela mesma ação das telas, que limpa a agenda.
+  // Exclusão e linhas novas só no fim, depois de todas as atualizações, e
+  // recalculadas agora. Excluir vem antes de criar: o que acabou de ser
+  // criado não tem código na planilha e não pode cair na exclusão. A exclusão
+  // em si passa pela mesma ação das telas, que limpa a agenda.
   let excluidos = 0;
-  if (excluir && restantes === 0) {
-    const ex = await exclusoesNoPeriodo(supabase, planilha);
-    if (!ex) {
-      falhas.push("Não deu para conferir o que excluir; nada foi excluído.");
+  let criados = 0;
+  if (restantes === 0) {
+    const casadas = await casarNovasComApp(supabase, planilha, plano.novas);
+    if (!casadas) {
+      falhas.push("Não deu para conferir as linhas novas com o app; nada foi excluído nem criado.");
     } else {
-      const ids = ex.itens.map((i) => i.id);
-      for (let k = 0; k < ids.length; k += 500) {
-        const r = await excluirLancamentosEmLote(ids.slice(k, k + 500));
-        if (r.ok) {
-          excluidos += r.excluidos;
+      if (excluir) {
+        const ex = await exclusoesNoPeriodo(supabase, planilha, new Set(casadas.jaNoApp));
+        if (!ex) {
+          falhas.push("Não deu para conferir o que excluir; nada foi excluído.");
         } else {
-          falhas.push(`Parei de excluir no meio: ${r.erro}`);
-          break;
+          const ids = ex.itens.map((i) => i.id);
+          for (let k = 0; k < ids.length; k += 500) {
+            const r = await excluirLancamentosEmLote(ids.slice(k, k + 500));
+            if (r.ok) {
+              excluidos += r.excluidos;
+            } else {
+              falhas.push(`Parei de excluir no meio: ${r.erro}`);
+              break;
+            }
+          }
         }
+      }
+
+      if (casadas.aCriar.length > 0) {
+        const r = await criarNovas(supabase, casadas.aCriar);
+        criados = r.criados;
+        falhas.push(...r.falhas);
       }
     }
   }
 
-  if (renomeados || alterados.length || excluidos) {
+  if (renomeados || alterados.length || excluidos || criados) {
     for (const p of ["/", "/extrato", "/recorrentes", "/pendencias", "/relatorios", "/orcamentos", "/categorias", "/cartoes"]) {
       revalidatePath(p);
     }
@@ -323,7 +434,7 @@ export async function aplicarAtualizacao(
     atualizados: alterados.length,
     restantes,
     excluidos,
+    criados,
     falhas,
-    novas: plano.novas,
   };
 }

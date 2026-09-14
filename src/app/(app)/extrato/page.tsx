@@ -1,4 +1,5 @@
 import { paraIso } from "@/lib/formato";
+import { formasDePagamento } from "@/lib/dados/apoio";
 import { categoriasDoUsuario } from "@/lib/dados/categorias";
 import {
   lancamentosDoPeriodo,
@@ -10,6 +11,7 @@ import { PainelExtrato } from "./painel-extrato";
 export const metadata = { title: "Extrato · Ameixa" };
 
 export type Periodo = "dia" | "mes" | "ano" | "faixa";
+export type DatasPor = "registro" | "vencimento";
 
 function intervalo(
   periodo: Periodo,
@@ -46,13 +48,15 @@ export default async function Extrato({
   const mes = p.mes !== undefined ? Number(p.mes) : hoje.getMonth();
   const dia = Number(p.dia) || hoje.getDate();
   const ordem = (p.ordem as Ordem) ?? "recentes";
+  const datasPor: DatasPor = p.datas === "vencimento" ? "vencimento" : "registro";
 
   const { de, ate } = intervalo(periodo, ano, mes, dia, p.de, p.ate);
 
-  const [lancamentos, categorias] = await Promise.all([
+  const [lancamentos, categorias, formas] = await Promise.all([
     lancamentosDoPeriodo({
       de,
       ate,
+      datasPor,
       texto: p.texto || undefined,
       categoriaId: p.categoria || undefined,
       subcategoriaId: p.subcategoria || undefined,
@@ -62,13 +66,20 @@ export default async function Extrato({
       ordem,
     }),
     categoriasDoUsuario().then((c) => c ?? []),
+    formasDePagamento(),
   ]);
+
+  // A forma escolhida entra na lista mesmo que não esteja cadastrada (veio de
+  // uma importação, por exemplo): senão o filtro ligado ficaria invisível.
+  const nomesDasFormas = [...new Set([...formas.map((f) => f.nome), ...(p.forma ? [p.forma] : [])])];
 
   return (
     <PainelExtrato
       lancamentos={lancamentos}
       categorias={categorias}
+      formas={nomesDasFormas}
       periodo={periodo}
+      datasPor={datasPor}
       ano={ano}
       mes={mes}
       dia={dia}

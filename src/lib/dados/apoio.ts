@@ -19,7 +19,7 @@ async function metasResumidas(): Promise<MetaResumida[]> {
   }));
 }
 
-async function formasDePagamento(): Promise<FormaPagamento[]> {
+export async function formasDePagamento(): Promise<FormaPagamento[]> {
   const supabase = await criarClienteServidor();
   const { data } = await supabase
     .from("formas_pagamento")

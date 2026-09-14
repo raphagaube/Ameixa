@@ -1,12 +1,11 @@
 "use client";
 
-import { CircleCheck, Trash2, TriangleAlert } from "lucide-react";
+import { CircleCheck, Plus, Trash2, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { Dinheiro } from "@/components/dinheiro";
 import { Botao } from "@/components/ui/botao";
 import { atualizarAgendaNaTela } from "@/lib/agenda/atualizar-na-tela";
-import type { LinhaCru } from "@/lib/csv";
 import { dataBr, moeda } from "@/lib/formato";
 import type { PlanilhaDoAmeixa } from "@/lib/planilha-ameixa-leitura";
 import { compactarPlanilha } from "@/lib/planilha-compacta";
@@ -24,9 +23,32 @@ const caixa: React.CSSProperties = {
   background: "var(--sf)",
 };
 
+/** Lista curta de lançamentos (data, descrição e valor com sinal). */
+function ListaDeItens({ itens, total }: { itens: Resumo["exclusoes"]["itens"]; total: number }) {
+  return (
+    <>
+      <ul className="flex flex-col" style={{ gap: 6, marginTop: 8, fontSize: 13 }}>
+        {itens.slice(0, MOSTRAR).map((i, k) => (
+          <li key={`${i.data}-${i.descricao}-${k}`}>
+            <span style={{ color: "var(--mut)" }}>{dataBr(i.data)} · </span>
+            {i.descricao}{" "}
+            <span style={{ color: i.tipo === "receita" ? "var(--ok)" : "var(--bad)" }}>
+              {i.tipo === "receita" ? "+" : "−"}
+              <Dinheiro>{moeda(i.valor)}</Dinheiro>
+            </span>
+          </li>
+        ))}
+      </ul>
+      {total > MOSTRAR ? (
+        <p style={{ fontSize: 12, color: "var(--mut)", marginTop: 6 }}>e mais {total - MOSTRAR}.</p>
+      ) : null}
+    </>
+  );
+}
+
 /**
  * A planilha do Ameixa voltando editada: ela é a verdade. Mostra o que vai
- * mudar, o que vai ser criado e o que vai sair do app, e só grava depois da
+ * mudar, o que vai entrar e o que vai sair do app, e só grava depois da
  * confirmação.
  */
 export function AtualizarPeloAmeixa({
@@ -34,13 +56,11 @@ export function AtualizarPeloAmeixa({
   resumo,
   nomeArquivo,
   aoVoltar,
-  aoImportarNovas,
 }: {
   planilha: PlanilhaDoAmeixa;
   resumo: Resumo;
   nomeArquivo: string;
   aoVoltar: () => void;
-  aoImportarNovas: (linhas: LinhaCru[]) => void;
 }) {
   const router = useRouter();
   const compacta = useMemo(() => compactarPlanilha(planilha), [planilha]);
@@ -53,13 +73,15 @@ export function AtualizarPeloAmeixa({
     renomeados: number;
     atualizados: number;
     excluidos: number;
+    criados: number;
     falhas: string[];
-    novas: LinhaCru[];
   } | null>(null);
 
   const ex = resumo.exclusoes;
+  const en = resumo.entradas;
   const vaiExcluir = excluir && ex.quantidade > 0;
-  const temAlgo = resumo.renomes.length > 0 || resumo.mudancas.length > 0 || vaiExcluir;
+  const temAlgo =
+    resumo.renomes.length > 0 || resumo.mudancas.length > 0 || vaiExcluir || en.quantidade > 0;
 
   function aplicar() {
     setErro(null);
@@ -67,12 +89,12 @@ export function AtualizarPeloAmeixa({
       let renomeados = 0;
       let atualizados = 0;
       let excluidos = 0;
+      let criados = 0;
       const falhas = new Set<string>();
-      let novas: LinhaCru[] = [];
 
       // Em rodadas: cada chamada grava até 200 e o servidor recalcula o que
-      // falta; a exclusão acontece na última. Para quando acaba ou quando uma
-      // rodada não consegue gravar nada, para não girar à toa.
+      // falta; exclusão e linhas novas acontecem na última. Para quando acaba
+      // ou quando uma rodada não consegue gravar nada, para não girar à toa.
       for (let rodada = 0; rodada < 200; rodada++) {
         let r;
         try {
@@ -88,20 +110,18 @@ export function AtualizarPeloAmeixa({
         renomeados += r.renomeados;
         atualizados += r.atualizados;
         excluidos += r.excluidos;
+        criados += r.criados;
         r.falhas.forEach((f) => falhas.add(f));
-        novas = r.novas;
         setProgresso(
           r.restantes > 0
             ? `${atualizados} de ${resumo.mudancas.length} lançamentos atualizados…`
-            : vaiExcluir
-              ? "Excluindo o que não está na planilha…"
-              : "Terminando…",
+            : "Terminando…",
         );
         if (r.restantes === 0 || (r.atualizados === 0 && r.renomeados === 0)) break;
       }
 
       setProgresso(null);
-      setFeito({ renomeados, atualizados, excluidos, falhas: [...falhas], novas });
+      setFeito({ renomeados, atualizados, excluidos, criados, falhas: [...falhas] });
       router.refresh();
 
       setAvisoAgenda("Atualizando o Google Agenda…");
@@ -124,6 +144,7 @@ export function AtualizarPeloAmeixa({
             <p style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.5 }}>
               {feito.renomeados} {feito.renomeados === 1 ? "nome mudou" : "nomes mudaram"} ·{" "}
               {feito.atualizados} {feito.atualizados === 1 ? "lançamento atualizado" : "lançamentos atualizados"} ·{" "}
+              {feito.criados} {feito.criados === 1 ? "criado" : "criados"} ·{" "}
               {feito.excluidos} {feito.excluidos === 1 ? "excluído" : "excluídos"}.
             </p>
             {avisoAgenda ? (
@@ -147,18 +168,6 @@ export function AtualizarPeloAmeixa({
           </div>
         ) : null}
 
-        {feito.novas.length > 0 ? (
-          <div className="flex flex-col" style={{ ...caixa, gap: 8 }}>
-            <p style={{ fontSize: 14 }}>
-              A planilha tem {feito.novas.length} {feito.novas.length === 1 ? "linha sem código" : "linhas sem código"}, que{" "}
-              {feito.novas.length === 1 ? "ainda não existe" : "ainda não existem"} no app.
-            </p>
-            <Botao onClick={() => aoImportarNovas(feito.novas)}>
-              Importar {feito.novas.length === 1 ? "a linha nova" : `as ${feito.novas.length} linhas novas`}
-            </Botao>
-          </div>
-        ) : null}
-
         <Botao variante="contorno" onClick={aoVoltar}>
           Concluir
         </Botao>
@@ -172,8 +181,8 @@ export function AtualizarPeloAmeixa({
         <h2 style={{ fontSize: 17 }}>Atualizar pela planilha do Ameixa</h2>
         <p style={{ fontSize: 13, color: "var(--mut)", marginTop: 4, lineHeight: 1.5 }}>
           {nomeArquivo} foi gerada pelo app, então ela vale como a verdade: linhas com código
-          atualizam o que já existe, e o que está no app dentro do período da planilha mas não está
-          nela sai. Confira antes de aplicar.
+          atualizam o que já existe, linhas sem código entram como lançamentos novos, e o que está
+          no app dentro do período da planilha mas não está nela sai. Confira antes de aplicar.
         </p>
       </div>
 
@@ -181,9 +190,9 @@ export function AtualizarPeloAmeixa({
         {[
           [resumo.renomes.length, resumo.renomes.length === 1 ? "nome muda" : "nomes mudam"],
           [resumo.mudancas.length, resumo.mudancas.length === 1 ? "lançamento muda" : "lançamentos mudam"],
+          [en.quantidade, en.quantidade === 1 ? "entra no app" : "entram no app"],
           [ex.quantidade, ex.quantidade === 1 ? "sai do app" : "saem do app"],
           [resumo.semMudanca, "sem mudança"],
-          [resumo.novas, resumo.novas === 1 ? "linha nova" : "linhas novas"],
           [resumo.problemas.length, resumo.problemas.length === 1 ? "problema" : "problemas"],
         ].map(([n, rotulo]) => (
           <div key={String(rotulo)} style={{ ...caixa, padding: 12 }}>
@@ -192,6 +201,28 @@ export function AtualizarPeloAmeixa({
           </div>
         ))}
       </div>
+
+      {en.quantidade > 0 ? (
+        <section style={caixa}>
+          <h3 className="flex items-center" style={{ fontSize: 15, gap: 6 }}>
+            <Plus size={16} strokeWidth={1.5} aria-hidden />
+            Lançamentos que entram no app
+          </h3>
+          <p style={{ fontSize: 13, color: "var(--mut)", marginTop: 4, lineHeight: 1.5 }}>
+            Linhas sem código na planilha. Os que vierem sem categoria ficam em Pendências para
+            completar.
+          </p>
+          <ListaDeItens itens={en.itens} total={en.quantidade} />
+        </section>
+      ) : null}
+
+      {en.jaNoApp > 0 ? (
+        <p style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.5 }}>
+          {en.jaNoApp === 1
+            ? "1 linha sem código já está no app, igual (data, valor e descrição), e não entra de novo."
+            : `${en.jaNoApp} linhas sem código já estão no app, iguais (data, valor e descrição), e não entram de novo.`}
+        </p>
+      ) : null}
 
       {ex.quantidade > 0 ? (
         <section style={{ ...caixa, borderColor: excluir ? "var(--bad)" : "var(--ln2)" }}>
@@ -203,21 +234,7 @@ export function AtualizarPeloAmeixa({
             Estão no app entre {ex.de ? dataBr(ex.de) : "—"} e {ex.ate ? dataBr(ex.ate) : "—"}, mas não
             estão na planilha. Fora desse período nada é tocado, e aportes em metas nunca saem.
           </p>
-          <ul className="flex flex-col" style={{ gap: 6, marginTop: 8, fontSize: 13 }}>
-            {ex.itens.slice(0, MOSTRAR).map((i, k) => (
-              <li key={`${i.data}-${i.descricao}-${k}`}>
-                <span style={{ color: "var(--mut)" }}>{dataBr(i.data)} · </span>
-                {i.descricao}{" "}
-                <span style={{ color: i.tipo === "receita" ? "var(--ok)" : "var(--bad)" }}>
-                  {i.tipo === "receita" ? "+" : "−"}
-                  <Dinheiro>{moeda(i.valor)}</Dinheiro>
-                </span>
-              </li>
-            ))}
-          </ul>
-          {ex.quantidade > MOSTRAR ? (
-            <p style={{ fontSize: 12, color: "var(--mut)", marginTop: 6 }}>e mais {ex.quantidade - MOSTRAR}.</p>
-          ) : null}
+          <ListaDeItens itens={ex.itens} total={ex.quantidade} />
           <label className="flex items-center" style={{ gap: 8, marginTop: 10, minHeight: 44, fontSize: 14 }}>
             <input
               type="checkbox"
@@ -291,10 +308,7 @@ export function AtualizarPeloAmeixa({
       ) : null}
 
       {!temAlgo ? (
-        <p style={{ fontSize: 14, color: "var(--mut)" }}>
-          Nada para atualizar: a planilha está igual ao app
-          {resumo.novas > 0 ? ", fora as linhas novas" : ""}.
-        </p>
+        <p style={{ fontSize: 14, color: "var(--mut)" }}>Nada para atualizar: a planilha está igual ao app.</p>
       ) : null}
 
       {progresso ? (
@@ -315,14 +329,6 @@ export function AtualizarPeloAmeixa({
         {temAlgo ? (
           <Botao onClick={aplicar} carregando={aplicando}>
             {vaiExcluir ? `Aplicar e excluir ${ex.quantidade}` : "Aplicar mudanças"}
-          </Botao>
-        ) : resumo.novas > 0 ? (
-          <Botao
-            onClick={() =>
-              aoImportarNovas(planilha.lancamentos.filter((l) => !l.codigo).map((l) => l.cru))
-            }
-          >
-            Importar as linhas novas
           </Botao>
         ) : null}
       </div>

@@ -1,9 +1,10 @@
-import { lerData, type LinhaCru } from "@/lib/csv";
+import { lerData } from "@/lib/csv";
 import {
   analisarLinhas,
   casarCategoria,
   casarPorNome,
   palpitarMapeamento,
+  type LinhaPrevia,
 } from "@/lib/importacao";
 import type { PlanilhaDoAmeixa } from "@/lib/planilha-ameixa-leitura";
 import type { Situacao, TipoLancamento } from "@/lib/tipos/lancamentos";
@@ -75,6 +76,13 @@ export type Mudanca = {
   novos: CamposGravaveis;
 };
 
+/** Linha sem código: um lançamento que ainda não existe no app. */
+export type Nova = {
+  linha: number;
+  descricao: string;
+  novos: CamposGravaveis;
+};
+
 export type Problema = {
   aba: "Lançamentos" | "Categorias" | "Contas";
   linha: number;
@@ -84,7 +92,7 @@ export type Problema = {
 export type PlanoAtualizacao = {
   renomes: Renome[];
   mudancas: Mudanca[];
-  novas: LinhaCru[];
+  novas: Nova[];
   problemas: Problema[];
   semMudanca: number;
 };
@@ -221,16 +229,91 @@ export function planejarAtualizacao(
     ...app.contas,
   ];
 
+  /**
+   * Os textos da linha viram ids do app. Num lançamento que já existe, nome
+   * que não casa mantém o que estava; numa linha nova o campo fica vazio, e o
+   * lançamento entra assim mesmo, para o dono completar depois.
+   */
+  const gravaveis = (linha: number, p: LinhaPrevia, atual: LancamentoAtual | null): CamposGravaveis => {
+    const faltou = (motivo: string, seExiste: string, seNovo: string) =>
+      problemas.push({ aba: "Lançamentos", linha, motivo: `${motivo} — ${atual ? seExiste : seNovo}` });
+
+    let categoria_id: string | null = null;
+    if (texto(p.categoriaTexto)) {
+      categoria_id = casarCategoria(p.categoriaTexto, catsParaCasar, p.tipo);
+      if (!categoria_id) {
+        faltou(
+          `A categoria "${p.categoriaTexto}" não existe no app`,
+          "a categoria ficou como estava.",
+          "o lançamento novo entra sem categoria.",
+        );
+        categoria_id = atual?.categoria_id ?? null;
+      }
+    }
+
+    let subcategoria_id: string | null = null;
+    if (texto(p.subcategoriaTexto) && categoria_id) {
+      subcategoria_id = casarPorNome(p.subcategoriaTexto, subsParaCasar(categoria_id));
+      if (!subcategoria_id) {
+        faltou(
+          `A subcategoria "${p.subcategoriaTexto}" não existe nessa categoria`,
+          "ficou como estava.",
+          "o lançamento novo entra sem subcategoria.",
+        );
+        subcategoria_id = atual && atual.categoria_id === categoria_id ? atual.subcategoria_id : null;
+      }
+    }
+
+    let conta_id: string | null = null;
+    if (texto(p.contaTexto)) {
+      conta_id = casarPorNome(p.contaTexto, contasParaCasar);
+      if (!conta_id) {
+        faltou(
+          `A conta "${p.contaTexto}" não existe no app`,
+          "a conta ficou como estava.",
+          "o lançamento novo entra sem conta.",
+        );
+        conta_id = atual?.conta_id ?? null;
+      }
+    }
+
+    return {
+      tipo: p.tipo,
+      valor: Math.round(Math.abs(p.valor!) * 100) / 100,
+      descricao: p.descricao,
+      data_registro: p.data!,
+      data_vencimento: p.vencimento,
+      situacao: p.situacao,
+      categoria_id,
+      subcategoria_id: categoria_id ? subcategoria_id : null,
+      conta_id,
+      forma_pagamento: p.forma,
+      responsavel: p.responsavel,
+      observacao: p.observacao,
+    };
+  };
+
   // ── Lançamentos ──────────────────────────────────────────────────
   const mapa = palpitarMapeamento(Object.keys(planilha.lancamentos[0]?.cru ?? {}));
-  const novas: LinhaCru[] = [];
+  const novas: Nova[] = [];
   const mudancas: Mudanca[] = [];
   const vistos = new Set<string>();
   let semMudanca = 0;
 
   for (const l of planilha.lancamentos) {
     if (!l.codigo) {
-      novas.push(l.cru);
+      // Linha em branco no meio da planilha não é lançamento.
+      if (!Object.values(l.cru).some((v) => texto(v))) continue;
+      const [p] = analisarLinhas([l.cru], mapa);
+      if (p.problema) {
+        problemas.push({
+          aba: "Lançamentos",
+          linha: l.linha,
+          motivo: `Linha nova ${p.problema} — não foi criada.`,
+        });
+        continue;
+      }
+      novas.push({ linha: l.linha, descricao: p.descricao, novos: gravaveis(l.linha, p, null) });
       continue;
     }
 
@@ -263,59 +346,7 @@ export function planejarAtualizacao(
       continue;
     }
 
-    let categoria_id: string | null = null;
-    if (texto(p.categoriaTexto)) {
-      categoria_id = casarCategoria(p.categoriaTexto, catsParaCasar, p.tipo);
-      if (!categoria_id) {
-        problemas.push({
-          aba: "Lançamentos",
-          linha: l.linha,
-          motivo: `A categoria "${p.categoriaTexto}" não existe no app — a categoria ficou como estava.`,
-        });
-        categoria_id = atual.categoria_id;
-      }
-    }
-
-    let subcategoria_id: string | null = null;
-    if (texto(p.subcategoriaTexto) && categoria_id) {
-      subcategoria_id = casarPorNome(p.subcategoriaTexto, subsParaCasar(categoria_id));
-      if (!subcategoria_id) {
-        problemas.push({
-          aba: "Lançamentos",
-          linha: l.linha,
-          motivo: `A subcategoria "${p.subcategoriaTexto}" não existe nessa categoria — ficou como estava.`,
-        });
-        subcategoria_id = atual.categoria_id === categoria_id ? atual.subcategoria_id : null;
-      }
-    }
-
-    let conta_id: string | null = null;
-    if (texto(p.contaTexto)) {
-      conta_id = casarPorNome(p.contaTexto, contasParaCasar);
-      if (!conta_id) {
-        problemas.push({
-          aba: "Lançamentos",
-          linha: l.linha,
-          motivo: `A conta "${p.contaTexto}" não existe no app — a conta ficou como estava.`,
-        });
-        conta_id = atual.conta_id;
-      }
-    }
-
-    const novos: CamposGravaveis = {
-      tipo: p.tipo,
-      valor: Math.round(Math.abs(p.valor!) * 100) / 100,
-      descricao: p.descricao,
-      data_registro: p.data!,
-      data_vencimento: p.vencimento,
-      situacao: p.situacao,
-      categoria_id,
-      subcategoria_id: categoria_id ? subcategoria_id : null,
-      conta_id,
-      forma_pagamento: p.forma,
-      responsavel: p.responsavel,
-      observacao: p.observacao,
-    };
+    const novos = gravaveis(l.linha, p, atual);
 
     const campos: string[] = [];
     const comparar = (rotulo: string, a: string | null, b: string | null) => {
@@ -362,4 +393,49 @@ export function periodoDaPlanilha(planilha: PlanilhaDoAmeixa): {
     .filter((d): d is string => !!d)
     .sort();
   return { de: datas[0] ?? null, ate: datas[datas.length - 1] ?? null };
+}
+
+export type LancamentoParaCasar = {
+  id: string;
+  tipo: string;
+  valor: number;
+  descricao: string;
+  data_registro: string;
+};
+
+const chaveDeConteudo = (l: { tipo: string; valor: number; descricao: string; data_registro: string }) =>
+  [l.tipo, l.data_registro.slice(0, 10), Math.abs(l.valor).toFixed(2), l.descricao.trim().toLowerCase()].join("|");
+
+/**
+ * Separa as linhas novas que já estão no app das que ainda precisam ser
+ * criadas.
+ *
+ * Linha sem código continua sem código no arquivo depois de importada. Sem
+ * este casamento, aplicar a mesma planilha de novo criaria o lançamento outra
+ * vez — e a exclusão do período apagaria o criado da primeira vez, que não
+ * tem o código na planilha. Casa pelo que o olho compararia (tipo, data,
+ * valor e descrição), um para um: duas linhas iguais na planilha e uma no app
+ * criam só a que falta. Lançamento cujo código está na planilha não entra no
+ * casamento — ele já tem a sua linha.
+ */
+export function casarNovas(
+  novas: Nova[],
+  existentes: LancamentoParaCasar[],
+  codigosDaPlanilha: Set<string>,
+): { aCriar: Nova[]; jaNoApp: string[] } {
+  const livres = new Map<string, string[]>();
+  for (const e of existentes) {
+    if (codigosDaPlanilha.has(e.id)) continue;
+    const k = chaveDeConteudo(e);
+    livres.set(k, [...(livres.get(k) ?? []), e.id]);
+  }
+
+  const aCriar: Nova[] = [];
+  const jaNoApp: string[] = [];
+  for (const n of novas) {
+    const id = livres.get(chaveDeConteudo(n.novos))?.shift();
+    if (id) jaNoApp.push(id);
+    else aCriar.push(n);
+  }
+  return { aCriar, jaNoApp };
 }

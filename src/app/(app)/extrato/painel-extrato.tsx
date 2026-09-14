@@ -24,7 +24,7 @@ import {
   type LancamentoNaLista,
   type Situacao,
 } from "@/lib/tipos/lancamentos";
-import type { Periodo } from "./page";
+import type { DatasPor, Periodo } from "./page";
 import { Dinheiro } from "@/components/dinheiro";
 
 const ORDENS: { valor: Ordem; texto: string }[] = [
@@ -44,9 +44,13 @@ export function PainelExtrato({
   ordem,
   de,
   ate,
+  formas,
+  datasPor,
 }: {
   lancamentos: LancamentoNaLista[];
   categorias: Categoria[];
+  formas: string[];
+  datasPor: DatasPor;
   periodo: Periodo;
   ano: number;
   mes: number;
@@ -63,6 +67,7 @@ export function PainelExtrato({
   const [subcategoria, setSubcategoria] = useState(params.get("subcategoria") ?? "");
   const [situacao, setSituacao] = useState(params.get("situacao") ?? "");
   const [responsavel, setResponsavel] = useState(params.get("responsavel") ?? "");
+  const [forma, setForma] = useState(params.get("forma") ?? "");
   const [faixaDe, setFaixaDe] = useState(params.get("de") ?? de);
   const [faixaAte, setFaixaAte] = useState(params.get("ate") ?? ate);
 
@@ -218,6 +223,7 @@ export function PainelExtrato({
       : null,
     subcategoria ? "subcategoria" : null,
     situacao ? `situação ${situacao.replace("_", " ")}` : null,
+    forma ? `forma de pagamento ${forma}` : null,
     responsavel ? `responsável "${responsavel}"` : null,
   ].filter(Boolean) as string[];
   const temFiltro = filtrosAtivos.length > 0;
@@ -238,6 +244,7 @@ export function PainelExtrato({
       categoria,
       subcategoria,
       situacao,
+      forma,
       responsavel,
     });
   }
@@ -248,11 +255,13 @@ export function PainelExtrato({
     setSubcategoria("");
     setSituacao("");
     setResponsavel("");
+    setForma("");
     irPara({
       texto: undefined,
       categoria: undefined,
       subcategoria: undefined,
       situacao: undefined,
+      forma: undefined,
       responsavel: undefined,
     });
   }
@@ -274,12 +283,14 @@ export function PainelExtrato({
     if (!porData) return [];
     const mapa = new Map<string, LancamentoNaLista[]>();
     for (const l of lancamentos) {
-      const chave = l.data_registro;
+      // Pelo vencimento, o dia do grupo é o do vencimento (ou o do registro,
+      // para quem não tem vencimento) — o mesmo dia que filtrou.
+      const chave = datasPor === "vencimento" ? dataQueVale(l) : l.data_registro;
       if (!mapa.has(chave)) mapa.set(chave, []);
       mapa.get(chave)!.push(l);
     }
     return [...mapa.entries()];
-  }, [lancamentos, porData]);
+  }, [lancamentos, porData, datasPor]);
 
   const estiloSelect: React.CSSProperties = {
     padding: 12,
@@ -367,6 +378,22 @@ export function PainelExtrato({
             </div>
           ) : null}
 
+          <Segmentos
+            rotulo="Filtrar as datas pelo"
+            opcoes={[
+              { valor: "registro" as const, texto: "Registro" },
+              { valor: "vencimento" as const, texto: "Vencimento" },
+            ]}
+            valor={datasPor}
+            aoEscolher={(v) => irPara({ datas: v === "vencimento" ? v : undefined })}
+          />
+          {datasPor === "vencimento" ? (
+            <p style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.5 }}>
+              Conta pelo vencimento de cada lançamento, e pela data do registro quando ele
+              não tem vencimento.
+            </p>
+          ) : null}
+
           <section
             className="flex flex-col"
             style={{
@@ -444,6 +471,22 @@ export function PainelExtrato({
                 ),
               )}
             </select>
+
+            {formas.length > 0 ? (
+              <select
+                value={forma}
+                onChange={(e) => setForma(e.target.value)}
+                aria-label="Forma de pagamento"
+                style={estiloSelect}
+              >
+                <option value="">Qualquer forma de pagamento</option>
+                {formas.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+            ) : null}
 
             <input
               value={responsavel}
@@ -682,6 +725,7 @@ export function PainelExtrato({
                 : periodo === "ano"
                   ? String(ano)
                   : `${dataBr(de)} — ${dataBr(ate)}`}
+              {datasPor === "vencimento" ? " · pelo vencimento" : ""}
             </span>
             <span style={{ fontSize: 12, color: "var(--mut)" }}>
               {lancamentos.length}{" "}

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  casarNovas,
   periodoDaPlanilha,
   planejarAtualizacao,
   type AppAtual,
   type LancamentoAtual,
+  type Nova,
 } from "./atualizacao-ameixa";
 import type { ListasPlanilha } from "./listas-planilha";
 import { gerarPlanilhaAmeixa } from "./planilha-ameixa";
@@ -157,7 +159,7 @@ describe("planejarAtualizacao", () => {
     expect(plano.mudancas).toEqual([]);
   });
 
-  it("linha sem código é nova; código desconhecido é ignorado", () => {
+  it("linha sem código é nova, já com os ids do app; código desconhecido é ignorado", () => {
     const app = montarApp();
     const p = exportar(app);
     p.lancamentos.push({ linha: 99, codigo: "", cru: { ...linhaDe(p, "l-luz").cru, codigo: "" } });
@@ -165,7 +167,49 @@ describe("planejarAtualizacao", () => {
 
     const plano = planejarAtualizacao(p, app);
     expect(plano.novas).toHaveLength(1);
+    expect(plano.novas[0]).toMatchObject({
+      linha: 99,
+      descricao: "Luz Cpfl",
+      novos: {
+        tipo: "despesa",
+        valor: 100,
+        data_registro: "2026-09-12",
+        data_vencimento: "2026-09-15",
+        situacao: "a_pagar",
+        categoria_id: "c-moradia",
+        subcategoria_id: "s-luz",
+        conta_id: "k-pag",
+      },
+    });
     expect(plano.problemas.map((x) => x.linha)).toEqual([100]);
+  });
+
+  it("linha nova com categoria que não existe entra sem categoria, e o problema é apontado", () => {
+    const app = montarApp();
+    const p = exportar(app);
+    p.lancamentos.push({
+      linha: 50,
+      codigo: "",
+      cru: { ...linhaDe(p, "l-luz").cru, codigo: "", categoria: "Cartório", subcategoria: "" },
+    });
+
+    const plano = planejarAtualizacao(p, app);
+    expect(plano.novas[0].novos).toMatchObject({ categoria_id: null, subcategoria_id: null });
+    expect(plano.problemas[0].motivo).toContain("entra sem categoria");
+  });
+
+  it("linha em branco é ignorada; linha nova sem valor é apontada e não entra", () => {
+    const app = montarApp();
+    const p = exportar(app);
+    const vazia = Object.fromEntries(Object.keys(linhaDe(p, "l-luz").cru).map((k) => [k, ""]));
+    p.lancamentos.push({ linha: 60, codigo: "", cru: vazia });
+    p.lancamentos.push({ linha: 61, codigo: "", cru: { ...linhaDe(p, "l-luz").cru, codigo: "", valor: "" } });
+
+    const plano = planejarAtualizacao(p, app);
+    expect(plano.novas).toEqual([]);
+    expect(plano.problemas).toEqual([
+      { aba: "Lançamentos", linha: 61, motivo: "Linha nova sem valor — não foi criada." },
+    ]);
   });
 
   it("dois itens com o mesmo nome final: nenhum dos dois é renomeado", () => {
@@ -196,5 +240,68 @@ describe("periodoDaPlanilha", () => {
       de: null,
       ate: null,
     });
+  });
+});
+
+describe("casarNovas", () => {
+  const nova = (descricao: string, valor = 6872, data = "2026-09-13"): Nova => ({
+    linha: 11,
+    descricao,
+    novos: {
+      tipo: "despesa",
+      valor,
+      descricao,
+      data_registro: data,
+      data_vencimento: null,
+      situacao: "a_pagar",
+      categoria_id: null,
+      subcategoria_id: null,
+      conta_id: null,
+      forma_pagamento: null,
+      responsavel: null,
+      observacao: null,
+    },
+  });
+  const noApp = (id: string, descricao: string, valor = 6872, data = "2026-09-13") => ({
+    id,
+    tipo: "despesa",
+    valor,
+    descricao,
+    data_registro: data,
+  });
+
+  it("linha nova que ainda não está no app é criada", () => {
+    const r = casarNovas([nova("TRANSFERÊNCIA DE ESCRITURA")], [noApp("x", "Outra coisa")], new Set());
+    expect(r.aCriar).toHaveLength(1);
+    expect(r.jaNoApp).toEqual([]);
+  });
+
+  it("aplicar a mesma planilha de novo não cria outra vez", () => {
+    const r = casarNovas(
+      [nova("TRANSFERÊNCIA DE ESCRITURA")],
+      [noApp("x", " transferência de escritura ")],
+      new Set(),
+    );
+    expect(r).toEqual({ aCriar: [], jaNoApp: ["x"] });
+  });
+
+  it("casa um para um e não usa lançamento que já tem a sua linha com código", () => {
+    const r = casarNovas(
+      [nova("Café", 5), nova("Café", 5)],
+      [noApp("a", "Café", 5), noApp("b", "Café", 5)],
+      new Set(["b"]),
+    );
+    expect(r.jaNoApp).toEqual(["a"]);
+    expect(r.aCriar).toHaveLength(1);
+  });
+
+  it("valor ou data diferente não casa", () => {
+    const r = casarNovas(
+      [nova("Café", 5), nova("Café", 5, "2026-09-14")],
+      [noApp("a", "Café", 6), noApp("b", "Café", 5, "2026-09-13")],
+      new Set(),
+    );
+    expect(r.jaNoApp).toEqual(["b"]);
+    expect(r.aCriar.map((n) => n.novos.data_registro)).toEqual(["2026-09-14"]);
   });
 });

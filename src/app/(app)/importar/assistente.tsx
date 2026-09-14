@@ -349,14 +349,6 @@ export function Assistente({
         resumo={ameixa.resumo}
         nomeArquivo={ameixa.nome}
         aoVoltar={() => setAmeixa(null)}
-        aoImportarNovas={(novas) => {
-          setAmeixa(null);
-          setNomeArquivo(`${ameixa.nome} — linhas novas`);
-          setBrutas(novas);
-          setMapa(palpitarMapeamento(Object.keys(novas[0] ?? {})));
-          setErro(null);
-          setPasso(2);
-        }}
       />
     );
   }
