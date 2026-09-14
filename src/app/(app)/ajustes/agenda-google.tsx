@@ -7,7 +7,8 @@ import {
   TriangleAlert,
   Unlink,
 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useOcupado } from "@/lib/use-ocupado";
 import { Botao } from "@/components/ui/botao";
 import type { StatusAgenda } from "@/lib/dados/agenda";
 import {
@@ -27,7 +28,9 @@ import {
 export function AgendaGoogle({ status }: { status: StatusAgenda }) {
   const [erro, setErro] = useState<string | null>(null);
   const [progresso, setProgresso] = useState<string | null>(null);
-  const [ocupado, iniciar] = useTransition();
+  // Não é useTransition: a carga inicial são até 80 rodadas, e dentro de
+  // uma transição os menus não respondiam até acabar.
+  const [ocupado, iniciar] = useOcupado();
 
   if (!status.configurado) {
     return (

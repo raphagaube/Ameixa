@@ -3,7 +3,8 @@
 import { Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { atualizarAgendaNaTela } from "@/lib/agenda/atualizar-na-tela";
-import { Fragment, useState, useTransition } from "react";
+import { Fragment, useState } from "react";
+import { useOcupado } from "@/lib/use-ocupado";
 import {
   editarLancamentosEmLote,
   excluirLancamentosEmLote,
@@ -135,7 +136,9 @@ export function PainelSerie({
   const [moverRegistro, setMoverRegistro] = useState(false);
   const [recado, setRecado] = useState<string | null>(null);
   const [desfazer, setDesfazer] = useState<ItemEdicao[] | null>(null);
-  const [gravando, iniciar] = useTransition();
+  // Não é useTransition: salvar grava em rodadas de 500, e dentro de uma
+  // transição os menus não respondiam até acabar.
+  const [gravando, iniciar] = useOcupado();
   const [avisoAgenda, setAvisoAgenda] = useState<string | null>(null);
 
   /**

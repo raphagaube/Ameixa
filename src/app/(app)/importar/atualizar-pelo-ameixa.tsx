@@ -2,13 +2,14 @@
 
 import { CircleCheck, Plus, Trash2, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { Dinheiro } from "@/components/dinheiro";
 import { Botao } from "@/components/ui/botao";
 import { atualizarAgendaNaTela } from "@/lib/agenda/atualizar-na-tela";
 import { dataBr, moeda } from "@/lib/formato";
 import type { PlanilhaDoAmeixa } from "@/lib/planilha-ameixa-leitura";
 import { compactarPlanilha } from "@/lib/planilha-compacta";
+import { useOcupado } from "@/lib/use-ocupado";
 import { aplicarAtualizacao, type ResumoAtualizacao } from "./atualizar-ameixa";
 
 type Resumo = Extract<ResumoAtualizacao, { ok: true }>;
@@ -64,7 +65,9 @@ export function AtualizarPeloAmeixa({
 }) {
   const router = useRouter();
   const compacta = useMemo(() => compactarPlanilha(planilha), [planilha]);
-  const [aplicando, iniciar] = useTransition();
+  // Não é useTransition: as rodadas levam segundos e o Google, minutos —
+  // dentro de uma transição, os menus ficavam mortos até o fim.
+  const [aplicando, iniciar] = useOcupado();
   const [excluir, setExcluir] = useState(true);
   const [progresso, setProgresso] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -123,15 +126,22 @@ export function AtualizarPeloAmeixa({
       setProgresso(null);
       setFeito({ renomeados, atualizados, excluidos, criados, falhas: [...falhas] });
       router.refresh();
-
-      setAvisoAgenda("Atualizando o Google Agenda…");
-      const restam = await atualizarAgendaNaTela();
-      setAvisoAgenda(
-        restam > 0
-          ? `${restam} ${restam === 1 ? "compromisso ficou" : "compromissos ficaram"} na fila do Google Agenda. Em Ajustes, toque em Tentar agora.`
-          : "Google Agenda atualizado.",
-      );
+      void sincronizarAgenda();
     });
+  }
+
+  /**
+   * Leva a fila ao Google Agenda depois de aplicar. Fora da espera do botão:
+   * são até 40 rodadas, e o dono não precisa ficar preso nesta tela.
+   */
+  async function sincronizarAgenda() {
+    setAvisoAgenda("Atualizando o Google Agenda… Pode sair desta tela; o envio continua.");
+    const restam = await atualizarAgendaNaTela();
+    setAvisoAgenda(
+      restam > 0
+        ? `${restam} ${restam === 1 ? "compromisso ficou" : "compromissos ficaram"} na fila do Google Agenda. Em Ajustes, toque em Tentar agora.`
+        : "Google Agenda atualizado.",
+    );
   }
 
   if (feito) {

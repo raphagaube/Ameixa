@@ -2,7 +2,8 @@
 
 import { CircleCheck, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import { useOcupado } from "@/lib/use-ocupado";
 import { Botao } from "@/components/ui/botao";
 import { moeda } from "@/lib/formato";
 import {
@@ -44,7 +45,9 @@ export function PainelOrganizar({
   const [escolhas, setEscolhas] = useState<Record<string, Escolha>>(inicial);
   const [erro, setErro] = useState<string | null>(null);
   const [pronto, setPronto] = useState<string | null>(null);
-  const [ocupado, iniciar] = useTransition();
+  // Não é useTransition: organizar centenas de lançamentos leva segundos, e
+  // dentro de uma transição os menus não respondiam até acabar.
+  const [ocupado, iniciar] = useOcupado();
 
   const chave = (g: GrupoPendencia) => `${g.tipo}|${g.nome}`;
 

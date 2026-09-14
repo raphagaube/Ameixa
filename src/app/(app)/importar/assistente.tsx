@@ -2,7 +2,8 @@
 
 import { CircleCheck, Download, FileSpreadsheet, FileText, Link2, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import { useOcupado } from "@/lib/use-ocupado";
 import { Botao } from "@/components/ui/botao";
 import { Campo } from "@/components/ui/campo";
 import { lerCsv, type LinhaCru } from "@/lib/csv";
@@ -70,7 +71,9 @@ export function Assistente({
   } | null>(null);
   const [repetidas, setRepetidas] = useState<number | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
-  const [ocupado, iniciar] = useTransition();
+  // Não é useTransition: gravar milhares de linhas leva segundos, e dentro
+  // de uma transição os menus não respondiam até acabar.
+  const [ocupado, iniciar] = useOcupado();
 
   const colunas = brutas.length > 0 ? Object.keys(brutas[0]) : [];
   const previas = useMemo(() => analisarLinhas(brutas, mapa), [brutas, mapa]);

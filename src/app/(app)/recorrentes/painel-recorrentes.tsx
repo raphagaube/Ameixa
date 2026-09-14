@@ -4,7 +4,8 @@ import { ChevronDown, ChevronRight, Search, TriangleAlert, X } from "lucide-reac
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { atualizarAgendaNaTela } from "@/lib/agenda/atualizar-na-tela";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import { useOcupado } from "@/lib/use-ocupado";
 import {
   editarLancamentosEmLote,
   excluirPendentesEmLote,
@@ -124,7 +125,9 @@ export function PainelRecorrentes({
   const [confirmando, setConfirmando] = useState<string | null>(null);
   const [recado, setRecado] = useState<string | null>(null);
   const [desfazer, setDesfazer] = useState<ItemEdicao[] | null>(null);
-  const [gravando, iniciar] = useTransition();
+  // Não é useTransition: "Salvar tudo" grava em rodadas de 500, e dentro de
+  // uma transição os menus não respondiam até acabar.
+  const [gravando, iniciar] = useOcupado();
   const [avisoAgenda, setAvisoAgenda] = useState<string | null>(null);
 
   /**
