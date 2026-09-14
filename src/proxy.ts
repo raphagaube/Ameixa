@@ -31,11 +31,12 @@ export async function proxy(req: NextRequest) {
     },
   );
 
-  // getUser valida o token no servidor do Supabase e renova a sessão.
-  // Não troque por getSession: aquele confia no cookie sem verificar.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims confere a assinatura do token com as chaves ES256 do projeto
+  // (buscadas uma vez e guardadas) e renova a sessão vencida. Não troque por
+  // getSession: aquele confia no cookie sem verificar. Antes era getUser, que
+  // fazia uma ida ao servidor do Supabase em cada troca de tela.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims ?? null;
 
   const caminho = req.nextUrl.pathname;
   const ehPublica = PUBLICAS.some((p) => caminho.startsWith(p));

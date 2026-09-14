@@ -35,18 +35,20 @@ export const criarClienteServidor = cache(async () => {
   );
 });
 
+export type UsuarioAtual = { id: string; email: string | null };
+
 /**
  * Usuário autenticado, ou null.
  *
- * getUser() bate no servidor do Supabase a cada chamada. Sem o cache, uma
- * navegação faria isso cinco ou seis vezes — o layout, o perfil, os dados de
- * apoio e cada consulta pediam o usuário por conta própria. Com cache(), é
- * uma vez por requisição.
+ * Vem de getClaims(), que confere a assinatura do token com as chaves ES256
+ * do projeto, sem ida ao servidor do Supabase. Antes era getUser(), que fazia
+ * essa viagem em toda troca de tela — e o perfil só consultava o banco depois
+ * dela voltar. O cache() mantém uma conferência por requisição.
  */
-export const usuarioAtual = cache(async () => {
+export const usuarioAtual = cache(async (): Promise<UsuarioAtual | null> => {
   const supabase = await criarClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims?.sub) return null;
+  return { id: claims.sub, email: claims.email ?? null };
 });
