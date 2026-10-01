@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckSquare, Search, X } from "lucide-react";
+import { CheckSquare, Printer, Search, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { atualizarAgendaNaTela } from "@/lib/agenda/atualizar-na-tela";
 import { useMemo, useState, useTransition } from "react";
@@ -24,7 +24,7 @@ import {
   type LancamentoNaLista,
   type Situacao,
 } from "@/lib/tipos/lancamentos";
-import type { DatasPor, Periodo } from "./page";
+import type { DatasPor, Periodo } from "@/lib/extrato-impresso";
 import { Dinheiro } from "@/components/dinheiro";
 
 const ORDENS: { valor: Ordem; texto: string }[] = [
@@ -304,7 +304,31 @@ export function PainelExtrato({
 
   return (
     <div className="flex flex-col" style={{ gap: 14, paddingTop: 22 }}>
-      <h1 style={{ fontSize: 30 }}>Extrato</h1>
+      <div className="flex items-center justify-between" style={{ gap: 12 }}>
+        <h1 style={{ fontSize: 30 }}>Extrato</h1>
+        {/* Leva o endereço como está: o documento sai com o período e os
+            filtros que estão valendo na tela. */}
+        <button
+          type="button"
+          onClick={() => router.push(`/extrato/imprimir?${params.toString()}`)}
+          className="flex items-center"
+          style={{
+            gap: 6,
+            minHeight: 44,
+            padding: "0 14px",
+            borderRadius: "var(--rs)",
+            border: "1px solid var(--ln)",
+            background: "transparent",
+            color: "var(--color-text)",
+            fontSize: 13,
+            fontWeight: 600,
+            flexShrink: 0,
+          }}
+        >
+          <Printer size={18} strokeWidth={1.5} aria-hidden />
+          Imprimir / PDF
+        </button>
+      </div>
 
       {/* Filtros e lista: empilhados no celular, lado a lado no notebook. */}
       <div className="extrato-grade">

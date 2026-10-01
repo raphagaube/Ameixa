@@ -1,39 +1,10 @@
-import { paraIso } from "@/lib/formato";
 import { formasDePagamento } from "@/lib/dados/apoio";
 import { categoriasDoUsuario } from "@/lib/dados/categorias";
-import {
-  lancamentosDoPeriodo,
-  limitesDoMes,
-  type Ordem,
-} from "@/lib/dados/lancamentos";
+import { lancamentosDoPeriodo } from "@/lib/dados/lancamentos";
+import { lerParametrosDoExtrato } from "@/lib/extrato-impresso";
 import { PainelExtrato } from "./painel-extrato";
 
 export const metadata = { title: "Extrato · Ameixa" };
-
-export type Periodo = "dia" | "mes" | "ano" | "faixa";
-export type DatasPor = "registro" | "vencimento";
-
-function intervalo(
-  periodo: Periodo,
-  ano: number,
-  mes: number,
-  dia: number,
-  de?: string,
-  ate?: string,
-) {
-  if (periodo === "dia") {
-    const d = paraIso(new Date(ano, mes, dia));
-    return { de: d, ate: d };
-  }
-  if (periodo === "ano") {
-    return { de: `${ano}-01-01`, ate: `${ano}-12-31` };
-  }
-  if (periodo === "faixa" && de && ate) {
-    // Datas invertidas não podem devolver lista vazia sem explicação.
-    return de <= ate ? { de, ate } : { de: ate, ate: de };
-  }
-  return limitesDoMes(ano, mes);
-}
 
 export default async function Extrato({
   searchParams,
@@ -41,16 +12,8 @@ export default async function Extrato({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const p = await searchParams;
-  const hoje = new Date();
-
-  const periodo = (p.periodo as Periodo) ?? "mes";
-  const ano = Number(p.ano) || hoje.getFullYear();
-  const mes = p.mes !== undefined ? Number(p.mes) : hoje.getMonth();
-  const dia = Number(p.dia) || hoje.getDate();
-  const ordem = (p.ordem as Ordem) ?? "recentes";
-  const datasPor: DatasPor = p.datas === "vencimento" ? "vencimento" : "registro";
-
-  const { de, ate } = intervalo(periodo, ano, mes, dia, p.de, p.ate);
+  // A leitura do endereço é a mesma do documento impresso (/extrato/imprimir).
+  const { periodo, ano, mes, dia, ordem, datasPor, de, ate } = lerParametrosDoExtrato(p);
 
   const [lancamentos, categorias, formas] = await Promise.all([
     lancamentosDoPeriodo({

@@ -213,6 +213,13 @@ button {
     page-break-inside: avoid;
   }
 
+  /* Na tabela do extrato, quem não se parte é a linha: a tabela passa de
+     uma página, mas um lançamento não fica metade em cada folha. */
+  .tabela-lancamentos tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
   /* As cores dos gráficos precisam sair na impressão. */
   * {
     -webkit-print-color-adjust: exact;

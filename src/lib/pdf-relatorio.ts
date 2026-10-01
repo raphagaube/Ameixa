@@ -19,20 +19,20 @@ import { estadoDoOrcamento, percentualDoOrcamento, type Orcamento } from "@/lib/
  * que quebram de página. É o que se espera de um relatório impresso.
  */
 
-const A4 = { largura: 210, altura: 297 };
-const MARGEM = 16;
-const UTIL = A4.largura - MARGEM * 2;
+export const A4 = { largura: 210, altura: 297 };
+export const MARGEM = 16;
+export const UTIL = A4.largura - MARGEM * 2;
 
-const TINTA = { r: 28, g: 30, b: 32 };
-const CINZA = { r: 120, g: 124, b: 128 };
-const LINHA = { r: 214, g: 214, b: 210 };
-const VERDE = { r: 47, g: 107, b: 71 };
-const VERMELHO = { r: 168, g: 58, b: 52 };
+export const TINTA = { r: 28, g: 30, b: 32 };
+export const CINZA = { r: 120, g: 124, b: 128 };
+export const LINHA = { r: 214, g: 214, b: 210 };
+export const VERDE = { r: 47, g: 107, b: 71 };
+export const VERMELHO = { r: 168, g: 58, b: 52 };
 
-type Doc = import("jspdf").jsPDF;
+export type Doc = import("jspdf").jsPDF;
 
 /** Cursor vertical com quebra de página automática. */
-class Folha {
+export class Folha {
   y = MARGEM;
   private paginas = 1;
 
@@ -56,7 +56,26 @@ class Folha {
   }
 }
 
-function tinta(doc: Doc, c: { r: number; g: number; b: number }) {
+/** O que a fonte padrão do PDF desenha além do Latin-1 (tabela cp1252). */
+const ALEM_DO_LATIN1 = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
+
+/**
+ * Deixa o texto desenhável pela fonte padrão do PDF.
+ *
+ * A Helvetica embutida só conhece o cp1252. Caractere de fora não some: vira
+ * outro símbolo e ainda erra a largura — o "−" tipográfico saía como aspas e
+ * empurrava o valor para fora da margem. O menos vira hífen; o resto (emoji
+ * numa descrição, por exemplo) é descartado.
+ */
+export function paraFonteDoPdf(texto: string): string {
+  let saida = "";
+  for (const c of texto.replace(/\u2212/g, "-")) {
+    if ((c.length === 1 && c.charCodeAt(0) <= 0xff) || ALEM_DO_LATIN1.includes(c)) saida += c;
+  }
+  return saida;
+}
+
+export function tinta(doc: Doc, c: { r: number; g: number; b: number }) {
   doc.setTextColor(c.r, c.g, c.b);
 }
 
@@ -74,7 +93,7 @@ function titulo(doc: Doc, f: Folha, numero: number, texto: string) {
 }
 
 /** Rótulo pequeno em cima, valor embaixo — o par que se repete no resumo. */
-function par(
+export function par(
   doc: Doc,
   x: number,
   y: number,
@@ -90,12 +109,12 @@ function par(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   tinta(doc, cor);
-  doc.text(valor, x, y + 5);
+  doc.text(paraFonteDoPdf(valor), x, y + 5);
 }
 
-type Coluna = { titulo: string; largura: number; alinhar?: "esquerda" | "direita" };
+export type Coluna = { titulo: string; largura: number; alinhar?: "esquerda" | "direita" };
 
-function tabela(
+export function tabela(
   doc: Doc,
   f: Folha,
   colunas: Coluna[],
@@ -141,7 +160,7 @@ function tabela(
 
       // Texto largo demais é cortado com reticências: quebrar em duas
       // linhas desalinharia a tabela inteira.
-      let texto = linha[j] ?? "";
+      let texto = paraFonteDoPdf(linha[j] ?? "");
       const limite = c.largura - 2;
       if (doc.getTextWidth(texto) > limite) {
         while (texto.length > 1 && doc.getTextWidth(`${texto}…`) > limite) {
@@ -565,7 +584,22 @@ export async function montarPdfRelatorio(c: ConteudoRelatorio): Promise<Blob> {
     }
   }
 
-  // ── Rodapé com numeração, em todas as páginas ────────────────
+  rodape(doc);
+
+  return doc.output("blob");
+}
+
+export function vazio(doc: Doc, f: Folha, texto: string) {
+  f.espaco(8);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  tinta(doc, CINZA);
+  doc.text(texto, MARGEM, f.y);
+  f.pular(8);
+}
+
+/** Rodapé com numeração, em todas as páginas. Chamar por último. */
+export function rodape(doc: Doc) {
   const total = doc.getNumberOfPages();
   for (let p = 1; p <= total; p++) {
     doc.setPage(p);
@@ -581,15 +615,4 @@ export async function montarPdfRelatorio(c: ConteudoRelatorio): Promise<Blob> {
       align: "right",
     });
   }
-
-  return doc.output("blob");
-}
-
-function vazio(doc: Doc, f: Folha, texto: string) {
-  f.espaco(8);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  tinta(doc, CINZA);
-  doc.text(texto, MARGEM, f.y);
-  f.pular(8);
 }

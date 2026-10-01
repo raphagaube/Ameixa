@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { montarPdfRelatorio, type ConteudoRelatorio } from "./pdf-relatorio";
+import { montarPdfRelatorio, paraFonteDoPdf, type ConteudoRelatorio } from "./pdf-relatorio";
 import type { DadosRelatorio } from "@/lib/dados/relatorios";
 import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
 
@@ -166,5 +166,21 @@ describe("PDF do relatório", () => {
     });
     expect(await assinatura(blob)).toBe("%PDF-");
     expect(blob.size).toBeGreaterThan(1000);
+  });
+});
+
+
+describe("paraFonteDoPdf", () => {
+  it("troca o menos tipográfico por hífen — a fonte do PDF o desenhava como aspas", () => {
+    expect(paraFonteDoPdf("\u2212R$ 706,00")).toBe("-R$ 706,00");
+  });
+
+  it("mantém acentos e os símbolos que a fonte conhece", () => {
+    const texto = "Pão de Açúcar › compra… — 50% • R$\u00a01.234,56";
+    expect(paraFonteDoPdf(texto)).toBe(texto);
+  });
+
+  it("descarta o que a fonte não desenha, como emoji", () => {
+    expect(paraFonteDoPdf("Mercado \u{1F6D2} do mês")).toBe("Mercado  do mês");
   });
 });
