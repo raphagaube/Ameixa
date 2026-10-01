@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Botao } from "@/components/ui/botao";
 import { CampoData } from "@/components/ui/campo-data";
 import { Segmentos } from "@/components/ui/segmentos";
+import type { DatasPor } from "@/lib/extrato-impresso";
 import { paraIso } from "@/lib/formato";
 import { useOculto } from "@/hooks/use-oculto";
 
@@ -54,8 +55,18 @@ function intervalo(alcance: Alcance, ano: number, mes: number, de: string, ate: 
   return de <= ate ? { de, ate } : { de: ate, ate: de };
 }
 
-export function MontadorRelatorio({ ano, mes }: { ano: number; mes: number }) {
+export function MontadorRelatorio({
+  ano,
+  mes,
+  datasPor: datasIniciais,
+}: {
+  ano: number;
+  mes: number;
+  datasPor: DatasPor;
+}) {
   const router = useRouter();
+
+  const [datasPor, setDatasPor] = useState<DatasPor>(datasIniciais);
 
   const [alcance, setAlcance] = useState<Alcance>("mes");
   const [de, setDe] = useState(paraIso(new Date(ano, mes, 1)));
@@ -94,6 +105,7 @@ export function MontadorRelatorio({ ano, mes }: { ano: number; mes: number }) {
       situacoes: situacoes.join(","),
       ocultar: escondido ? "1" : "0",
       tecnicos: tecnicos ? "1" : "0",
+      datas: datasPor,
     });
     router.push(`/relatorios/documento?${q.toString()}`);
   }
@@ -132,6 +144,23 @@ export function MontadorRelatorio({ ano, mes }: { ano: number; mes: number }) {
           <CampoData rotulo="Até" valor={ate} aoMudar={setAte} />
         </div>
       ) : null}
+
+      <div className="flex flex-col" style={{ gap: 6 }}>
+        <Segmentos
+          rotulo="Filtrar as datas pelo"
+          opcoes={[
+            { valor: "registro" as const, texto: "Registro" },
+            { valor: "vencimento" as const, texto: "Vencimento" },
+          ]}
+          valor={datasPor}
+          aoEscolher={setDatasPor}
+        />
+        <p style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.5 }}>
+          {datasPor === "vencimento"
+            ? "Entram as contas que vencem no período — e, sem vencimento, as registradas nele."
+            : "Entram os lançamentos registrados no período, mesmo que vençam em outro."}
+        </p>
+      </div>
 
       <div className="flex flex-col" style={{ gap: 6 }}>
         <span className="rotulo">Seções do relatório</span>

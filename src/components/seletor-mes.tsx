@@ -2,17 +2,25 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { mesAno } from "@/lib/formato";
 
 /** Navegador de mês: setas ‹ › com o mês por extenso no meio. */
 export function SeletorMes({ ano, mes }: { ano: number; mes: number }) {
   const caminho = usePathname();
+  const params = useSearchParams();
   const anterior = new Date(ano, mes - 1, 1);
   const proximo = new Date(ano, mes + 1, 1);
 
-  const href = (d: Date) =>
-    `${caminho}?ano=${d.getFullYear()}&mes=${d.getMonth()}`;
+  // Só o mês muda; o resto do endereço fica. Antes as setas montavam o
+  // endereço do zero, e quem tinha escolhido "pelo vencimento" ou um filtro
+  // voltava ao padrão ao trocar de mês, sem perceber.
+  const href = (d: Date) => {
+    const q = new URLSearchParams(params.toString());
+    q.set("ano", String(d.getFullYear()));
+    q.set("mes", String(d.getMonth()));
+    return `${caminho}?${q.toString()}`;
+  };
 
   const caixa: React.CSSProperties = {
     height: 44,

@@ -94,3 +94,17 @@ export function nomeDoExtrato(de: string, ate: string): string {
 export function sinalDoTipo(tipo: LancamentoNaLista["tipo"]): string {
   return tipo === "receita" ? "+" : tipo === "aporte" ? "" : "−";
 }
+
+/** Como cada escolha aparece escrita no cabeçalho de um documento. */
+export const ROTULO_DATAS: Record<DatasPor, string> = {
+  vencimento: "pelo vencimento",
+  registro: "pela data do registro",
+};
+
+/**
+ * Nos relatórios o padrão é o vencimento: "contas de outubro" são as que
+ * vencem em outubro. Só `datas=registro` no endereço muda isso.
+ */
+export function datasPorDoRelatorio(valor: string | undefined): DatasPor {
+  return valor === "registro" ? "registro" : "vencimento";
+}

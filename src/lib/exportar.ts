@@ -1,3 +1,4 @@
+import { ROTULO_DATAS, type DatasPor } from "@/lib/extrato-impresso";
 import { dataBr } from "@/lib/formato";
 import type { DadosRelatorio } from "@/lib/dados/relatorios";
 import { ROTULO_SITUACAO, type LancamentoNaLista } from "@/lib/tipos/lancamentos";
@@ -41,11 +42,11 @@ function baixar(nomeArquivo: string, conteudo: string) {
 export function baixarExcel(
   lancamentos: LancamentoNaLista[],
   dados: DadosRelatorio,
-  info: { de: string; ate: string; nome: string },
+  info: { de: string; ate: string; nome: string; datasPor: DatasPor },
 ) {
   const linhas: (string | number)[][] = [
     ["Relatório financeiro — Ameixa"],
-    ["Período", `${dataBr(info.de)} a ${dataBr(info.ate)}`],
+    ["Período", `${dataBr(info.de)} a ${dataBr(info.ate)}, ${ROTULO_DATAS[info.datasPor]}`],
     ["Emitido por", info.nome],
     [],
     ["RESUMO"],

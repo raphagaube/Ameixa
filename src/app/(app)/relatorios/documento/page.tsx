@@ -3,6 +3,7 @@ import { lancamentosDoPeriodo } from "@/lib/dados/lancamentos";
 import { metasDoUsuario } from "@/lib/dados/metas";
 import { orcamentosDoMes } from "@/lib/dados/orcamentos";
 import { perfilDoUsuario } from "@/lib/dados/perfil";
+import { datasPorDoRelatorio } from "@/lib/extrato-impresso";
 import { dataDoBanco } from "@/lib/formato";
 import { DocumentoRelatorio } from "./documento";
 
@@ -22,16 +23,20 @@ export default async function Documento({
   const situacoes = (p.situacoes ?? "").split(",").filter(Boolean);
   const ocultar = p.ocultar === "1";
   const tecnicos = p.tecnicos === "1";
+  const datasPor = datasPorDoRelatorio(p.datas);
 
   const fim = dataDoBanco(ate);
 
   const [dados, perfil, lancamentos, orcamentos, metas] = await Promise.all([
-    dadosDoRelatorio(de, ate),
+    dadosDoRelatorio(de, ate, datasPor),
     perfilDoUsuario(),
     secoes.includes("detalhes")
       ? lancamentosDoPeriodo({
           de,
           ate,
+          // A lista detalhada usa a mesma data dos totais: senão o resumo
+          // somaria umas contas e a lista mostraria outras.
+          datasPor,
           ordem: "antigos",
           semAportes: true,
           limite: 5000,
@@ -56,6 +61,7 @@ export default async function Documento({
       nome={perfil?.nome ?? ""}
       de={de}
       ate={ate}
+      datasPor={datasPor}
       secoes={secoes}
       ocultar={ocultar}
       tecnicos={tecnicos}

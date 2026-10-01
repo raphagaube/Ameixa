@@ -47,3 +47,18 @@ export function filtroOu(b: Busca): string | null {
   const limpo = b.texto.replace(/["\\]/g, "");
   return `descricao.ilike."*${limpo}*",valor.eq.${b.valor}`;
 }
+
+/**
+ * O período contado pelo vencimento, na sintaxe "ou" do PostgREST.
+ *
+ * Vale o vencimento; quem não tem vencimento conta pela data do registro —
+ * a mesma regra de `dataQueVale`. O extrato e os relatórios usam este mesmo
+ * texto, para um não incluir o que o outro deixa de fora.
+ */
+export function filtroPeloVencimento(de?: string, ate?: string): string {
+  const faixa = (coluna: string) =>
+    [de ? `${coluna}.gte.${de}` : null, ate ? `${coluna}.lte.${ate}` : null]
+      .filter(Boolean)
+      .join(",");
+  return `and(${faixa("data_vencimento")}),and(data_vencimento.is.null,${faixa("data_registro")})`;
+}

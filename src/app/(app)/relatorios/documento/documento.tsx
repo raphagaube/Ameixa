@@ -17,6 +17,7 @@ import {
   podeCompartilharArquivo,
 } from "@/lib/pdf";
 import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
+import { ROTULO_DATAS, type DatasPor } from "@/lib/extrato-impresso";
 import type { Meta } from "@/lib/tipos/metas";
 import { percentualDaMeta } from "@/lib/tipos/metas";
 import {
@@ -32,6 +33,7 @@ export function DocumentoRelatorio({
   nome,
   de,
   ate,
+  datasPor,
   secoes,
   ocultar,
   tecnicos,
@@ -43,6 +45,7 @@ export function DocumentoRelatorio({
   nome: string;
   de: string;
   ate: string;
+  datasPor: DatasPor;
   secoes: string[];
   ocultar: boolean;
   tecnicos: boolean;
@@ -98,6 +101,7 @@ export function DocumentoRelatorio({
           nome,
           de,
           ate,
+          datasPor,
           secoes,
           ocultar,
           tecnicos,
@@ -139,7 +143,7 @@ export function DocumentoRelatorio({
     baixarExcel(
       lancamentos.length > 0 ? lancamentos : [],
       dados,
-      { de, ate, nome },
+      { de, ate, nome, datasPor },
     );
   }
 
@@ -197,7 +201,7 @@ export function DocumentoRelatorio({
         <div>
           <h1 style={{ fontSize: 22 }}>Relatório financeiro</h1>
           <p style={{ fontSize: 12, color: "var(--mut)" }}>
-            {dataBr(de)} a {dataBr(ate)} · {dados.diasNoPeriodo} dias
+            {dataBr(de)} a {dataBr(ate)} · {dados.diasNoPeriodo} dias · {ROTULO_DATAS[datasPor]}
           </p>
           <p style={{ fontSize: 11, color: "var(--mut)" }}>
             Emitido em {dataBr(new Date())}

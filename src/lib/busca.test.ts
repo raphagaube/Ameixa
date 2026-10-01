@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filtroOu, interpretarBusca } from "./busca";
+import { filtroOu, filtroPeloVencimento, interpretarBusca } from "./busca";
 
 describe("busca por valor", () => {
   /** O caso do pedido: procurar a conta de R$ 363,00 digitando 363. */
@@ -71,5 +71,20 @@ describe("filtro enviado ao banco", () => {
 
   it("busca só por texto não usa o filtro combinado", () => {
     expect(filtroOu(interpretarBusca("Mercado"))).toBeNull();
+  });
+});
+
+describe("período pelo vencimento", () => {
+  it("vale o vencimento, e o registro para quem não tem vencimento", () => {
+    expect(filtroPeloVencimento("2026-10-01", "2026-10-31")).toBe(
+      "and(data_vencimento.gte.2026-10-01,data_vencimento.lte.2026-10-31)," +
+        "and(data_vencimento.is.null,data_registro.gte.2026-10-01,data_registro.lte.2026-10-31)",
+    );
+  });
+
+  it("com um lado só do período, não sobra vírgula solta", () => {
+    expect(filtroPeloVencimento(undefined, "2026-10-31")).toBe(
+      "and(data_vencimento.lte.2026-10-31),and(data_vencimento.is.null,data_registro.lte.2026-10-31)",
+    );
   });
 });

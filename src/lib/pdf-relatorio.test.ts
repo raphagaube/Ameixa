@@ -66,6 +66,7 @@ const base: ConteudoRelatorio = {
   nome: "Mimi",
   de: "2026-09-01",
   ate: "2026-09-30",
+  datasPor: "vencimento",
   secoes: ["resumo", "categorias", "evolucao", "receitas"],
   ocultar: false,
   tecnicos: true,

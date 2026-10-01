@@ -1,4 +1,5 @@
 import { CabecalhoVoltar } from "@/components/cabecalho-voltar";
+import { datasPorDoRelatorio } from "@/lib/extrato-impresso";
 import { MontadorRelatorio } from "./montador";
 
 export const metadata = { title: "Montar relatório · Ameixa" };
@@ -6,7 +7,7 @@ export const metadata = { title: "Montar relatório · Ameixa" };
 export default async function Montar({
   searchParams,
 }: {
-  searchParams: Promise<{ ano?: string; mes?: string }>;
+  searchParams: Promise<{ ano?: string; mes?: string; datas?: string }>;
 }) {
   const p = await searchParams;
   const hoje = new Date();
@@ -16,7 +17,7 @@ export default async function Montar({
   return (
     <div className="flex flex-col" style={{ gap: 14 }}>
       <CabecalhoVoltar titulo="Montar relatório" />
-      <MontadorRelatorio ano={ano} mes={mes} />
+      <MontadorRelatorio ano={ano} mes={mes} datasPor={datasPorDoRelatorio(p.datas)} />
     </div>
   );
 }

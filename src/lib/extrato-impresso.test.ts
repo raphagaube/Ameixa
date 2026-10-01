@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  datasPorDoRelatorio,
   descreverFiltros,
   lerParametrosDoExtrato,
   nomeDoExtrato,
@@ -86,5 +87,13 @@ describe("descreverFiltros", () => {
 describe("nomeDoExtrato", () => {
   it("leva o período no nome e termina em .pdf", () => {
     expect(nomeDoExtrato("2026-09-01", "2026-09-30")).toBe("extrato-ameixa-2026-09-01-a-2026-09-30.pdf");
+  });
+});
+
+describe("datasPorDoRelatorio", () => {
+  it("o relatório conta pelo vencimento, a menos que o endereço peça o registro", () => {
+    expect(datasPorDoRelatorio(undefined)).toBe("vencimento");
+    expect(datasPorDoRelatorio("qualquer")).toBe("vencimento");
+    expect(datasPorDoRelatorio("registro")).toBe("registro");
   });
 });

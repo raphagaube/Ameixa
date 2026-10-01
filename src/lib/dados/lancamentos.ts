@@ -1,5 +1,5 @@
 import "server-only";
-import { filtroOu, interpretarBusca } from "@/lib/busca";
+import { filtroOu, filtroPeloVencimento, interpretarBusca } from "@/lib/busca";
 import { paraIso } from "@/lib/formato";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
@@ -76,14 +76,7 @@ export async function lancamentosDoPeriodo(
   const grupos: string[] = [];
   const porVencimento = f.datasPor === "vencimento";
   if (porVencimento && (f.de || f.ate)) {
-    // Vale o vencimento; quem não tem vencimento conta pela data do registro.
-    const faixa = (coluna: string) =>
-      [f.de ? `${coluna}.gte.${f.de}` : null, f.ate ? `${coluna}.lte.${f.ate}` : null]
-        .filter(Boolean)
-        .join(",");
-    grupos.push(
-      `or(and(${faixa("data_vencimento")}),and(data_vencimento.is.null,${faixa("data_registro")}))`,
-    );
+    grupos.push(`or(${filtroPeloVencimento(f.de, f.ate)})`);
   } else {
     if (f.de) q = q.gte("data_registro", f.de);
     if (f.ate) q = q.lte("data_registro", f.ate);

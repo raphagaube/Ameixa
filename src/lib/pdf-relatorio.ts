@@ -1,3 +1,4 @@
+import { ROTULO_DATAS, type DatasPor } from "@/lib/extrato-impresso";
 import { dataBr, moedaOuOculto } from "@/lib/formato";
 import { calcularIndicadores, montarFatias } from "@/lib/relatorio";
 import type { DadosRelatorio } from "@/lib/dados/relatorios";
@@ -309,6 +310,8 @@ export type ConteudoRelatorio = {
   nome: string;
   de: string;
   ate: string;
+  /** Qual data pôs cada lançamento no período; vai escrito no cabeçalho. */
+  datasPor: DatasPor;
   secoes: string[];
   ocultar: boolean;
   tecnicos: boolean;
@@ -340,7 +343,7 @@ export async function montarPdfRelatorio(c: ConteudoRelatorio): Promise<Blob> {
   doc.setFontSize(9);
   tinta(doc, CINZA);
   doc.text(
-    `${dataBr(c.de)} a ${dataBr(c.ate)} · ${c.dados.diasNoPeriodo} dias`,
+    `${dataBr(c.de)} a ${dataBr(c.ate)} · ${c.dados.diasNoPeriodo} dias · ${ROTULO_DATAS[c.datasPor]}`,
     MARGEM,
     f.y,
   );

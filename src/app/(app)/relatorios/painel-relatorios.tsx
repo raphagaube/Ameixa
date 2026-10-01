@@ -2,11 +2,14 @@
 
 import { FileText } from "lucide-react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { BarrasEvolucao } from "@/components/barras-evolucao";
 import { RoscaCategorias } from "@/components/rosca-categorias";
 import { SeletorMes } from "@/components/seletor-mes";
 import { BarraProgresso } from "@/components/ui/barra-progresso";
 import { Botao } from "@/components/ui/botao";
+import { Segmentos } from "@/components/ui/segmentos";
+import type { DatasPor } from "@/lib/extrato-impresso";
 import { moeda } from "@/lib/formato";
 import type { DadosRelatorio } from "@/lib/dados/relatorios";
 import { montarFatias } from "@/lib/relatorio";
@@ -16,11 +19,23 @@ export function PainelRelatorios({
   dados,
   ano,
   mes,
+  datasPor,
 }: {
   dados: DadosRelatorio;
   ano: number;
   mes: number;
+  datasPor: DatasPor;
 }) {
+  const router = useRouter();
+  const params = useSearchParams();
+
+  function trocarDatas(v: DatasPor) {
+    const q = new URLSearchParams(params.toString());
+    // Vencimento é o padrão dos relatórios: só o registro vai no endereço.
+    if (v === "registro") q.set("datas", v);
+    else q.delete("datas");
+    router.push(`/relatorios?${q.toString()}`, { scroll: false });
+  }
   const fatias = montarFatias(dados.despesasPorCategoria);
   const receitas = montarFatias(dados.receitasPorCategoria);
 
@@ -43,6 +58,21 @@ export function PainelRelatorios({
       <h1 style={{ fontSize: 30 }}>Relatórios</h1>
 
       <SeletorMes ano={ano} mes={mes} />
+
+      <Segmentos
+        rotulo="Filtrar as datas pelo"
+        opcoes={[
+          { valor: "registro" as const, texto: "Registro" },
+          { valor: "vencimento" as const, texto: "Vencimento" },
+        ]}
+        valor={datasPor}
+        aoEscolher={trocarDatas}
+      />
+      <p style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.5, marginTop: -8 }}>
+        {datasPor === "vencimento"
+          ? "Entram as contas que vencem no mês — e, sem vencimento, as registradas nele."
+          : "Entram os lançamentos registrados no mês, mesmo que vençam em outro."}
+      </p>
 
       <div className="relatorios-grade">
         <section style={cartao} className="flex flex-col" aria-labelledby="t-rosca">
@@ -99,7 +129,7 @@ export function PainelRelatorios({
         </section>
       </div>
 
-      <Link href={`/relatorios/montar?ano=${ano}&mes=${mes}`}>
+      <Link href={`/relatorios/montar?ano=${ano}&mes=${mes}${datasPor === "registro" ? "&datas=registro" : ""}`}>
         <Botao variante="contorno">
           <span className="flex items-center justify-center" style={{ gap: 8 }}>
             <FileText size={18} strokeWidth={1.5} aria-hidden />
