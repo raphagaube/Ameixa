@@ -8,7 +8,7 @@ import { LogoAmeixa } from "@/components/logo-ameixa";
 import { RoscaCategorias } from "@/components/rosca-categorias";
 import { Botao } from "@/components/ui/botao";
 import type { DadosRelatorio } from "@/lib/dados/relatorios";
-import { dataBr, moedaOuOculto } from "@/lib/formato";
+import { dataBr, hojeEmBrasilia, moedaOuOculto } from "@/lib/formato";
 import { calcularIndicadores, montarFatias } from "@/lib/relatorio";
 import { baixarExcel } from "@/lib/exportar";
 import {
@@ -204,7 +204,7 @@ export function DocumentoRelatorio({
             {dataBr(de)} a {dataBr(ate)} · {dados.diasNoPeriodo} dias · {ROTULO_DATAS[datasPor]}
           </p>
           <p style={{ fontSize: 11, color: "var(--mut)" }}>
-            Emitido em {dataBr(new Date())}
+            Emitido em {dataBr(hojeEmBrasilia())}
             {nome ? ` por ${nome}` : ""}
           </p>
         </div>
@@ -445,7 +445,7 @@ export function DocumentoRelatorio({
         style={{ gap: 6, paddingTop: 8, paddingBottom: 8 }}
       >
         <p style={{ fontSize: 11, color: "var(--mut)" }}>
-          Ameixa · gerado em {dataBr(new Date())}
+          Ameixa · gerado em {dataBr(hojeEmBrasilia())}
         </p>
         <p style={{ fontSize: 10, color: "var(--mut)" }}>
           © {new Date().getFullYear()} Rapha. Todos os direitos reservados.

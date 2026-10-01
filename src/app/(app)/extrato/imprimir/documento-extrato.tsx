@@ -12,7 +12,7 @@ import {
   totaisDoExtrato,
   type DatasPor,
 } from "@/lib/extrato-impresso";
-import { dataBr, moeda } from "@/lib/formato";
+import { dataBr, hojeEmBrasilia, moeda } from "@/lib/formato";
 import { baixarArquivo, podeCompartilharArquivo } from "@/lib/pdf";
 import { estaOculto } from "@/lib/privacidade";
 import { ROTULO_SITUACAO, type LancamentoNaLista } from "@/lib/tipos/lancamentos";
@@ -276,9 +276,8 @@ export function DocumentoExtrato({
         className="flex flex-col items-center"
         style={{ gap: 6, paddingTop: 8, paddingBottom: 8 }}
       >
-        {/* A data é a do aparelho; o servidor pode estar em outro fuso. */}
-        <p style={{ fontSize: 11, color: "var(--mut)" }} suppressHydrationWarning>
-          Ameixa · gerado em {dataBr(new Date())}
+        <p style={{ fontSize: 11, color: "var(--mut)" }}>
+          Ameixa · gerado em {dataBr(hojeEmBrasilia())}
           {nome ? ` por ${nome}` : ""}
         </p>
         <p style={{ fontSize: 10, color: "var(--mut)" }}>

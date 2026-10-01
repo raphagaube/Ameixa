@@ -6,7 +6,7 @@ import { Botao } from "@/components/ui/botao";
 import { CampoData } from "@/components/ui/campo-data";
 import { Segmentos } from "@/components/ui/segmentos";
 import type { DatasPor } from "@/lib/extrato-impresso";
-import { paraIso } from "@/lib/formato";
+import { hojeEmBrasilia, paraIso } from "@/lib/formato";
 import { useOculto } from "@/hooks/use-oculto";
 
 type Alcance = "mes" | "tres" | "ano" | "livre" | "tudo";
@@ -33,7 +33,7 @@ export const SITUACOES = [
  * concreto aqui, não um rótulo. O documento recebe de/até já resolvidos.
  */
 function intervalo(alcance: Alcance, ano: number, mes: number, de: string, ate: string) {
-  const hoje = new Date();
+  const hoje = hojeEmBrasilia();
   if (alcance === "mes") {
     return {
       de: paraIso(new Date(ano, mes, 1)),

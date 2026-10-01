@@ -1,3 +1,4 @@
+import { hojeEmBrasilia } from "@/lib/formato";
 import { contasDoUsuario } from "@/lib/dados/contas";
 import { faturasDoMes } from "@/lib/dados/faturas";
 import { resumoDoMes } from "@/lib/dados/resumo-mes";
@@ -12,7 +13,7 @@ export default async function CartoesEContas({
   searchParams: Promise<{ ano?: string; mes?: string }>;
 }) {
   const p = await searchParams;
-  const hoje = new Date();
+  const hoje = hojeEmBrasilia();
   const ano = Number(p.ano) || hoje.getFullYear();
   const mes = p.mes !== undefined ? Number(p.mes) : hoje.getMonth();
 

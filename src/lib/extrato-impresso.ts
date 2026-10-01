@@ -1,4 +1,4 @@
-import { paraIso } from "@/lib/formato";
+import { hojeEmBrasilia, paraIso } from "@/lib/formato";
 import type { Ordem } from "@/lib/dados/lancamentos";
 import { ROTULO_SITUACAO, type LancamentoNaLista, type Situacao } from "@/lib/tipos/lancamentos";
 
@@ -37,7 +37,7 @@ function intervalo(
 
 export function lerParametrosDoExtrato(
   p: Record<string, string | undefined>,
-  hoje = new Date(),
+  hoje = hojeEmBrasilia(),
 ) {
   const periodo = (p.periodo as Periodo) ?? "mes";
   const ano = Number(p.ano) || hoje.getFullYear();

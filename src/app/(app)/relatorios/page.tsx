@@ -1,3 +1,4 @@
+import { hojeEmBrasilia } from "@/lib/formato";
 import { limitesDoMes } from "@/lib/dados/lancamentos";
 import { dadosDoRelatorio } from "@/lib/dados/relatorios";
 import { datasPorDoRelatorio } from "@/lib/extrato-impresso";
@@ -11,7 +12,7 @@ export default async function Relatorios({
   searchParams: Promise<{ ano?: string; mes?: string; datas?: string }>;
 }) {
   const p = await searchParams;
-  const hoje = new Date();
+  const hoje = hojeEmBrasilia();
   const ano = Number(p.ano) || hoje.getFullYear();
   const mes = p.mes !== undefined ? Number(p.mes) : hoje.getMonth();
   const datasPor = datasPorDoRelatorio(p.datas);

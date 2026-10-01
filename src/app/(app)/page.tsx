@@ -17,7 +17,7 @@ import {
   estadoDoOrcamento,
   percentualDoOrcamento,
 } from "@/lib/tipos/orcamentos";
-import { mesAno, moeda } from "@/lib/formato";
+import { hojeEmBrasilia, mesAno, moeda } from "@/lib/formato";
 import { Dinheiro } from "@/components/dinheiro";
 import { BotaoPrivacidade } from "@/components/botao-privacidade";
 
@@ -27,7 +27,7 @@ export default async function Inicio({
   searchParams: Promise<{ ano?: string; mes?: string }>;
 }) {
   const p = await searchParams;
-  const hoje = new Date();
+  const hoje = hojeEmBrasilia();
   const ano = Number(p.ano) || hoje.getFullYear();
   const mes = p.mes !== undefined ? Number(p.mes) : hoje.getMonth();
   const referencia = new Date(ano, mes, 1);

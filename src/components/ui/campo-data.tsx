@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { nomeMes } from "@/lib/formato";
+import { hojeEmBrasilia, nomeMes } from "@/lib/formato";
 
 /**
  * Data em três partes: dia digitado, mês e ano em select.
@@ -21,7 +21,7 @@ export function CampoData({
   opcional?: boolean;
 }) {
   const id = useId();
-  const hoje = new Date();
+  const hoje = hojeEmBrasilia();
 
   /**
    * O que está sendo digitado no campo do dia, enquanto está sendo digitado.

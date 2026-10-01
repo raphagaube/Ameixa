@@ -3,7 +3,7 @@ import {
   totaisDoExtrato,
   type DatasPor,
 } from "@/lib/extrato-impresso";
-import { dataBr, moedaOuOculto } from "@/lib/formato";
+import { dataBr, hojeEmBrasilia, moedaOuOculto } from "@/lib/formato";
 import {
   A4,
   CINZA,
@@ -78,7 +78,7 @@ export async function montarPdfExtrato(c: ConteudoExtrato): Promise<Blob> {
     }
   }
   doc.text(
-    `Emitido em ${dataBr(new Date())}${c.nome ? ` por ${c.nome}` : ""} · Ameixa`,
+    `Emitido em ${dataBr(hojeEmBrasilia())}${c.nome ? ` por ${c.nome}` : ""} · Ameixa`,
     MARGEM,
     f.y,
   );

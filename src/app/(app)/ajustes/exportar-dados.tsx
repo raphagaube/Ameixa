@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Botao } from "@/components/ui/botao";
 import { montarBackup, NOME_DA_TABELA } from "@/lib/backup";
 import { baixarJson } from "@/lib/exportar";
-import { paraIso } from "@/lib/formato";
+import { hojeEmBrasilia, paraIso } from "@/lib/formato";
 import { useOcupado } from "@/lib/use-ocupado";
 import { buscarPaginaDoBackup } from "./backup";
 
@@ -34,7 +34,7 @@ export function ExportarDados() {
         setErro(r.erro);
         return;
       }
-      baixarJson(r.dados, `ameixa-backup-${paraIso(new Date())}.json`);
+      baixarJson(r.dados, `ameixa-backup-${paraIso(hojeEmBrasilia())}.json`);
       const n = (r.dados.contagem as Record<string, number>).lancamentos;
       setRecado(`Backup salvo, com ${n} ${n === 1 ? "lançamento" : "lançamentos"}.`);
     });

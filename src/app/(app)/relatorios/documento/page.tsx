@@ -4,7 +4,7 @@ import { metasDoUsuario } from "@/lib/dados/metas";
 import { orcamentosDoMes } from "@/lib/dados/orcamentos";
 import { perfilDoUsuario } from "@/lib/dados/perfil";
 import { datasPorDoRelatorio } from "@/lib/extrato-impresso";
-import { dataDoBanco } from "@/lib/formato";
+import { dataDoBanco, hojeEmBrasilia } from "@/lib/formato";
 import { DocumentoRelatorio } from "./documento";
 
 export const metadata = { title: "Relatório · Ameixa" };
@@ -15,7 +15,7 @@ export default async function Documento({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const p = await searchParams;
-  const hoje = new Date();
+  const hoje = hojeEmBrasilia();
   const de = p.de ?? `${hoje.getFullYear()}-01-01`;
   const ate = p.ate ?? `${hoje.getFullYear()}-12-31`;
 

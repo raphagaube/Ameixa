@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   dataBr,
   dataDoBanco,
+  hojeEmBrasilia,
   mesAno,
   moeda,
   moedaCurta,
@@ -74,5 +75,34 @@ describe("datas", () => {
   it("nomeia o mês em português", () => {
     expect(mesAno(new Date(2026, 8, 15))).toBe("Setembro 2026");
     expect(mesAno(new Date(2026, 2, 1))).toBe("Março 2026");
+  });
+});
+
+describe("hoje em Brasília", () => {
+  const dia = (instante: string) => paraIso(hojeEmBrasilia(new Date(instante)));
+
+  /**
+   * Regressão: o servidor roda em UTC. Às 22:57 de 30/09 em Brasília ele já
+   * estava em 01/10, e o app abria no mês seguinte.
+   */
+  it("das 21h à meia-noite de Brasília ainda é o mesmo dia", () => {
+    expect(dia("2026-10-01T00:00:00Z")).toBe("2026-09-30"); // 21:00 de 30/09
+    expect(dia("2026-10-01T01:57:00Z")).toBe("2026-09-30"); // 22:57 de 30/09
+    expect(dia("2026-10-01T02:59:59Z")).toBe("2026-09-30"); // 23:59:59
+  });
+
+  it("vira o dia à meia-noite de Brasília, não à do servidor", () => {
+    expect(dia("2026-10-01T03:00:00Z")).toBe("2026-10-01");
+    expect(dia("2026-10-01T15:00:00Z")).toBe("2026-10-01");
+  });
+
+  it("na virada do ano, o ano também é o de Brasília", () => {
+    expect(dia("2027-01-01T02:30:00Z")).toBe("2026-12-31");
+    expect(hojeEmBrasilia(new Date("2027-01-01T02:30:00Z")).getFullYear()).toBe(2026);
+  });
+
+  it("devolve meia-noite local, para comparar e somar dias sem surpresa", () => {
+    const d = hojeEmBrasilia(new Date("2026-10-01T15:00:00Z"));
+    expect([d.getHours(), d.getMinutes(), d.getSeconds()]).toEqual([0, 0, 0]);
   });
 });

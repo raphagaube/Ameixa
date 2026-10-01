@@ -1,5 +1,5 @@
 import { ROTULO_DATAS, type DatasPor } from "@/lib/extrato-impresso";
-import { dataBr, moedaOuOculto } from "@/lib/formato";
+import { dataBr, hojeEmBrasilia, moedaOuOculto } from "@/lib/formato";
 import { calcularIndicadores, montarFatias } from "@/lib/relatorio";
 import type { DadosRelatorio } from "@/lib/dados/relatorios";
 import {
@@ -349,7 +349,7 @@ export async function montarPdfRelatorio(c: ConteudoRelatorio): Promise<Blob> {
   );
   f.pular(4.5);
   doc.text(
-    `Emitido em ${dataBr(new Date())}${c.nome ? ` por ${c.nome}` : ""} · Ameixa`,
+    `Emitido em ${dataBr(hojeEmBrasilia())}${c.nome ? ` por ${c.nome}` : ""} · Ameixa`,
     MARGEM,
     f.y,
   );

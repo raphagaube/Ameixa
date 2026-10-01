@@ -10,7 +10,7 @@ import {
   LIMITE_NA_HORA,
   sincronizarLancamentos,
 } from "@/lib/agenda/sincronizar";
-import { paraIso } from "@/lib/formato";
+import { hojeEmBrasilia, paraIso } from "@/lib/formato";
 import { gerarSerie, type ConfigSerie } from "@/lib/serie";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import {
@@ -144,7 +144,7 @@ export async function salvarLancamento(
       situacao: d.situacao,
     },
     d.repeticao as ConfigSerie,
-    paraIso(new Date()),
+    paraIso(hojeEmBrasilia()),
   );
 
   const serieId =
@@ -291,7 +291,7 @@ export async function salvarRapido(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, erro: "Sessão expirada. Entre de novo." };
 
-  const hoje = paraIso(new Date());
+  const hoje = paraIso(hojeEmBrasilia());
   const { error } = await supabase.from("lancamentos").insert({
     user_id: user.id,
     tipo,

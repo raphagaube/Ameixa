@@ -1,3 +1,4 @@
+import { hojeEmBrasilia } from "@/lib/formato";
 import { categoriasDoUsuario } from "@/lib/dados/categorias";
 import { mesReferencia, orcamentosDoMes } from "@/lib/dados/orcamentos";
 import { PainelOrcamentos } from "./painel-orcamentos";
@@ -10,7 +11,7 @@ export default async function Orcamentos({
   searchParams: Promise<{ ano?: string; mes?: string }>;
 }) {
   const p = await searchParams;
-  const hoje = new Date();
+  const hoje = hojeEmBrasilia();
   const ano = Number(p.ano) || hoje.getFullYear();
   const mes = p.mes !== undefined ? Number(p.mes) : hoje.getMonth();
 

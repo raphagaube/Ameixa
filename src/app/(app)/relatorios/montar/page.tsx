@@ -1,3 +1,4 @@
+import { hojeEmBrasilia } from "@/lib/formato";
 import { CabecalhoVoltar } from "@/components/cabecalho-voltar";
 import { datasPorDoRelatorio } from "@/lib/extrato-impresso";
 import { MontadorRelatorio } from "./montador";
@@ -10,7 +11,7 @@ export default async function Montar({
   searchParams: Promise<{ ano?: string; mes?: string; datas?: string }>;
 }) {
   const p = await searchParams;
-  const hoje = new Date();
+  const hoje = hojeEmBrasilia();
   const ano = Number(p.ano) || hoje.getFullYear();
   const mes = p.mes !== undefined ? Number(p.mes) : hoje.getMonth();
 

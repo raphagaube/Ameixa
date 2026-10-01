@@ -9,7 +9,7 @@ import { CampoData } from "@/components/ui/campo-data";
 import { CampoValor } from "@/components/ui/campo-valor";
 import { Folha } from "@/components/ui/folha";
 import { Segmentos } from "@/components/ui/segmentos";
-import { paraIso } from "@/lib/formato";
+import { hojeEmBrasilia, paraIso } from "@/lib/formato";
 import type { DadosDeApoio } from "@/lib/tipos/apoio";
 import {
   ROTULO_FREQUENCIA,
@@ -54,7 +54,7 @@ export function FolhaLancamento({
   iniciais?: ValoresIniciais;
 }) {
   const router = useRouter();
-  const hoje = paraIso(new Date());
+  const hoje = paraIso(hojeEmBrasilia());
   const editando = !!lancamento;
   const completando = !!lancamento?.incompleto;
 

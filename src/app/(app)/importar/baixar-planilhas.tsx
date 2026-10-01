@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { Botao } from "@/components/ui/botao";
 import { CampoData } from "@/components/ui/campo-data";
 import { baixarArquivo } from "@/lib/exportar";
-import { paraIso } from "@/lib/formato";
+import { hojeEmBrasilia, paraIso } from "@/lib/formato";
 import type { ListasPlanilha } from "@/lib/listas-planilha";
 import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
 import { buscarLancamentosParaPlanilha } from "./planilha";
@@ -17,7 +17,7 @@ const TIPO_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.s
  * ou os lançamentos já registrados, no mesmo formato.
  */
 export function BaixarPlanilhas({ listas }: { listas: ListasPlanilha }) {
-  const hoje = paraIso(new Date());
+  const hoje = paraIso(hojeEmBrasilia());
   const [periodo, setPeriodo] = useState<"tudo" | "faixa">("tudo");
   const [de, setDe] = useState(`${hoje.slice(0, 4)}-01-01`);
   const [ate, setAte] = useState(hoje);

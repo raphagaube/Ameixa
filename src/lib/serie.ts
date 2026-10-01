@@ -1,4 +1,4 @@
-import { paraIso } from "@/lib/formato";
+import { hojeEmBrasilia, paraIso } from "@/lib/formato";
 import {
   type Frequencia,
   type Situacao,
@@ -114,7 +114,7 @@ function comoData(iso: string): Date {
 export function gerarSerie(
   base: BaseSerie,
   config: ConfigSerie,
-  hojeIso: string = paraIso(new Date()),
+  hojeIso: string = paraIso(hojeEmBrasilia()),
 ): Ocorrencia[] {
   const inicio = comoData(base.dataRegistro);
 

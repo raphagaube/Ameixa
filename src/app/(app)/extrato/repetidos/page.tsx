@@ -1,3 +1,4 @@
+import { hojeEmBrasilia } from "@/lib/formato";
 import { CabecalhoVoltar } from "@/components/cabecalho-voltar";
 import { lancamentosDoPeriodo } from "@/lib/dados/lancamentos";
 import { agruparRepetidos } from "@/lib/repetidos";
@@ -11,7 +12,7 @@ export default async function Repetidos({
   searchParams: Promise<{ de?: string; ate?: string }>;
 }) {
   const p = await searchParams;
-  const hoje = new Date();
+  const hoje = hojeEmBrasilia();
   // Sem período informado, olha o ano inteiro — duplicata costuma estar
   // espalhada, não no mês corrente.
   const de = p.de ?? `${hoje.getFullYear()}-01-01`;

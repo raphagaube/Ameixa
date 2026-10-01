@@ -1,6 +1,6 @@
 import "server-only";
 import { todosOsMovimentos } from "@/lib/dados/movimentos";
-import { paraIso } from "@/lib/formato";
+import { hojeEmBrasilia, paraIso } from "@/lib/formato";
 import { saldosPorConta, totalDasContas, valorSemConta, type ContaComSaldo } from "@/lib/saldo-conta";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
@@ -24,7 +24,7 @@ const DISPONIVEIS = new Set(["corrente", "dinheiro"]);
  */
 export async function panoramaDasContas(): Promise<PanoramaDasContas> {
   const supabase = await criarClienteServidor();
-  const hoje = paraIso(new Date());
+  const hoje = paraIso(hojeEmBrasilia());
 
   const [{ data: contas }, todos] = await Promise.all([
     supabase

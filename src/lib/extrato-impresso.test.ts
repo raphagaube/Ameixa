@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   datasPorDoRelatorio,
   descreverFiltros,
@@ -95,5 +95,31 @@ describe("datasPorDoRelatorio", () => {
     expect(datasPorDoRelatorio(undefined)).toBe("vencimento");
     expect(datasPorDoRelatorio("qualquer")).toBe("vencimento");
     expect(datasPorDoRelatorio("registro")).toBe("registro");
+  });
+});
+
+describe("o padrão de hoje é o dia de Brasília, não o do servidor", () => {
+  afterEach(() => vi.useRealTimers());
+
+  /**
+   * Regressão: em 30/09/2026 às 22:57 de Brasília o extrato abriu em
+   * outubro. O servidor roda em UTC, onde já era 01/10 à 01:57.
+   */
+  it("às 22:57 de 30/09 em Brasília, o mês padrão ainda é setembro", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-01T01:57:00Z"));
+    expect(lerParametrosDoExtrato({})).toMatchObject({
+      ano: 2026,
+      mes: 8,
+      dia: 30,
+      de: "2026-09-01",
+      ate: "2026-09-30",
+    });
+  });
+
+  it("à meia-noite de Brasília o dia vira", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-01T03:00:00Z"));
+    expect(lerParametrosDoExtrato({})).toMatchObject({ mes: 9, dia: 1, de: "2026-10-01" });
   });
 });

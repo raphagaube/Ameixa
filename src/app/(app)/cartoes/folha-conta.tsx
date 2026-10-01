@@ -8,7 +8,7 @@ import { CampoValor } from "@/components/ui/campo-valor";
 import { Folha } from "@/components/ui/folha";
 import { EscolhaCor, Segmentos } from "@/components/ui/segmentos";
 import type { Conta, TipoConta } from "@/lib/tipos/contas";
-import { dataBr, paraIso } from "@/lib/formato";
+import { dataBr, hojeEmBrasilia, paraIso } from "@/lib/formato";
 import { escreverValor, lerValor } from "@/lib/valor";
 import { excluirConta, salvarConta } from "./acoes";
 import { BotaoExcluir } from "@/components/ui/botao-excluir";
@@ -190,7 +190,7 @@ export function FolhaConta({
               </p>
               <button
                 type="button"
-                onClick={() => setConferidoEm(paraIso(new Date()))}
+                onClick={() => setConferidoEm(paraIso(hojeEmBrasilia()))}
                 style={{
                   minHeight: 44,
                   alignSelf: "flex-start",
