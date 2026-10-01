@@ -11,6 +11,7 @@ import {
   garantirAgendas,
   sincronizarLancamentos,
 } from "@/lib/agenda/sincronizar";
+import { lerTudo } from "@/lib/supabase/paginas";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 export type ResultadoAgenda =
@@ -79,21 +80,27 @@ export async function sincronizarPendencias(
     }
   }
 
-  const { data, error } = await supabase
-    .from("lancamentos")
-    .select("id, eventos_agenda(lancamento_id)")
-    .in("situacao", ["a_pagar", "a_receber"])
-    .order("data_vencimento", { ascending: true, nullsFirst: false })
-    .limit(3000);
+  // Em páginas: `.limit(3000)` sozinho parava em 1000, e pendência além da
+  // milésima nunca ganhava compromisso. O `id` deixa a ordem estável, que é
+  // o que a reconferência usa para avançar (`desde`).
+  const data = await lerTudo((de, ate) =>
+    supabase
+      .from("lancamentos")
+      .select("id, eventos_agenda(lancamento_id)")
+      .in("situacao", ["a_pagar", "a_receber"])
+      .order("data_vencimento", { ascending: true, nullsFirst: false })
+      .order("id", { ascending: true })
+      .range(de, ate),
+  );
 
-  if (error) return { ok: false, erro: "Não deu para ler suas pendências." };
+  if (!data) return { ok: false, erro: "Não deu para ler suas pendências." };
 
   const semEvento = (l: { eventos_agenda?: unknown }) => {
     const v = l.eventos_agenda;
     return Array.isArray(v) ? v.length === 0 : !v;
   };
 
-  const alvos = (data ?? [])
+  const alvos = data
     .filter((l) => reconferir || semEvento(l))
     .map((l) => l.id as string);
 

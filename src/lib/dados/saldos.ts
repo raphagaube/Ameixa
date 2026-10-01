@@ -1,4 +1,5 @@
 import "server-only";
+import { todosOsMovimentos } from "@/lib/dados/movimentos";
 import { paraIso } from "@/lib/formato";
 import { saldosPorConta, totalDasContas, valorSemConta, type ContaComSaldo } from "@/lib/saldo-conta";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
@@ -25,22 +26,17 @@ export async function panoramaDasContas(): Promise<PanoramaDasContas> {
   const supabase = await criarClienteServidor();
   const hoje = paraIso(new Date());
 
-  const [{ data: contas }, { data: movimentos }] = await Promise.all([
+  const [{ data: contas }, todos] = await Promise.all([
     supabase
       .from("contas")
       .select("id, nome, cor, tipo, saldo_inicial, saldo_conferido_em")
       .eq("arquivada", false)
       .order("nome", { ascending: true }),
-    supabase
-      .from("lancamentos")
-      .select("conta_id, tipo, valor, data_registro")
-      .lte("data_registro", hoje),
+    todosOsMovimentos(),
   ]);
 
-  const comSaldo = saldosPorConta(
-    contas ?? [],
-    (movimentos ?? []).map((m) => ({ ...m, data: m.data_registro })),
-  );
+  const movimentos = todos.filter((m) => m.data <= hoje);
+  const comSaldo = saldosPorConta(contas ?? [], movimentos);
 
   return {
     contas: comSaldo,
@@ -51,8 +47,6 @@ export async function panoramaDasContas(): Promise<PanoramaDasContas> {
     guardado: comSaldo
       .filter((c) => !DISPONIVEIS.has(c.tipo))
       .reduce((s, c) => s + c.saldo, 0),
-    semConta: valorSemConta(
-      (movimentos ?? []).map((m) => ({ ...m, data: m.data_registro })),
-    ),
+    semConta: valorSemConta(movimentos),
   };
 }

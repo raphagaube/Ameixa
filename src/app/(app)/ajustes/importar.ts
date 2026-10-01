@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { enfileirar } from "@/lib/agenda/sincronizar";
 import { z } from "zod";
+import { lerTudo } from "@/lib/supabase/paginas";
 import { criarClienteServidor, usuarioAtual } from "@/lib/supabase/servidor";
 
 /**
@@ -115,14 +116,24 @@ export async function importarLancamentos(
   // como o OFX, então a comparação é pelo conteúdo: tipo, data, valor e
   // descrição — o mesmo que o dono olharia para dizer "essa eu já lancei".
   const datas = [...new Set(paraGravar.map((l) => l.data_registro))].sort();
-  const { data: jaExistem } = await supabase
-    .from("lancamentos")
-    .select("tipo, valor, descricao, data_registro")
-    .gte("data_registro", datas[0])
-    .lte("data_registro", datas[datas.length - 1]);
+  // Em páginas: uma planilha de vários meses compara contra milhares de
+  // lançamentos, e com o corte de 1000 a conferência deixava passar repetido.
+  const jaExistem = await lerTudo((de, ate) =>
+    supabase
+      .from("lancamentos")
+      .select("tipo, valor, descricao, data_registro")
+      .gte("data_registro", datas[0])
+      .lte("data_registro", datas[datas.length - 1])
+      .order("id", { ascending: true })
+      .range(de, ate),
+  );
+  // Sem conseguir conferir, não grava: importar às cegas duplicaria.
+  if (!jaExistem) {
+    return { ok: false, erro: "Não deu para conferir o que já está no app. Tente de novo." };
+  }
 
   const existentes = new Set(
-    (jaExistem ?? []).map((l) =>
+    jaExistem.map((l) =>
       chaveDaLinha({ ...l, valor: Number(l.valor) }),
     ),
   );

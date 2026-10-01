@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { lerTudo } from "@/lib/supabase/paginas";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import type { LancamentoParaCasar } from "@/lib/ofx";
 
@@ -28,13 +29,17 @@ export async function lancamentosParaCasar(
   };
 
   const supabase = await criarClienteServidor();
-  const { data } = await supabase
-    .from("lancamentos")
-    .select("id, valor, data_registro, descricao, fitid")
-    .eq("conta_id", v.data.contaId)
-    .neq("tipo", "aporte")
-    .gte("data_registro", folga(v.data.de, -3))
-    .lte("data_registro", folga(v.data.ate, 3));
+  const data = await lerTudo((de, ate) =>
+    supabase
+      .from("lancamentos")
+      .select("id, valor, data_registro, descricao, fitid")
+      .eq("conta_id", v.data.contaId)
+      .neq("tipo", "aporte")
+      .gte("data_registro", folga(v.data.de, -3))
+      .lte("data_registro", folga(v.data.ate, 3))
+      .order("id", { ascending: true })
+      .range(de, ate),
+  );
 
   return (data ?? []).map((l) => ({
     id: l.id,

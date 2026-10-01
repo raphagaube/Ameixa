@@ -17,7 +17,9 @@ export default async function Repetidos({
   const de = p.de ?? `${hoje.getFullYear()}-01-01`;
   const ate = p.ate ?? `${hoje.getFullYear()}-12-31`;
 
-  const lancamentos = await lancamentosDoPeriodo({ de, ate, ordem: "antigos" });
+  // O ano inteiro, não os 500 da tela do extrato: com o teto padrão, a
+  // busca enxergava só o começo do ano e deixava passar o resto.
+  const lancamentos = await lancamentosDoPeriodo({ de, ate, ordem: "antigos", limite: 20000 });
   const grupos = agruparRepetidos(lancamentos);
 
   return (

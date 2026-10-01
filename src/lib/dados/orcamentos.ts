@@ -1,5 +1,6 @@
 import "server-only";
 import { paraIso } from "@/lib/formato";
+import { lerTudo } from "@/lib/supabase/paginas";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import type { Orcamento } from "@/lib/tipos/orcamentos";
 
@@ -16,17 +17,21 @@ export async function orcamentosDoMes(
   const primeiro = mesReferencia(ano, mes);
   const ultimo = paraIso(new Date(ano, mes + 1, 0));
 
-  const [{ data: orcs }, { data: gastos }] = await Promise.all([
+  const [{ data: orcs }, gastos] = await Promise.all([
     supabase
       .from("orcamentos")
       .select("id, categoria_id, limite, categorias(nome, cor)")
       .eq("mes", primeiro),
-    supabase
-      .from("lancamentos")
-      .select("categoria_id, valor")
-      .eq("tipo", "despesa")
-      .gte("data_registro", primeiro)
-      .lte("data_registro", ultimo),
+    lerTudo((de, ate) =>
+      supabase
+        .from("lancamentos")
+        .select("categoria_id, valor")
+        .eq("tipo", "despesa")
+        .gte("data_registro", primeiro)
+        .lte("data_registro", ultimo)
+        .order("id", { ascending: true })
+        .range(de, ate),
+    ),
   ]);
 
   // Soma dos gastos por categoria no mês. Aportes já ficam de fora porque

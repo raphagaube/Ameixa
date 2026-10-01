@@ -1,6 +1,7 @@
 import "server-only";
 import { filtroOu, filtroPeloVencimento, interpretarBusca } from "@/lib/busca";
 import { paraIso } from "@/lib/formato";
+import { lerTudo } from "@/lib/supabase/paginas";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
 
@@ -67,60 +68,66 @@ export async function lancamentosDoPeriodo(
   f: FiltroExtrato,
 ): Promise<LancamentoNaLista[]> {
   const supabase = await criarClienteServidor();
-  let q = supabase.from("lancamentos").select(CAMPOS);
-
-  if (f.semAportes) q = q.neq("tipo", "aporte");
-
-  // O período pelo vencimento e a busca por descrição ou valor são dois
-  // filtros "ou"; vão num parâmetro só, os dois dentro de um "e".
-  const grupos: string[] = [];
   const porVencimento = f.datasPor === "vencimento";
-  if (porVencimento && (f.de || f.ate)) {
-    grupos.push(`or(${filtroPeloVencimento(f.de, f.ate)})`);
-  } else {
-    if (f.de) q = q.gte("data_registro", f.de);
-    if (f.ate) q = q.lte("data_registro", f.ate);
-  }
-  if (f.texto) {
-    // O mesmo campo procura por descrição e por valor: digitar 363 acha a
-    // conta de R$ 363,00, não só um estabelecimento chamado 363.
-    const busca = interpretarBusca(f.texto);
-    const ou = filtroOu(busca);
-    if (ou) grupos.push(`or(${ou})`);
-    else if (busca.texto) q = q.ilike("descricao", `%${busca.texto}%`);
-  }
-  if (grupos.length === 1) q = q.or(grupos[0].slice("or(".length, -1));
-  else if (grupos.length > 1) q = q.or(`and(${grupos.join(",")})`);
-
-  if (f.categoriaId) q = q.eq("categoria_id", f.categoriaId);
-  if (f.subcategoriaId) q = q.eq("subcategoria_id", f.subcategoriaId);
-  if (f.situacao) q = q.eq("situacao", f.situacao);
-  if (f.forma) q = q.eq("forma_pagamento", f.forma);
-  if (f.responsavel) q = q.ilike("responsavel", `%${f.responsavel}%`);
-
   const ordem = f.ordem ?? "recentes";
-  const colunaData = porVencimento ? "data_vencimento" : "data_registro";
-  switch (ordem) {
-    case "antigos":
-      q = q.order(colunaData, { ascending: true, nullsFirst: false });
-      break;
-    case "maior":
-      q = q.order("valor", { ascending: false });
-      break;
-    case "menor":
-      q = q.order("valor", { ascending: true });
-      break;
-    default:
-      q = q.order(colunaData, { ascending: false, nullsFirst: false });
-  }
+
+  // Montada de novo a cada página: ver `lerTudo`.
+  const montar = () => {
+    let q = supabase.from("lancamentos").select(CAMPOS);
+
+    if (f.semAportes) q = q.neq("tipo", "aporte");
+
+    // O período pelo vencimento e a busca por descrição ou valor são dois
+    // filtros "ou"; vão num parâmetro só, os dois dentro de um "e".
+    const grupos: string[] = [];
+    if (porVencimento && (f.de || f.ate)) {
+      grupos.push(`or(${filtroPeloVencimento(f.de, f.ate)})`);
+    } else {
+      if (f.de) q = q.gte("data_registro", f.de);
+      if (f.ate) q = q.lte("data_registro", f.ate);
+    }
+    if (f.texto) {
+      // O mesmo campo procura por descrição e por valor: digitar 363 acha a
+      // conta de R$ 363,00, não só um estabelecimento chamado 363.
+      const busca = interpretarBusca(f.texto);
+      const ou = filtroOu(busca);
+      if (ou) grupos.push(`or(${ou})`);
+      else if (busca.texto) q = q.ilike("descricao", `%${busca.texto}%`);
+    }
+    if (grupos.length === 1) q = q.or(grupos[0].slice("or(".length, -1));
+    else if (grupos.length > 1) q = q.or(`and(${grupos.join(",")})`);
+
+    if (f.categoriaId) q = q.eq("categoria_id", f.categoriaId);
+    if (f.subcategoriaId) q = q.eq("subcategoria_id", f.subcategoriaId);
+    if (f.situacao) q = q.eq("situacao", f.situacao);
+    if (f.forma) q = q.eq("forma_pagamento", f.forma);
+    if (f.responsavel) q = q.ilike("responsavel", `%${f.responsavel}%`);
+
+    const colunaData = porVencimento ? "data_vencimento" : "data_registro";
+    switch (ordem) {
+      case "antigos":
+        q = q.order(colunaData, { ascending: true, nullsFirst: false });
+        break;
+      case "maior":
+        q = q.order("valor", { ascending: false });
+        break;
+      case "menor":
+        q = q.order("valor", { ascending: true });
+        break;
+      default:
+        q = q.order(colunaData, { ascending: false, nullsFirst: false });
+    }
+    // O `id` no fim é o desempate que deixa a paginação estável.
+    return q.order("criado_em", { ascending: false }).order("id", { ascending: true });
+  };
+
   // O teto era fixo em 500. No relatório "Todo o período" isso cortava a
   // lista sem uma palavra — quem tem mil lançamentos imprimia 500 e não
   // ficava sabendo. Quem chama decide, e o relatório pede o suficiente.
-  q = q.order("criado_em", { ascending: false }).limit(f.limite ?? 500);
-
-  const { data, error } = await q;
-  if (error || !data) return [];
-  const lista = (data as Bruto[]).map(normalizar);
+  // Em páginas: um `.limit(5000)` sozinho ainda parava em 1000.
+  const data = await lerTudo((de, ate) => montar().range(de, ate), f.limite ?? 500);
+  if (!data) return [];
+  const lista = (data as unknown as Bruto[]).map(normalizar);
 
   // Pelo vencimento, quem não tem vencimento entra na ordem pela data do
   // registro — o banco sozinho mandaria todos eles para o fim.
@@ -136,14 +143,18 @@ export async function lancamentosDoPeriodo(
 /** Lançamentos do Registro Fácil que ainda faltam completar. */
 export async function pendencias(): Promise<LancamentoNaLista[]> {
   const supabase = await criarClienteServidor();
-  const { data, error } = await supabase
-    .from("lancamentos")
-    .select(CAMPOS)
-    .eq("incompleto", true)
-    .order("criado_em", { ascending: false });
+  const data = await lerTudo((de, ate) =>
+    supabase
+      .from("lancamentos")
+      .select(CAMPOS)
+      .eq("incompleto", true)
+      .order("criado_em", { ascending: false })
+      .order("id", { ascending: true })
+      .range(de, ate),
+  );
 
-  if (error || !data) return [];
-  return (data as Bruto[]).map(normalizar);
+  if (!data) return [];
+  return (data as unknown as Bruto[]).map(normalizar);
 }
 
 /**

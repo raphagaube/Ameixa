@@ -1,4 +1,5 @@
 import "server-only";
+import { todosOsMovimentos } from "@/lib/dados/movimentos";
 import { paraIso } from "@/lib/formato";
 import { saldosPorConta, totalDasContas, valorSemConta } from "@/lib/saldo-conta";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
@@ -40,39 +41,26 @@ export async function resumoDoMes(ano: number, mes: number): Promise<ResumoMes> 
   const supabase = await criarClienteServidor();
   const { de, ate } = limitesDoMes(ano, mes);
 
-  const [{ data: ateOFim }, { data: doMes }, { data: contas }] = await Promise.all([
-    supabase
-      .from("lancamentos")
-      .select("conta_id, tipo, valor, data_registro")
-      .lte("data_registro", ate),
-    supabase
-      .from("lancamentos")
-      .select("tipo, valor, incompleto")
-      .gte("data_registro", de)
-      .lte("data_registro", ate),
+  const [todos, { data: contas }] = await Promise.all([
+    todosOsMovimentos(),
     supabase
       .from("contas")
       .select("id, nome, cor, tipo, saldo_inicial, saldo_conferido_em")
       .eq("arquivada", false),
   ]);
 
-  const movimentos = (ateOFim ?? []).map((m) => ({
-    conta_id: m.conta_id,
-    tipo: m.tipo,
-    valor: Number(m.valor),
-    data: m.data_registro,
-  }));
-
+  const movimentos = todos.filter((m) => m.data <= ate);
   const comSaldo = saldosPorConta(contas ?? [], movimentos);
 
   let receitas = 0;
   let despesas = 0;
   let pendentes = 0;
 
-  for (const l of doMes ?? []) {
+  for (const l of movimentos) {
+    if (l.data < de) continue;
     if (l.incompleto) pendentes += 1;
-    if (l.tipo === "receita") receitas += Number(l.valor);
-    else if (l.tipo === "despesa") despesas += Number(l.valor);
+    if (l.tipo === "receita") receitas += l.valor;
+    else if (l.tipo === "despesa") despesas += l.valor;
   }
 
   return {
