@@ -1,4 +1,5 @@
 import { hojeEmBrasilia } from "@/lib/formato";
+import Link from "next/link";
 import { CabecalhoVoltar } from "@/components/cabecalho-voltar";
 import { lancamentosDoPeriodo } from "@/lib/dados/lancamentos";
 import { agruparRepetidos } from "@/lib/repetidos";
@@ -26,6 +27,14 @@ export default async function Repetidos({
   return (
     <div className="flex flex-col" style={{ gap: 14 }}>
       <CabecalhoVoltar titulo="Repetidos" />
+      {/* Planilha importada duas vezes é outro caso: lá o app sabe qual é a
+          cópia, em vez de juntar tudo que tem o mesmo nome e valor. */}
+      <Link
+        href="/extrato/copias"
+        style={{ fontSize: 13, fontWeight: 600, color: "var(--deep)", minHeight: 44, display: "flex", alignItems: "center" }}
+      >
+        Importou a mesma planilha duas vezes? Ver cópias de importação →
+      </Link>
       <PainelRepetidos grupos={grupos} de={de} ate={ate} />
     </div>
   );
