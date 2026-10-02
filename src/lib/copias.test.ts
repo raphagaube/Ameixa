@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { acharCopias, type ParaCopias } from "./copias";
+import { acharCopias, acharParecidos, type ParaCopias } from "./copias";
 
 const LOTE_1 = "2026-09-01T23:53:10Z"; // primeira importação
 const MANUAL = "2026-09-08T02:09:00Z"; // lançado à mão
@@ -150,5 +150,103 @@ describe("pares que deixaram de ser idênticos", () => {
     const original = conta({}, { situação: "a_pagar", vencimento: null, conta: "k1" });
     const outra = conta({ criado_em: LOTE_2 }, { situação: "a_pagar", vencimento: "2026-10-12", conta: null });
     expect(acharCopias([original, outra]).paraConferir[0].difere).toEqual(["vencimento", "conta"]);
+  });
+});
+
+describe("acharParecidos", () => {
+  const conta = (descricao: string, vencimento: string | null, parcial: Partial<ParaCopias> = {}) =>
+    lanc({
+      tipo: "despesa",
+      valor: 566.1,
+      descricao,
+      data_registro: "2026-07-12",
+      data_vencimento: vencimento,
+      ...parcial,
+    });
+
+  /**
+   * É assim que o dono repete conta recorrente: mesmo nome, mesmo valor, e
+   * só o vencimento muda. São meses diferentes, não repetição.
+   */
+  it("mesmo nome e valor com vencimentos diferentes não é repetição", () => {
+    const r = acharParecidos([
+      conta("Escola Cristã Eloah", "2026-10-03"),
+      conta("Escola Cristã Eloah", "2026-11-03"),
+      conta("Escola Cristã Eloah", "2026-12-03"),
+    ]);
+    expect(r).toEqual([]);
+  });
+
+  it("mesmo vencimento, mesmo valor e mesmo nome: grupo de nome igual", () => {
+    const a = conta("Kalunga Fortex", "2026-10-15");
+    const b = conta("kalunga fortex ", "2026-10-15");
+    const [g] = acharParecidos([a, b]);
+    expect(g).toMatchObject({ classe: "igual", data: "2026-10-15", peloVencimento: true, valor: 566.1 });
+    expect(g.itens.map((l) => l.id).sort()).toEqual([a.id, b.id].sort());
+  });
+
+  /** A mesma parcela em duas séries: uma numerada, a outra não. */
+  it("a mesma conta em duas séries, uma com numeração e a outra sem, é nome parecido", () => {
+    const [g] = acharParecidos([
+      conta("Candeias Ubatuba", "2026-10-10"),
+      conta("Candeias Ubatuba — 3/10", "2026-10-10", { data_registro: "2026-10-04" }),
+    ]);
+    expect(g.classe).toBe("parecido");
+    expect(g.itens).toHaveLength(2);
+  });
+
+  it("nome abreviado ainda é parecido", () => {
+    const [g] = acharParecidos([
+      conta("Faculdade Rapha", "2026-10-03"),
+      conta("Facu Rapha", "2026-10-03"),
+    ]);
+    expect(g.classe).toBe("parecido");
+  });
+
+  it("parcelas de números diferentes da mesma compra nunca se juntam", () => {
+    const r = acharParecidos([
+      conta("Guarda da Rua (1/9)", null, { data_registro: "2026-04-09" }),
+      conta("Guarda da Rua (2/9)", null, { data_registro: "2026-04-09" }),
+      conta("Guarda da Rua (3/9)", null, { data_registro: "2026-04-09" }),
+    ]);
+    expect(r).toEqual([]);
+  });
+
+  it("a mesma parcela repetida se junta", () => {
+    const [g] = acharParecidos([
+      conta("Sindy escritório (9/12)", "2026-10-12"),
+      conta("Sindy escritório (9/12)", "2026-10-12"),
+    ]);
+    expect(g.classe).toBe("igual");
+  });
+
+  it("nomes sem nada em comum ficam por último, como 'diferente'", () => {
+    const r = acharParecidos([
+      conta("Anhanguera", "2026-10-03", { valor: 947.91 }),
+      conta("Facu Rapha", "2026-10-03", { valor: 947.91 }),
+      conta("Kalunga", "2026-10-15"),
+      conta("Kalunga", "2026-10-15"),
+    ]);
+    expect(r.map((g) => g.classe)).toEqual(["igual", "diferente"]);
+    expect(r[1].itens.map((l) => l.descricao).sort()).toEqual(["Anhanguera", "Facu Rapha"]);
+  });
+
+  it("sem vencimento, vale a data do registro", () => {
+    const [g] = acharParecidos([
+      conta("Gasolina", null, { valor: 150, data_registro: "2026-06-22" }),
+      conta("Gasolina", null, { valor: 150, data_registro: "2026-06-22" }),
+    ]);
+    expect(g).toMatchObject({ classe: "igual", data: "2026-06-22", peloVencimento: false });
+  });
+
+  it("valor diferente, tipo diferente ou cópia já apontada ficam de fora", () => {
+    const a = conta("Kalunga", "2026-10-15");
+    const copia = conta("Kalunga", "2026-10-15");
+    expect(
+      acharParecidos(
+        [a, copia, conta("Kalunga", "2026-10-15", { valor: 10 }), conta("Kalunga", "2026-10-15", { tipo: "receita" })],
+        new Set([copia.id]),
+      ),
+    ).toEqual([]);
   });
 });

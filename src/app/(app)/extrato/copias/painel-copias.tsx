@@ -8,6 +8,7 @@ import { Dinheiro } from "@/components/dinheiro";
 import { Botao } from "@/components/ui/botao";
 import { Segmentos } from "@/components/ui/segmentos";
 import { atualizarAgendaNaTela } from "@/lib/agenda/atualizar-na-tela";
+import type { ClasseDoGrupo } from "@/lib/copias";
 import { dataBr, moeda } from "@/lib/formato";
 import { useOcupado } from "@/lib/use-ocupado";
 
@@ -16,21 +17,32 @@ export type LinhaCopia = {
   tipo: "receita" | "despesa";
   valor: number;
   descricao: string;
-  /** aaaa-mm-dd */
+  /** Data do registro, aaaa-mm-dd. */
   data: string;
-  categoria: string | null;
-  /** dd/mm/aaaa em que este lançamento foi gravado. */
-  gravadoEm: string;
-  /** dd/mm/aaaa em que foi gravado o lançamento que fica. */
-  originalGravadoEm: string;
-  /** Detalhes em que difere do que fica (situação, vencimento…). */
-  difere: string[];
+  /** A linha de baixo: categoria, quando foi gravado, o que fica no lugar. */
+  detalhe: string;
+};
+
+export type GrupoNaTela = {
+  classe: ClasseDoGrupo;
+  tipo: "receita" | "despesa";
+  /** aaaa-mm-dd que juntou o grupo. */
+  data: string;
+  peloVencimento: boolean;
+  valor: number;
+  itens: LinhaCopia[];
 };
 
 type Filtro = "tudo" | "receita" | "despesa";
 
 /** Quantos ids por pedido: a lista vai no endereço, que tem tamanho máximo. */
 const POR_PEDIDO = 100;
+
+const ROTULO_CLASSE: Record<ClasseDoGrupo, string> = {
+  igual: "mesmo nome",
+  parecido: "nome parecido",
+  diferente: "nomes diferentes — podem ser contas diferentes",
+};
 
 const caixa: React.CSSProperties = {
   borderRadius: "var(--r)",
@@ -44,11 +56,14 @@ function Lista({
   marcado,
   aoAlternar,
   desabilitado,
+  comData,
 }: {
   itens: LinhaCopia[];
   marcado: (id: string) => boolean;
   aoAlternar: (id: string) => void;
   desabilitado: boolean;
+  /** Mostra a data do registro antes do nome (nos grupos ela já vai no detalhe). */
+  comData: boolean;
 }) {
   return (
     <ul className="flex flex-col">
@@ -57,6 +72,7 @@ function Lista({
           <label className="flex items-center" style={{ gap: 10, minHeight: 44, padding: "6px 0" }}>
             <input
               type="checkbox"
+              // O id no valor da caixa deixa montar um link que já abre com ela marcada.
               value={l.id}
               checked={marcado(l.id)}
               onChange={() => aoAlternar(l.id)}
@@ -65,19 +81,10 @@ function Lista({
             />
             <span className="flex flex-col" style={{ flex: 1, minWidth: 0 }}>
               <span style={{ fontSize: 14 }}>
-                <span style={{ color: "var(--mut)" }}>{dataBr(l.data)} · </span>
+                {comData ? <span style={{ color: "var(--mut)" }}>{dataBr(l.data)} · </span> : null}
                 {l.descricao}
               </span>
-              <span style={{ fontSize: 12, color: "var(--mut)" }}>
-                {l.categoria ?? "Sem categoria"} · gravado em {l.gravadoEm}; o que fica é de{" "}
-                {l.originalGravadoEm}
-              </span>
-              {l.difere.length > 0 ? (
-                <span style={{ fontSize: 12, color: "var(--bad)" }}>
-                  Difere do que fica em: {l.difere.join(", ")}. Um dos dois foi editado — veja qual
-                  está certo antes de excluir.
-                </span>
-              ) : null}
+              <span style={{ fontSize: 12, color: "var(--mut)" }}>{l.detalhe}</span>
             </span>
             <span
               style={{
@@ -98,41 +105,41 @@ function Lista({
 }
 
 /**
- * Limpeza de uma planilha importada duas vezes.
+ * Limpeza de lançamentos repetidos.
  *
- * As cópias certas já chegam marcadas; os "iguais para conferir" chegam
- * desmarcados. Nada sai sem o dono apertar o botão e confirmar: excluir não
- * tem volta, e a decisão é dele.
+ * Duas listas. As cópias de importação são certeza e chegam marcadas. Os
+ * parecidos — mesmo vencimento e mesmo valor, nome igual ou parecido — são
+ * palpite e chegam desmarcados, em grupos, para o dono escolher qual fica.
+ * Nada sai sem ele apertar o botão e confirmar: excluir não tem volta.
  */
 export function PainelCopias({
   copias,
-  paraConferir,
+  grupos,
   marcarDeInicio,
 }: {
   copias: LinhaCopia[];
-  paraConferir: LinhaCopia[];
+  grupos: GrupoNaTela[];
   marcarDeInicio: string[];
 }) {
   const router = useRouter();
   const [filtro, setFiltro] = useState<Filtro>("tudo");
-  // Cópias: marcadas, menos as que o dono tirar. Para conferir: desmarcadas,
-  // mais as que ele puser (ou as que o endereço já trouxe marcadas).
+  // Cópias: marcadas, menos as que o dono tirar. Parecidos: desmarcados,
+  // mais os que ele puser (ou os que o endereço já trouxe marcados).
   const [fora, setFora] = useState<Set<string>>(new Set());
   const [extras, setExtras] = useState<Set<string>>(
-    () => new Set(marcarDeInicio.filter((id) => paraConferir.some((l) => l.id === id))),
+    () => new Set(marcarDeInicio.filter((id) => grupos.some((g) => g.itens.some((l) => l.id === id)))),
   );
   const [excluindo, iniciar] = useOcupado();
   const [progresso, setProgresso] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [recado, setRecado] = useState<string | null>(null);
 
-  const doFiltro = (l: LinhaCopia) => filtro === "tudo" || l.tipo === filtro;
-  const copiasVisiveis = copias.filter(doFiltro);
-  const conferirVisiveis = paraConferir.filter(doFiltro);
+  const copiasVisiveis = copias.filter((l) => filtro === "tudo" || l.tipo === filtro);
+  const gruposVisiveis = grupos.filter((g) => filtro === "tudo" || g.tipo === filtro);
 
   const selecionados = [
     ...copiasVisiveis.filter((l) => !fora.has(l.id)),
-    ...conferirVisiveis.filter((l) => extras.has(l.id)),
+    ...gruposVisiveis.flatMap((g) => g.itens).filter((l) => extras.has(l.id)),
   ];
   const soma = (tipo: "receita" | "despesa") =>
     selecionados.filter((l) => l.tipo === tipo).reduce((s, l) => s + l.valor, 0);
@@ -150,7 +157,7 @@ export function PainelCopias({
     if (
       !window.confirm(
         `Excluir ${ids.length} ${ids.length === 1 ? "lançamento" : "lançamentos"}?\n\n` +
-          "Excluir não tem volta. Os originais ficam no app.",
+          "Excluir não tem volta. O que não está marcado fica no app.",
       )
     ) {
       return;
@@ -187,7 +194,7 @@ export function PainelCopias({
     });
   }
 
-  if (copias.length === 0 && paraConferir.length === 0) {
+  if (copias.length === 0 && grupos.length === 0) {
     return (
       <div className="flex flex-col" style={{ gap: 10 }}>
         {recado ? (
@@ -196,18 +203,27 @@ export function PainelCopias({
           </p>
         ) : null}
         <p style={{ fontSize: 14, color: "var(--mut)", padding: "12px 0" }}>
-          Nenhuma cópia de importação: não há lançamento importado que já existisse no app.
+          Nenhuma cópia de importação e nenhum lançamento parecido com outro no mesmo vencimento.
         </p>
       </div>
     );
   }
 
+  const linkDeTexto: React.CSSProperties = {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--deep)",
+    background: "transparent",
+    minHeight: 44,
+  };
+
   return (
+    // A barra fixa do rodapé cobre o fim da lista sem este respiro.
     <div className="flex flex-col" style={{ gap: 14, paddingBottom: 150 }}>
       <p style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.5 }}>
-        Lançamentos que uma importação gravou de novo: já existia no app outro igual em tipo, data,
-        valor e descrição. O original fica; a cópia sai. Confira a lista antes de excluir — excluir
-        não tem volta. Vale{" "}
+        Duas listas. As <strong>cópias de importação</strong> são certeza e chegam marcadas. Os{" "}
+        <strong>parecidos</strong> são palpite e chegam desmarcados. Confira antes de excluir —
+        excluir não tem volta. Vale{" "}
         <Link href="/ajustes" style={{ color: "var(--deep)", fontWeight: 600 }}>
           baixar um backup
         </Link>{" "}
@@ -228,7 +244,7 @@ export function PainelCopias({
       <section style={caixa}>
         <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
           <h2 style={{ fontSize: 16 }}>
-            {copiasVisiveis.length} {copiasVisiveis.length === 1 ? "cópia" : "cópias"}
+            {copiasVisiveis.length} {copiasVisiveis.length === 1 ? "cópia" : "cópias"} de importação
           </h2>
           {copiasVisiveis.length > 0 ? (
             <span className="flex" style={{ gap: 12 }}>
@@ -240,7 +256,7 @@ export function PainelCopias({
                   setFora(novo);
                 }}
                 disabled={excluindo}
-                style={{ fontSize: 13, fontWeight: 600, color: "var(--deep)", background: "transparent", minHeight: 44 }}
+                style={linkDeTexto}
               >
                 Marcar todas
               </button>
@@ -248,41 +264,67 @@ export function PainelCopias({
                 type="button"
                 onClick={() => setFora(new Set([...fora, ...copiasVisiveis.map((l) => l.id)]))}
                 disabled={excluindo}
-                style={{ fontSize: 13, fontWeight: 600, color: "var(--deep)", background: "transparent", minHeight: 44 }}
+                style={linkDeTexto}
               >
                 Desmarcar todas
               </button>
             </span>
           ) : null}
         </div>
+        <p style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.5, margin: "4px 0 6px" }}>
+          Gravadas de novo por uma importação: já existia no app outro lançamento igual em tipo,
+          data, valor e descrição, e os dois continuam idênticos em situação, vencimento, categoria
+          e conta. O mais antigo fica.
+        </p>
         {copiasVisiveis.length === 0 ? (
-          <p style={{ fontSize: 13, color: "var(--mut)", marginTop: 6 }}>Nenhuma neste filtro.</p>
+          <p style={{ fontSize: 13, color: "var(--mut)" }}>Nenhuma neste filtro.</p>
         ) : (
           <Lista
             itens={copiasVisiveis}
             marcado={(id) => !fora.has(id)}
             aoAlternar={alternar(fora, setFora)}
             desabilitado={excluindo}
+            comData
           />
         )}
       </section>
 
-      {conferirVisiveis.length > 0 ? (
+      {gruposVisiveis.length > 0 ? (
         <section style={caixa}>
           <h2 style={{ fontSize: 16 }}>
-            {conferirVisiveis.length} {conferirVisiveis.length === 1 ? "igual" : "iguais"} para conferir
+            {gruposVisiveis.length} {gruposVisiveis.length === 1 ? "grupo parecido" : "grupos parecidos"} para
+            conferir
           </h2>
           <p style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.5, margin: "4px 0 6px" }}>
-            Iguais a outro lançamento em data, valor e descrição, mas que a tela não decide sozinha:
-            gravados junto com ele (podem ser dois gastos de verdade no mesmo dia), lançados à mão,
-            ou com algum detalhe diferente. Chegam desmarcados: marque só os que forem repetição.
+            Mesmo vencimento e mesmo valor, com nome igual ou parecido — a mesma conta lançada duas
+            vezes, às vezes com outro nome. Vencimento diferente é conta de outro mês e não aparece
+            aqui. Chegam desmarcados: em cada grupo, marque o que for repetição e deixe um.
           </p>
-          <Lista
-            itens={conferirVisiveis}
-            marcado={(id) => extras.has(id)}
-            aoAlternar={alternar(extras, setExtras)}
-            desabilitado={excluindo}
-          />
+          <div className="flex flex-col" style={{ gap: 14 }}>
+            {gruposVisiveis.map((g) => {
+              const todos = g.itens.every((l) => extras.has(l.id));
+              return (
+                <div key={g.itens.map((l) => l.id).join("-")}>
+                  <p className="rotulo" style={{ marginBottom: 2 }}>
+                    {g.peloVencimento ? "Vence em" : "Registrado em"} {dataBr(g.data)} ·{" "}
+                    <Dinheiro>{moeda(g.valor)}</Dinheiro> · {ROTULO_CLASSE[g.classe]}
+                  </p>
+                  <Lista
+                    itens={g.itens}
+                    marcado={(id) => extras.has(id)}
+                    aoAlternar={alternar(extras, setExtras)}
+                    desabilitado={excluindo}
+                    comData={false}
+                  />
+                  {todos ? (
+                    <p style={{ fontSize: 12, color: "var(--bad)" }}>
+                      Todos marcados: essa conta sumiria do app. Deixe um.
+                    </p>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
         </section>
       ) : null}
 

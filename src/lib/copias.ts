@@ -1,3 +1,5 @@
+import { nomesParecidos, numeroDaParcela, separarSufixo } from "@/lib/recorrentes";
+
 /**
  * Cópias de importação: o mesmo lançamento gravado de novo por uma planilha.
  *
@@ -22,6 +24,8 @@ export type ParaCopias = {
   descricao: string;
   /** aaaa-mm-dd */
   data_registro: string;
+  /** aaaa-mm-dd, quando a conta tem vencimento. */
+  data_vencimento?: string | null;
   importado: boolean;
   /** Instante em que o lançamento foi gravado. */
   criado_em: string;
@@ -124,4 +128,112 @@ export function acharCopias<T extends ParaCopias>(
   copias.sort((a, b) => porData(a.copia, b.copia));
   paraConferir.sort((a, b) => porData(a.item, b.item));
   return { copias, paraConferir };
+}
+
+export type ClasseDoGrupo = "igual" | "parecido" | "diferente";
+
+export type GrupoParecido<T> = {
+  /** O quanto os nomes se parecem; quanto mais igual, mais provável a repetição. */
+  classe: ClasseDoGrupo;
+  tipo: string;
+  /** A data que juntou o grupo: o vencimento, ou o registro de quem não tem. */
+  data: string;
+  /** Algum item do grupo tem vencimento — a data acima é "vence em". */
+  peloVencimento: boolean;
+  valor: number;
+  itens: T[];
+};
+
+const ORDEM_DA_CLASSE: Record<ClasseDoGrupo, number> = { igual: 0, parecido: 1, diferente: 2 };
+
+/**
+ * A mesma conta lançada duas vezes com nomes diferentes.
+ *
+ * O dono repete a conta recorrente mudando só o vencimento, então mesmo nome
+ * e mesmo valor com vencimentos diferentes são meses diferentes — não entram
+ * aqui. Repetição é o contrário: MESMO vencimento e mesmo valor, com o nome
+ * igual ou parecido ("Candeias Ubatuba" e "Candeias Ubatuba — 3/10", a mesma
+ * parcela em duas séries).
+ *
+ * Nada daqui sai marcado. "Jiu-Jitsu - Eloah" e "Jiu-Jitsu - Rapha" vencem no
+ * mesmo dia, custam o mesmo e têm nomes parecidos, e são duas mensalidades:
+ * só o dono sabe dizer.
+ *
+ * Parcelas de números diferentes ("(1/9)" e "(2/9)") nunca se juntam: é a
+ * mesma compra dividida, não a mesma parcela repetida.
+ */
+export function acharParecidos<T extends ParaCopias>(
+  lancamentos: T[],
+  ignorar: ReadonlySet<string> = new Set(),
+): GrupoParecido<T>[] {
+  const porChave = new Map<string, T[]>();
+  for (const l of lancamentos) {
+    if (ignorar.has(l.id)) continue;
+    if (l.tipo !== "receita" && l.tipo !== "despesa") continue;
+    const data = (l.data_vencimento ?? l.data_registro).slice(0, 10);
+    const chave = [l.tipo, data, l.valor.toFixed(2)].join("|");
+    const grupo = porChave.get(chave);
+    if (grupo) grupo.push(l);
+    else porChave.set(chave, [l]);
+  }
+
+  const grupos: GrupoParecido<T>[] = [];
+
+  for (const itens of porChave.values()) {
+    if (itens.length < 2) continue;
+
+    const base = itens.map((l) => separarSufixo(l.descricao).base.trim().toLowerCase());
+    const parcela = itens.map((l) => numeroDaParcela(l.descricao));
+    const outraParcela = (a: number, b: number) =>
+      parcela[a] !== null && parcela[b] !== null && parcela[a] !== parcela[b];
+
+    // Junta em blocos quem tem nome igual ou parecido.
+    const pai = itens.map((_, i) => i);
+    const raiz = (i: number): number => (pai[i] === i ? i : (pai[i] = raiz(pai[i])));
+    for (let a = 0; a < itens.length; a++) {
+      for (let b = a + 1; b < itens.length; b++) {
+        if (outraParcela(a, b)) continue;
+        if (base[a] === base[b] || nomesParecidos(base[a], base[b])) pai[raiz(a)] = raiz(b);
+      }
+    }
+    const blocos = new Map<number, number[]>();
+    itens.forEach((_, i) => blocos.set(raiz(i), [...(blocos.get(raiz(i)) ?? []), i]));
+
+    const montar = (classe: ClasseDoGrupo, indices: number[]): GrupoParecido<T> => {
+      const doGrupo = indices
+        .map((i) => itens[i])
+        .sort((a, b) => Date.parse(a.criado_em) - Date.parse(b.criado_em) || a.id.localeCompare(b.id));
+      return {
+        classe,
+        tipo: doGrupo[0].tipo,
+        data: (doGrupo[0].data_vencimento ?? doGrupo[0].data_registro).slice(0, 10),
+        peloVencimento: doGrupo.some((l) => !!l.data_vencimento),
+        valor: doGrupo[0].valor,
+        itens: doGrupo,
+      };
+    };
+
+    const soltos: number[] = [];
+    for (const indices of blocos.values()) {
+      if (indices.length < 2) {
+        soltos.push(indices[0]);
+        continue;
+      }
+      const nomes = new Set(indices.map((i) => itens[i].descricao.trim().toLowerCase()));
+      grupos.push(montar(nomes.size === 1 ? "igual" : "parecido", indices));
+    }
+
+    // Mesmo vencimento e valor com nomes sem nada em comum: pode ser a mesma
+    // conta com outro apelido ("Anhanguera" e "Facu Rapha"), pode ser
+    // coincidência. Vai por último, e só se não for a mesma compra parcelada.
+    const algumParSemParcela = soltos.some((a, i) => soltos.slice(i + 1).some((b) => !outraParcela(a, b)));
+    if (soltos.length >= 2 && algumParSemParcela) grupos.push(montar("diferente", soltos));
+  }
+
+  return grupos.sort(
+    (a, b) =>
+      ORDEM_DA_CLASSE[a.classe] - ORDEM_DA_CLASSE[b.classe] ||
+      a.data.localeCompare(b.data) ||
+      a.valor - b.valor,
+  );
 }

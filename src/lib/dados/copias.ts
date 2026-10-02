@@ -46,12 +46,14 @@ export async function lancamentosParaCopias(): Promise<LancamentoParaCopias[] | 
 
   return (linhas as unknown as Bruto[]).map((l) => {
     const cat = Array.isArray(l.categoria) ? (l.categoria[0] ?? null) : l.categoria;
+    const vencimento = l.data_vencimento ? String(l.data_vencimento).slice(0, 10) : null;
     return {
       id: l.id,
       tipo: l.tipo,
       valor: Number(l.valor),
       descricao: l.descricao,
       data_registro: String(l.data_registro).slice(0, 10),
+      data_vencimento: vencimento,
       situacao: l.situacao,
       importado: !!l.importado,
       criado_em: l.criado_em,
@@ -59,7 +61,7 @@ export async function lancamentosParaCopias(): Promise<LancamentoParaCopias[] | 
       // As chaves são os nomes que a tela mostra em "difere em".
       detalhes: {
         situação: l.situacao,
-        vencimento: l.data_vencimento ? String(l.data_vencimento).slice(0, 10) : null,
+        vencimento,
         categoria: l.categoria_id,
         subcategoria: l.subcategoria_id,
         conta: l.conta_id,
