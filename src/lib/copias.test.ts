@@ -60,7 +60,7 @@ describe("acharCopias", () => {
     const r = acharCopias([c2, o2, c1, o1]);
     expect(r.copias.map((c) => c.copia.id).sort()).toEqual([c1.id, c2.id]);
     expect(r.copias.map((c) => c.original.id).sort()).toEqual([o1.id, o2.id]);
-    expect(r.paraConferir).toEqual([{ manter: o1, iguais: [o2] }]);
+    expect(r.paraConferir).toEqual([{ item: o2, manter: o1, difere: [] }]);
   });
 
   it("dois iguais que nasceram juntos nunca são marcados sozinhos — dois cafés são dois gastos", () => {
@@ -68,7 +68,7 @@ describe("acharCopias", () => {
     const b = lanc({ tipo: "despesa", valor: 5, descricao: "Café", criado_em: "2026-09-01T23:53:12Z" });
     const r = acharCopias([a, b]);
     expect(r.copias).toEqual([]);
-    expect(r.paraConferir).toEqual([{ manter: a, iguais: [b] }]);
+    expect(r.paraConferir).toEqual([{ item: b, manter: a, difere: [] }]);
   });
 
   it("igual lançado à mão depois não é cópia de importação: vai para conferir", () => {
@@ -76,7 +76,7 @@ describe("acharCopias", () => {
     const naMao = lanc({ criado_em: LOTE_2, importado: false });
     const r = acharCopias([original, naMao]);
     expect(r.copias).toEqual([]);
-    expect(r.paraConferir).toEqual([{ manter: original, iguais: [naMao] }]);
+    expect(r.paraConferir).toEqual([{ item: naMao, manter: original, difere: [] }]);
   });
 
   it("segunda importação com mais linhas que os originais: só casa um para um", () => {
@@ -85,7 +85,7 @@ describe("acharCopias", () => {
     const c2 = lanc({ criado_em: LOTE_2 });
     const r = acharCopias([original, c1, c2]);
     expect(r.copias).toHaveLength(1);
-    expect(r.paraConferir).toEqual([{ manter: original, iguais: [c2] }]);
+    expect(r.paraConferir).toEqual([{ item: c2, manter: original, difere: [] }]);
   });
 
   it("planilha importada duas vezes: as cópias dos dois lotes saem", () => {
@@ -110,5 +110,45 @@ describe("acharCopias", () => {
     const idsDasCopias = new Set(r.copias.map((c) => c.copia.id));
     expect(idsDasCopias.size).toBe(50);
     expect(originais.some((o) => idsDasCopias.has(o.id))).toBe(false);
+  });
+});
+
+describe("pares que deixaram de ser idênticos", () => {
+  const conta = (parcial: Partial<ParaCopias>, detalhes: Record<string, string | null>) =>
+    lanc({ tipo: "despesa", valor: 706, descricao: "Sindy escritório (9/12)", detalhes, ...parcial });
+
+  /**
+   * Depois da importação o dono marcou a cópia como paga. Se ela saísse
+   * sozinha, ficaria no app o original, ainda "a pagar": a correção perdida.
+   */
+  it("cópia editada depois não sai sozinha, e a tela sabe em quê ela difere", () => {
+    const original = conta({}, { situação: "a_pagar", vencimento: "2026-10-12", categoria: "c1" });
+    const editada = conta({ criado_em: LOTE_2 }, { situação: "pago", vencimento: "2026-10-12", categoria: "c1" });
+    const r = acharCopias([original, editada]);
+    expect(r.copias).toEqual([]);
+    expect(r.paraConferir).toEqual([{ item: editada, manter: original, difere: ["situação"] }]);
+  });
+
+  it("idêntica em todos os detalhes continua saindo sozinha", () => {
+    const d = { situação: "a_pagar", vencimento: "2026-10-12", categoria: "c1", conta: null };
+    const original = conta({}, d);
+    const copia = conta({ criado_em: LOTE_2 }, { ...d });
+    expect(acharCopias([original, copia]).copias).toEqual([{ copia, original }]);
+  });
+
+  it("com dois originais diferentes, cada cópia casa com o original igual a ela", () => {
+    const pago = conta({}, { situação: "pago" });
+    const aPagar = conta({}, { situação: "a_pagar" });
+    const copiaAPagar = conta({ criado_em: LOTE_2 }, { situação: "a_pagar" });
+    const copiaPago = conta({ criado_em: LOTE_2 }, { situação: "pago" });
+    const r = acharCopias([pago, aPagar, copiaAPagar, copiaPago]);
+    expect(r.copias).toHaveLength(2);
+    for (const c of r.copias) expect(c.copia.detalhes).toEqual(c.original.detalhes);
+  });
+
+  it("aponta todos os detalhes diferentes, inclusive vazio contra preenchido", () => {
+    const original = conta({}, { situação: "a_pagar", vencimento: null, conta: "k1" });
+    const outra = conta({ criado_em: LOTE_2 }, { situação: "a_pagar", vencimento: "2026-10-12", conta: null });
+    expect(acharCopias([original, outra]).paraConferir[0].difere).toEqual(["vencimento", "conta"]);
   });
 });

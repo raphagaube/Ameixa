@@ -10,8 +10,9 @@ export type LancamentoParaCopias = ParaCopias & {
 
 /**
  * Todos os lançamentos, com o que a busca de cópias precisa: o conteúdo que
- * identifica o par e quando cada um foi gravado. `null` se a leitura falhar —
- * com metade da lista, um original poderia passar por cópia.
+ * identifica o par, os detalhes que precisam continuar iguais e quando cada
+ * um foi gravado. `null` se a leitura falhar — com metade da lista, um
+ * original poderia passar por cópia.
  */
 export async function lancamentosParaCopias(): Promise<LancamentoParaCopias[] | null> {
   const supabase = await criarClienteServidor();
@@ -19,7 +20,7 @@ export async function lancamentosParaCopias(): Promise<LancamentoParaCopias[] | 
     supabase
       .from("lancamentos")
       .select(
-        "id, tipo, valor, descricao, data_registro, situacao, importado, criado_em, categoria:categorias(nome)",
+        "id, tipo, valor, descricao, data_registro, data_vencimento, situacao, categoria_id, subcategoria_id, conta_id, importado, criado_em, categoria:categorias(nome)",
       )
       .neq("tipo", "aporte")
       .order("id", { ascending: true })
@@ -33,7 +34,11 @@ export async function lancamentosParaCopias(): Promise<LancamentoParaCopias[] | 
     valor: string | number;
     descricao: string;
     data_registro: string;
+    data_vencimento: string | null;
     situacao: string;
+    categoria_id: string | null;
+    subcategoria_id: string | null;
+    conta_id: string | null;
     importado: boolean | null;
     criado_em: string;
     categoria: { nome: string } | { nome: string }[] | null;
@@ -51,6 +56,14 @@ export async function lancamentosParaCopias(): Promise<LancamentoParaCopias[] | 
       importado: !!l.importado,
       criado_em: l.criado_em,
       categoria: cat?.nome ?? null,
+      // As chaves são os nomes que a tela mostra em "difere em".
+      detalhes: {
+        situação: l.situacao,
+        vencimento: l.data_vencimento ? String(l.data_vencimento).slice(0, 10) : null,
+        categoria: l.categoria_id,
+        subcategoria: l.subcategoria_id,
+        conta: l.conta_id,
+      },
     };
   });
 }

@@ -23,6 +23,8 @@ export type LinhaCopia = {
   gravadoEm: string;
   /** dd/mm/aaaa em que foi gravado o lançamento que fica. */
   originalGravadoEm: string;
+  /** Detalhes em que difere do que fica (situação, vencimento…). */
+  difere: string[];
 };
 
 type Filtro = "tudo" | "receita" | "despesa";
@@ -55,6 +57,7 @@ function Lista({
           <label className="flex items-center" style={{ gap: 10, minHeight: 44, padding: "6px 0" }}>
             <input
               type="checkbox"
+              value={l.id}
               checked={marcado(l.id)}
               onChange={() => aoAlternar(l.id)}
               disabled={desabilitado}
@@ -69,6 +72,12 @@ function Lista({
                 {l.categoria ?? "Sem categoria"} · gravado em {l.gravadoEm}; o que fica é de{" "}
                 {l.originalGravadoEm}
               </span>
+              {l.difere.length > 0 ? (
+                <span style={{ fontSize: 12, color: "var(--bad)" }}>
+                  Difere do que fica em: {l.difere.join(", ")}. Um dos dois foi editado — veja qual
+                  está certo antes de excluir.
+                </span>
+              ) : null}
             </span>
             <span
               style={{
@@ -264,8 +273,9 @@ export function PainelCopias({
             {conferirVisiveis.length} {conferirVisiveis.length === 1 ? "igual" : "iguais"} para conferir
           </h2>
           <p style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.5, margin: "4px 0 6px" }}>
-            Iguais a outro lançamento, mas gravados junto com ele ou lançados à mão — podem ser dois
-            gastos de verdade no mesmo dia. Chegam desmarcados: marque só os que forem repetição.
+            Iguais a outro lançamento em data, valor e descrição, mas que a tela não decide sozinha:
+            gravados junto com ele (podem ser dois gastos de verdade no mesmo dia), lançados à mão,
+            ou com algum detalhe diferente. Chegam desmarcados: marque só os que forem repetição.
           </p>
           <Lista
             itens={conferirVisiveis}

@@ -9,7 +9,11 @@ export const metadata = { title: "Cópias de importação · Ameixa" };
 /** O dia, em Brasília, em que o lançamento foi gravado. */
 const gravadoEm = (l: LancamentoParaCopias) => dataBr(hojeEmBrasilia(new Date(l.criado_em)));
 
-function linha(l: LancamentoParaCopias, original: LancamentoParaCopias): LinhaCopia {
+function linha(
+  l: LancamentoParaCopias,
+  original: LancamentoParaCopias,
+  difere: string[] = [],
+): LinhaCopia {
   return {
     id: l.id,
     tipo: l.tipo === "receita" ? "receita" : "despesa",
@@ -19,6 +23,7 @@ function linha(l: LancamentoParaCopias, original: LancamentoParaCopias): LinhaCo
     categoria: l.categoria,
     gravadoEm: gravadoEm(l),
     originalGravadoEm: gravadoEm(original),
+    difere,
   };
 }
 
@@ -49,7 +54,7 @@ export default async function Copias({
       <CabecalhoVoltar titulo="Cópias de importação" />
       <PainelCopias
         copias={copias.map((c) => linha(c.copia, c.original))}
-        paraConferir={paraConferir.flatMap((g) => g.iguais.map((l) => linha(l, g.manter)))}
+        paraConferir={paraConferir.map((c) => linha(c.item, c.manter, c.difere))}
         marcarDeInicio={(p.marcar ?? "").split(",").filter(Boolean)}
       />
     </div>
