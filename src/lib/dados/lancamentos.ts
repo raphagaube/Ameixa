@@ -1,5 +1,5 @@
 import "server-only";
-import { filtroOu, filtroPeloVencimento, interpretarBusca } from "@/lib/busca";
+import { filtroOu, filtroPeloVencimento, interpretarBusca, padraoSemAcento } from "@/lib/busca";
 import { paraIso } from "@/lib/formato";
 import { lerTudo } from "@/lib/supabase/paginas";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
@@ -92,7 +92,11 @@ export async function lancamentosDoPeriodo(
       const busca = interpretarBusca(f.texto);
       const ou = filtroOu(busca);
       if (ou) grupos.push(`or(${ou})`);
-      else if (busca.texto) q = q.ilike("descricao", `%${busca.texto}%`);
+      else if (busca.texto) {
+        // Sem diferenciar acento: ver `padraoSemAcento`.
+        const padrao = padraoSemAcento(busca.texto);
+        if (padrao) q = q.regexIMatch("descricao", padrao);
+      }
     }
     if (grupos.length === 1) q = q.or(grupos[0].slice("or(".length, -1));
     else if (grupos.length > 1) q = q.or(`and(${grupos.join(",")})`);
@@ -101,7 +105,10 @@ export async function lancamentosDoPeriodo(
     if (f.subcategoriaId) q = q.eq("subcategoria_id", f.subcategoriaId);
     if (f.situacao) q = q.eq("situacao", f.situacao);
     if (f.forma) q = q.eq("forma_pagamento", f.forma);
-    if (f.responsavel) q = q.ilike("responsavel", `%${f.responsavel}%`);
+    if (f.responsavel) {
+      const padrao = padraoSemAcento(f.responsavel);
+      if (padrao) q = q.regexIMatch("responsavel", padrao);
+    }
 
     const colunaData = porVencimento ? "data_vencimento" : "data_registro";
     switch (ordem) {

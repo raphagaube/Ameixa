@@ -36,16 +36,64 @@ export function interpretarBusca(bruto: string): Busca {
 }
 
 /**
+ * Cada letra e as formas acentuadas dela. Quem digita "claudia" precisa
+ * achar "Cláudia", e quem digita "açúcar" precisa achar "acucar".
+ */
+const VARIANTES: Record<string, string> = {
+  a: "aáàâãäAÁÀÂÃÄ",
+  e: "eéèêëEÉÈÊË",
+  i: "iíìîïIÍÌÎÏ",
+  o: "oóòôõöOÓÒÔÕÖ",
+  u: "uúùûüUÚÙÛÜ",
+  c: "cçCÇ",
+  n: "nñNÑ",
+};
+
+/** O que uma expressão regular leria como comando; vira letra comum. */
+const ESPECIAIS = new Set([".", "*", "+", "?", "(", ")", "[", "{", "}", "|", "$"]);
+
+/**
+ * O texto digitado como expressão regular que ignora acentos.
+ *
+ * `ilike` ignora maiúsculas, mas não acentos: "claudia" não achava "Cláudia"
+ * nem "agua" achava "Água". O PostgREST aceita expressão regular sem
+ * diferenciar maiúsculas (`imatch`), então cada letra vira o conjunto das
+ * suas variantes: "agua" → "[aá…]g[uú…][aá…]".
+ *
+ * Caracteres de comando entram entre colchetes, para "(9/12)" procurar os
+ * parênteses de verdade. Barra invertida, circunflexo, colchete de fechar e
+ * aspas saem: não cabem num texto de busca e quebrariam o padrão ou a
+ * sintaxe do PostgREST, que usa aspas e barra invertida para escapar.
+ */
+export function padraoSemAcento(texto: string): string {
+  const base = texto
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[\\^\]"]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  let saida = "";
+  for (const c of base) {
+    if (VARIANTES[c]) saida += `[${VARIANTES[c]}]`;
+    else if (ESPECIAIS.has(c)) saida += `[${c}]`;
+    else saida += c;
+  }
+  return saida;
+}
+
+/**
  * Monta o filtro "ou" do PostgREST.
  *
  * A vírgula separa condições nessa sintaxe, e valores em português vêm
- * cheios delas ("1.234,56"). Por isso o trecho da descrição vai entre
- * aspas, e as aspas de dentro são removidas.
+ * cheios delas ("1.234,56"). Por isso o padrão da descrição vai entre aspas.
  */
 export function filtroOu(b: Busca): string | null {
   if (b.valor === null || b.texto === null) return null;
-  const limpo = b.texto.replace(/["\\]/g, "");
-  return `descricao.ilike."*${limpo}*",valor.eq.${b.valor}`;
+  const padrao = padraoSemAcento(b.texto);
+  if (!padrao) return `valor.eq.${b.valor}`;
+  return `descricao.imatch."${padrao}",valor.eq.${b.valor}`;
 }
 
 /**
