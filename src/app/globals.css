@@ -47,6 +47,10 @@
   --bad: #e5867f;
 }
 
+:root[data-mode="dark"] .logo-ameixa {
+  filter: invert(1);
+}
+
 @theme inline {
   --color-bg: var(--color-bg);
   --color-sf: var(--sf);
