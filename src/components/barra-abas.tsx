@@ -17,7 +17,7 @@ export const ABAS = [
   { href: "/metas", rotulo: "Metas", Icone: Target },
 ] as const;
 
-export function BarraAbas({ aoMenu, menuAberto }: { aoMenu: () => void; menuAberto: boolean }) {
+export function BarraAbas({ aoMenu, menuAberto, botaoMenu }: { aoMenu: () => void; menuAberto: boolean; botaoMenu?: React.Ref<HTMLButtonElement> }) {
   const caminho = usePathname();
   const menuAtivo = menuAberto || !ABAS.some(({ href }) => href === "/" ? caminho === "/" : caminho.startsWith(href) || (href === "/metas" && caminho.startsWith("/orcamentos")));
 
@@ -64,7 +64,7 @@ export function BarraAbas({ aoMenu, menuAberto }: { aoMenu: () => void; menuAber
           );
         })}
         <li>
-          <button type="button" onClick={aoMenu} aria-expanded={menuAberto} aria-haspopup="dialog" aria-controls="menu-movel" className="flex h-14 w-full flex-col items-center justify-center gap-1" style={{ color: menuAtivo ? "var(--deep)" : "var(--mut)", background: "transparent" }}>
+          <button ref={botaoMenu} type="button" onClick={aoMenu} aria-expanded={menuAberto} aria-haspopup="dialog" aria-controls="menu-movel" className="flex h-14 w-full flex-col items-center justify-center gap-1" style={{ color: menuAtivo ? "var(--deep)" : "var(--mut)", background: "transparent" }}>
             <Menu size={20} strokeWidth={1.5} aria-hidden />
             <span style={{ fontSize: 10, fontWeight: menuAtivo ? 700 : 500, letterSpacing: ".02em" }}>Menu</span>
           </button>

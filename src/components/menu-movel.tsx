@@ -6,17 +6,24 @@ import { LogoAmeixa } from "@/components/logo-ameixa";
 import { MenuPrincipal } from "@/components/menu-principal";
 
 /** O dialog nativo mantém o foco no menu e devolve ao botão que o abriu. */
-export function MenuMovel({ aoFechar, aoLancar, pendencias }: {
-  aoFechar: () => void; aoLancar: () => void; pendencias: number;
+export function MenuMovel({ aoFechar, aoLancar, pendencias, botaoOrigem }: {
+  aoFechar: () => void; aoLancar: () => void; pendencias: number; botaoOrigem: React.RefObject<HTMLButtonElement | null>;
 }) {
   const dialogo = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const el = dialogo.current;
+    const origem = botaoOrigem.current;
     const anterior = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     el?.showModal();
-    return () => { el?.close(); document.body.style.overflow = anterior; };
-  }, []);
+    return () => {
+      el?.close();
+      document.body.style.overflow = anterior;
+      // React já removeu o dialog quando este cleanup roda; o navegador
+      // perde a referência de foco que guardou ao abrir o modal.
+      origem?.focus();
+    };
+  }, [botaoOrigem]);
   return (
     <dialog id="menu-movel" ref={dialogo} className="menu-movel" aria-label="Menu do Ameixa"
       onCancel={(e) => { e.preventDefault(); aoFechar(); }}

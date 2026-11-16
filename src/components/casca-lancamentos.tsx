@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { BarraAbas } from "@/components/barra-abas";
 import { BarraLateral } from "@/components/barra-lateral";
 import { MenuMovel } from "@/components/menu-movel";
@@ -51,6 +51,7 @@ export function CascaLancamentos({
 
   const [registroAberto, setRegistroAberto] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
+  const botaoMenu = useRef<HTMLButtonElement>(null);
   const [formAberto, setFormAberto] = useState(false);
   const [emEdicao, setEmEdicao] = useState<LancamentoNaLista | null>(null);
   const [iniciais, setIniciais] = useState<ValoresIniciais | undefined>();
@@ -109,8 +110,8 @@ export function CascaLancamentos({
       </div>
 
       <BarraLateral aoLancar={novo} pendencias={pendencias} />
-      <BarraAbas aoMenu={() => setMenuAberto(true)} menuAberto={menuAberto} />
-      {menuAberto ? <MenuMovel aoFechar={() => setMenuAberto(false)} aoLancar={novo} pendencias={pendencias} /> : null}
+      <BarraAbas aoMenu={() => setMenuAberto(true)} menuAberto={menuAberto} botaoMenu={botaoMenu} />
+      {menuAberto ? <MenuMovel aoFechar={() => setMenuAberto(false)} aoLancar={novo} pendencias={pendencias} botaoOrigem={botaoMenu} /> : null}
 
       {mostrarFlutuante ? (
         <BotaoRegistroFacil onClick={() => setRegistroAberto(true)} />
