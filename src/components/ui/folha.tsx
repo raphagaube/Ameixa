@@ -13,12 +13,14 @@ export function Folha({
   aoFechar,
   titulo,
   alturaMaxima = "88vh",
+  className = "",
   children,
 }: {
   aberta: boolean;
   aoFechar: () => void;
   titulo: string;
   alturaMaxima?: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   const painel = useRef<HTMLDivElement>(null);
@@ -107,7 +109,7 @@ export function Folha({
         aria-modal="true"
         aria-label={titulo}
         tabIndex={-1}
-        className="folha-entra folha-painel absolute inset-x-0 bottom-0 mx-auto w-full outline-none"
+        className={`folha-entra folha-painel absolute inset-x-0 bottom-0 mx-auto w-full outline-none ${className}`}
         style={{
           // No notebook a folha vira janela no meio da tela: largura e raio
           // passam por variáveis que só o CSS de tela grande redefine.
@@ -121,14 +123,14 @@ export function Folha({
           overscrollBehavior: "contain",
           background: "var(--sf)",
           borderRadius: "var(--folha-raio, var(--rf) var(--rf) 0 0)",
-          paddingBottom: "calc(16px + env(safe-area-inset-bottom))",
+          paddingBottom: "calc(var(--folha-pad-inferior, 16px) + env(safe-area-inset-bottom))",
         }}
       >
         <header
           className="sticky top-0 flex items-center justify-between"
           style={{
             gap: 12,
-            padding: "16px 16px 12px",
+            padding: "var(--folha-pad-cabecalho, 16px 16px 12px)",
             background: "var(--sf)",
             borderRadius: "var(--rf) var(--rf) 0 0",
           }}
@@ -140,9 +142,9 @@ export function Folha({
             aria-label="Fechar"
             className="grid place-items-center rounded-xl"
             style={{
-              width: 38,
-              height: 38,
-              minHeight: 38,
+              width: "var(--folha-tamanho-fechar, 38px)",
+              height: "var(--folha-tamanho-fechar, 38px)",
+              minHeight: "var(--folha-tamanho-fechar, 38px)",
               color: "var(--mut)",
               background: "transparent",
             }}
@@ -151,7 +153,7 @@ export function Folha({
           </button>
         </header>
 
-        <div style={{ padding: "0 16px" }}>{children}</div>
+        <div className="folha-conteudo" style={{ padding: "0 16px" }}>{children}</div>
       </div>
     </div>
   );

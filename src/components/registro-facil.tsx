@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Botao } from "@/components/ui/botao";
 import { Folha } from "@/components/ui/folha";
-import { Segmentos } from "@/components/ui/segmentos";
 import { moeda } from "@/lib/formato";
 import { acaoDaTecla } from "@/lib/teclado-valor";
 import type { Conta } from "@/lib/tipos/contas";
@@ -40,7 +39,6 @@ export function RegistroFacil({
   const [salvando, iniciar] = useTransition();
 
   const valor = paraNumero(digitos);
-  const primeiras = contas.slice(0, 4);
 
   function teclar(t: string) {
     setErro(null);
@@ -84,10 +82,6 @@ export function RegistroFacil({
 
   function detalharAgora() {
     setErro(null);
-    if (valor <= 0) {
-      setErro("Digite um valor primeiro.");
-      return;
-    }
     const v = valor;
     const t = tipo;
     const c = contaId;
@@ -138,36 +132,46 @@ export function RegistroFacil({
   }, [aberta]);
 
   return (
-    <Folha aberta={aberta} aoFechar={fecharLimpo} titulo="Registro fácil">
-      <div className="flex flex-col" style={{ gap: 14, paddingBottom: 8 }}>
-        <Segmentos
-          opcoes={[
-            { valor: "despesa" as const, texto: "Despesa" },
-            { valor: "receita" as const, texto: "Receita" },
-          ]}
-          valor={tipo}
-          aoEscolher={(t) => { if (t !== tipo) { setTipo(t); setSituacao(null); } }}
-        />
+    <Folha
+      aberta={aberta}
+      aoFechar={fecharLimpo}
+      titulo="Registro fácil"
+      alturaMaxima="calc(100dvh - 8px)"
+      className="folha-registro-facil"
+    >
+      <div className="registro-facil">
+        <div className="registro-facil-seletores">
+          <select
+            aria-label="Tipo de lançamento"
+            value={tipo}
+            onChange={(e) => {
+              const t = e.target.value as "despesa" | "receita";
+              if (t !== tipo) { setTipo(t); setSituacao(null); }
+            }}
+          >
+            <option value="despesa">Despesa</option>
+            <option value="receita">Receita</option>
+          </select>
+          <select
+            aria-label="Situação"
+            value={situacao ?? ""}
+            aria-invalid={erro === "Escolha a situação do lançamento." || undefined}
+            onChange={(e) => {
+              setSituacao(e.target.value as Situacao);
+              if (erro === "Escolha a situação do lançamento.") setErro(null);
+            }}
+          >
+            <option value="" disabled>Situação</option>
+            {situacoesDoTipo(tipo).map((s) => (
+              <option key={s} value={s}>{ROTULO_SITUACAO[s]}</option>
+            ))}
+          </select>
+        </div>
 
-        <Segmentos
-          rotulo="Situação"
-          opcoes={situacoesDoTipo(tipo).map((s) => ({ valor: s, texto: ROTULO_SITUACAO[s] }))}
-          valor={situacao}
-          aoEscolher={(s) => { setSituacao(s); if (erro === "Escolha a situação do lançamento.") setErro(null); }}
-        />
-
-        <div
-          style={{
-            background: "var(--tint)",
-            borderRadius: "var(--r)",
-            padding: "18px 14px",
-            textAlign: "center",
-          }}
-        >
+        <div className="registro-facil-valor">
           <p
             aria-live="polite"
             style={{
-              fontSize: 40,
               fontWeight: 700,
               lineHeight: 1.1,
               color: valor > 0 ? "var(--color-text)" : "var(--mut)",
@@ -177,43 +181,17 @@ export function RegistroFacil({
           </p>
         </div>
 
-        {primeiras.length > 0 ? (
-          <div className="flex flex-wrap" style={{ gap: 6 }}>
-            {primeiras.map((c) => {
-              const ativa = contaId === c.id;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setContaId(ativa ? null : c.id)}
-                  aria-pressed={ativa}
-                  style={{
-                    minHeight: 44,
-                    borderRadius: 999,
-                    padding: "6px 14px",
-                    fontSize: 13,
-                    fontWeight: ativa ? 700 : 500,
-                    background: ativa ? c.cor : "transparent",
-                    color: ativa ? "#ffffff" : "var(--color-text)",
-                    border: `1px solid ${ativa ? c.cor : "var(--ln)"}`,
-                  }}
-                >
-                  {c.nome}
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <p style={{ fontSize: 12, color: "var(--mut)" }}>
-            Cadastre um banco em Ajustes para escolher a conta aqui.
-          </p>
-        )}
+        <select
+          aria-label="Conta ou banco (opcional)"
+          value={contaId ?? ""}
+          onChange={(e) => setContaId(e.target.value || null)}
+          disabled={contas.length === 0}
+        >
+          <option value="">{contas.length ? "Conta ou banco (opcional)" : "Sem bancos cadastrados"}</option>
+          {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+        </select>
 
-        <p className="dica-teclado" style={{ fontSize: 12, color: "var(--mut)", textAlign: "center" }}>
-          Dá para digitar pelo teclado. Enter salva, Backspace apaga.
-        </p>
-
-        <div className="grid grid-cols-3" style={{ gap: 8 }}>
+        <div className="registro-facil-teclado" title="Digite pelo teclado. Enter salva, Backspace apaga.">
           {TECLAS.map((t) => (
             <button
               key={t}
@@ -222,7 +200,6 @@ export function RegistroFacil({
               aria-label={t === "apagar" ? "Apagar último número" : t}
               className="grid place-items-center"
               style={{
-                height: 56,
                 borderRadius: "var(--rs)",
                 border: "1px solid var(--ln)",
                 background: "transparent",
@@ -240,26 +217,31 @@ export function RegistroFacil({
           ))}
         </div>
 
-        {erro ? (
-          <p
-            role="alert"
-            style={{
-              fontSize: 13,
-              color: "var(--bad)",
-              borderLeft: "3px solid var(--bad)",
-              paddingLeft: 10,
-            }}
-          >
-            {erro}
-          </p>
-        ) : null}
+        <div className="registro-facil-aviso">
+          {erro ? <p role="alert">{erro}</p> : null}
+        </div>
 
-        <Botao onClick={completarDepois} carregando={salvando}>
-          Salvar e completar depois
-        </Botao>
-        <Botao variante="contorno" onClick={detalharAgora} disabled={salvando}>
-          Adicionar detalhes agora
-        </Botao>
+        <div className="registro-facil-acoes">
+          <Botao
+            onClick={completarDepois}
+            carregando={salvando}
+            aria-label="Salvar rápido e completar depois"
+            title="Salvar e completar depois"
+            style={{ height: 44, padding: "8px 6px", fontSize: 13, letterSpacing: ".03em" }}
+          >
+            Salvar rápido
+          </Botao>
+          <Botao
+            variante="contorno"
+            onClick={detalharAgora}
+            disabled={salvando}
+            aria-label="Adicionar detalhes agora"
+            title="Adicionar detalhes agora"
+            style={{ height: 44, padding: "8px 6px", fontSize: 13, letterSpacing: ".03em" }}
+          >
+            Detalhes
+          </Botao>
+        </div>
       </div>
     </Folha>
   );

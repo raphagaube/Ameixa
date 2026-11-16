@@ -315,13 +315,95 @@ button {
   margin-bottom: 22px;
 }
 
-/* Dica do teclado físico: só faz sentido onde existe um. */
-.dica-teclado {
-  display: none;
+/* O teclado se adapta à altura útil, inclusive com as barras do navegador.
+   Os controles mantêm 44px; alturas excepcionalmente pequenas ainda podem
+   rolar, em vez de esconder botões ou mensagens de erro. */
+.folha-painel.folha-registro-facil {
+  --folha-pad-inferior: 8px;
+  --folha-pad-cabecalho: 6px 16px;
+  --folha-tamanho-fechar: 44px;
+  display: flex;
+  flex-direction: column;
+  height: min(600px, calc(100dvh - 8px));
 }
-@media (hover: hover) and (pointer: fine) {
-  .dica-teclado {
-    display: block;
+.folha-registro-facil > header {
+  flex: none;
+}
+.folha-registro-facil > .folha-conteudo {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.registro-facil {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 8px;
+}
+.registro-facil > * {
+  flex-shrink: 0;
+}
+.registro-facil-seletores,
+.registro-facil-acoes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+.registro-facil select {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--ln);
+  border-radius: var(--rs);
+  background: var(--sf);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 16px;
+  text-overflow: ellipsis;
+}
+.registro-facil select:disabled {
+  color: var(--mut);
+}
+.registro-facil-valor {
+  display: grid;
+  place-items: center;
+  height: 52px;
+  padding: 4px 10px;
+  background: var(--tint);
+  border-radius: var(--r);
+  font-size: 32px;
+}
+.registro-facil-teclado {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(44px, 1fr));
+  gap: 4px;
+  flex: 1 0 188px;
+}
+.registro-facil-aviso {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--bad);
+}
+.registro-facil-aviso p {
+  border-left: 3px solid var(--bad);
+  padding-left: 8px;
+}
+@media (max-height: 600px) {
+  .folha-painel.folha-registro-facil {
+    --folha-pad-cabecalho: 0 16px;
+  }
+  .registro-facil {
+    gap: 4px;
+  }
+  .registro-facil-valor {
+    height: 44px;
+    font-size: 28px;
   }
 }
 
