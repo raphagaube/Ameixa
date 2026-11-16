@@ -3,11 +3,17 @@ import {
   CalendarDays,
   ChevronRight,
   CreditCard,
+  DatabaseBackup,
+  FileSpreadsheet,
   ListTree,
+  Palette,
   PiggyBank,
   Repeat,
+  RotateCcw,
+  Trash2,
   TriangleAlert,
   Upload,
+  UserRound,
 } from "lucide-react";
 import Link from "next/link";
 import { after } from "next/server";
@@ -27,6 +33,8 @@ import { ExportarDados } from "./exportar-dados";
 import { RestaurarBotao } from "./restaurar-botao";
 import { MinhaConta } from "./minha-conta";
 import { BotaoSair } from "./botao-sair";
+import { ItemAjustes } from "./item-ajustes";
+import { ApagarLancamentos } from "./apagar-lancamentos";
 
 export const metadata = { title: "Ajustes · Ameixa" };
 
@@ -70,12 +78,19 @@ export default async function Ajustes({
           <p className="rotulo">Configurações</p>
           <h1 style={{ fontSize: 30, lineHeight: 1.15, marginTop: 4 }}>Ajustes</h1>
         </div>
-        <AlternarTema />
       </header>
 
       <section className="flex flex-col" style={{ gap: 12 }}>
-        <h2 style={{ fontSize: 17 }}>Tema</h2>
-        <EscolhaAcento inicial={perfil?.cor_acento} />
+        <h2 style={{ fontSize: 17 }}>Aparência</h2>
+        <ul className="celulas">
+          <ItemAjustes titulo="Tema e cores" descricao="Modo claro, escuro e cor de destaque" Icone={Palette}>
+            <div className="flex items-center justify-between" style={{ gap: 12 }}>
+              <span style={{ fontSize: 14 }}>Alternar entre claro e escuro</span>
+              <AlternarTema />
+            </div>
+            <EscolhaAcento inicial={perfil?.cor_acento} />
+          </ItemAjustes>
+        </ul>
       </section>
 
       <section className="flex flex-col" style={{ gap: 12 }}>
@@ -101,46 +116,54 @@ export default async function Ajustes({
 
       <section className="flex flex-col" style={{ gap: 12 }}>
         <h2 style={{ fontSize: 17 }}>Dados</h2>
-        <ExportarDados />
-        <BaixarPlanilhas listas={listasDaPlanilha(apoio)} />
-        <RestaurarBotao />
+        <ul className="celulas">
+          <ItemAjustes titulo="Backup dos meus dados" descricao="Baixar uma cópia completa em JSON" Icone={DatabaseBackup}>
+            <ExportarDados />
+          </ItemAjustes>
+          <ItemAjustes titulo="Planilhas e exportação" descricao="Modelo em branco e lançamentos em planilha" Icone={FileSpreadsheet}>
+            <BaixarPlanilhas listas={listasDaPlanilha(apoio)} />
+          </ItemAjustes>
+          <ItemAjustes titulo="Botão de registro fácil" descricao="Devolver o botão + ao canto original" Icone={RotateCcw}>
+            <RestaurarBotao />
+          </ItemAjustes>
+          <ItemAjustes titulo="Apagar lançamentos" descricao="Todo o histórico ou um período, com confirmação" Icone={Trash2} perigoso>
+            <ApagarLancamentos />
+          </ItemAjustes>
+        </ul>
       </section>
 
       <section className="flex flex-col" style={{ gap: 12 }}>
-        <h2 className="flex items-center" style={{ fontSize: 17, gap: 8 }}>
-          <CalendarDays
-            size={18}
-            strokeWidth={1.5}
-            style={{ color: "var(--deep)" }}
-            aria-hidden
-          />
-          Google Agenda
-        </h2>
-        {aviso ? (
-          <p
-            role="status"
-            style={{
-              fontSize: 13,
-              lineHeight: 1.5,
-              padding: 12,
-              borderRadius: "var(--rs)",
-              border: "1px solid var(--ln)",
-              color: motivo === "ok" ? "var(--color-text)" : "var(--mut)",
-            }}
-          >
-            {aviso}
-          </p>
-        ) : null}
-        <AgendaGoogle status={agenda} />
+        <h2 style={{ fontSize: 17 }}>Integrações</h2>
+        <ul className="celulas">
+          <ItemAjustes titulo="Google Agenda" descricao={agenda.conectado ? "Conexão e sincronização dos compromissos" : "Conectar contas a pagar e a receber"} Icone={CalendarDays} aberta={!!aviso}>
+            {aviso ? (
+              <p
+                role="status"
+                style={{
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  padding: 12,
+                  borderRadius: "var(--rs)",
+                  border: "1px solid var(--ln)",
+                  color: motivo === "ok" ? "var(--color-text)" : "var(--mut)",
+                }}
+              >
+                {aviso}
+              </p>
+            ) : null}
+            <AgendaGoogle status={agenda} />
+          </ItemAjustes>
+        </ul>
       </section>
 
       <section className="flex flex-col" style={{ gap: 12 }}>
         <h2 style={{ fontSize: 17 }}>Conta</h2>
-        <MinhaConta
-          nomeAtual={perfil?.nome ?? ""}
-          emailAtual={usuario?.email ?? ""}
-        />
-        <BotaoSair />
+        <ul className="celulas">
+          <ItemAjustes titulo="Minha conta" descricao="Nome, e-mail, senha e sair da conta" Icone={UserRound}>
+            <MinhaConta nomeAtual={perfil?.nome ?? ""} emailAtual={usuario?.email ?? ""} />
+            <BotaoSair />
+          </ItemAjustes>
+        </ul>
       </section>
 
       <footer

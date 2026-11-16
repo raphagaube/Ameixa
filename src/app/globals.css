@@ -135,6 +135,24 @@ button {
   border-radius: 0;
 }
 
+.item-ajustes > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  min-height: 58px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.item-ajustes > summary::-webkit-details-marker {
+  display: none;
+}
+
+.item-ajustes[open] > summary .seta-ajustes {
+  transform: rotate(90deg);
+}
+
 /* Entrada da folha inferior: sobe 14px com fade, 180ms. */
 @keyframes folha-sobe {
   from {
