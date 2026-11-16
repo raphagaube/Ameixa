@@ -107,12 +107,12 @@ export async function sincronizarPendencias(
   const lote = alvos.slice(desde, desde + POR_VEZ);
 
   if (lote.length === 0) {
-    revalidatePath("/ajustes");
+    revalidatePath("/configuracoes/google-agenda");
     return { ok: true, enviados: 0, restantes: 0, proximo: 0 };
   }
 
   const r = await sincronizarLancamentos(lote);
-  revalidatePath("/ajustes");
+  revalidatePath("/configuracoes/google-agenda");
 
   // Na reconferência o alvo não some da lista depois de tratado, então quem
   // controla o avanço é o deslocamento. Na carga inicial, o próprio filtro
@@ -128,7 +128,7 @@ export async function sincronizarPendencias(
 /** Botão "tentar agora" quando algo ficou preso na fila. */
 export async function tentarFilaAgora(): Promise<ResultadoAgenda> {
   const r = await drenarFila(60);
-  revalidatePath("/ajustes");
+  revalidatePath("/configuracoes/google-agenda");
   return { ok: true, enviados: r.feitos, restantes: r.adiados, proximo: 0 };
 }
 
@@ -143,7 +143,7 @@ export async function desconectarAgenda(): Promise<
   { ok: true } | { ok: false; erro: string }
 > {
   const ok = await desconectar();
-  revalidatePath("/ajustes");
+  revalidatePath("/configuracoes/google-agenda");
   return ok ? { ok: true } : { ok: false, erro: "Não deu para desconectar." };
 }
 
@@ -159,6 +159,6 @@ export async function enviarFilaDaAgenda(): Promise<{ enviados: number; restante
   const { count } = await supabase
     .from("fila_agenda")
     .select("*", { count: "exact", head: true });
-  revalidatePath("/ajustes");
+  revalidatePath("/configuracoes/google-agenda");
   return { enviados: r.feitos, restantes: count ?? 0 };
 }

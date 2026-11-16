@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { BarraAbas } from "@/components/barra-abas";
 import { BarraLateral } from "@/components/barra-lateral";
+import { MenuMovel } from "@/components/menu-movel";
 import { BotaoRegistroFacil } from "@/components/botao-registro-facil";
 import { FolhaLancamento, type ValoresIniciais } from "@/components/folha-lancamento";
 import { RegistroFacil } from "@/components/registro-facil";
@@ -28,9 +29,11 @@ export function useFormularioLancamento() {
 
 export function CascaLancamentos({
   dados,
+  pendencias,
   children,
 }: {
   dados: DadosDeApoio;
+  pendencias: number;
   children: React.ReactNode;
 }) {
   const caminho = usePathname();
@@ -47,6 +50,7 @@ export function CascaLancamentos({
     caminho.startsWith("/recorrentes");
 
   const [registroAberto, setRegistroAberto] = useState(false);
+  const [menuAberto, setMenuAberto] = useState(false);
   const [formAberto, setFormAberto] = useState(false);
   const [emEdicao, setEmEdicao] = useState<LancamentoNaLista | null>(null);
   const [iniciais, setIniciais] = useState<ValoresIniciais | undefined>();
@@ -104,8 +108,9 @@ export function CascaLancamentos({
         </main>
       </div>
 
-      <BarraLateral aoLancar={novo} />
-      <BarraAbas />
+      <BarraLateral aoLancar={novo} pendencias={pendencias} />
+      <BarraAbas aoMenu={() => setMenuAberto(true)} menuAberto={menuAberto} />
+      {menuAberto ? <MenuMovel aoFechar={() => setMenuAberto(false)} aoLancar={novo} pendencias={pendencias} /> : null}
 
       {mostrarFlutuante ? (
         <BotaoRegistroFacil onClick={() => setRegistroAberto(true)} />

@@ -38,8 +38,7 @@ export function PainelMetas({
   }
 
   return (
-    <div className="flex flex-col" style={{ gap: 14, paddingTop: 22 }}>
-      <h1 style={{ fontSize: 30 }}>Metas</h1>
+    <div className="flex flex-col" style={{ gap: 14 }}>
 
       <Botao variante="contorno" onClick={() => setEmEdicao("nova")}>
         <span className="flex items-center justify-center" style={{ gap: 8 }}>

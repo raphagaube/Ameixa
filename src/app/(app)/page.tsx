@@ -1,4 +1,4 @@
-import { CircleAlert, PartyPopper } from "lucide-react";
+import { AvisoPendencias } from "@/components/aviso-pendencias";
 import Link from "next/link";
 import { AlternarTema } from "@/components/alternar-tema";
 import { LinhaLancamento } from "@/components/linha-lancamento";
@@ -124,50 +124,7 @@ export default async function Inicio({
 
           <OndeEstaMeuDinheiro panorama={panorama} />
 
-          {pendencias > 0 ? (
-            <Link
-              href="/pendencias"
-              className="flex items-center pulso-pendencia"
-              style={{
-                gap: 10,
-                border: "1px solid var(--bad)",
-                borderRadius: "var(--r)",
-                padding: "13px 14px",
-                color: "var(--color-text)",
-              }}
-            >
-              <CircleAlert
-                size={20}
-                strokeWidth={1.5}
-                style={{ color: "var(--bad)", flexShrink: 0 }}
-                aria-hidden
-              />
-              <span style={{ fontSize: 14 }}>
-                {pendencias === 1
-                  ? "1 lançamento esperando você completar"
-                  : `${pendencias} lançamentos esperando você completar`}
-              </span>
-            </Link>
-          ) : (
-            <section
-              className="flex items-center"
-              style={{
-                gap: 10,
-                background: "var(--tint)",
-                border: "1px solid var(--deep)",
-                borderRadius: "var(--r)",
-                padding: "13px 14px",
-              }}
-            >
-              <PartyPopper
-                size={20}
-                strokeWidth={1.5}
-                style={{ color: "var(--deep)", flexShrink: 0 }}
-                aria-hidden
-              />
-              <p style={{ fontSize: 14 }}>Não há lançamentos pendentes! 🥳</p>
-            </section>
-          )}
+          <AvisoPendencias quantidade={pendencias} />
         </div>
 
         <div className="inicio-coluna">

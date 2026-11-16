@@ -22,6 +22,7 @@ export function PainelCartoes({
   saldos,
   ano,
   mes,
+  aba = "cartoes",
 }: {
   contas: Conta[];
   faturas: Fatura[];
@@ -29,6 +30,7 @@ export function PainelCartoes({
   saldos: ContaComSaldo[];
   ano: number;
   mes: number;
+  aba?: "contas" | "cartoes";
 }) {
   const router = useRouter();
   const [conta, setConta] = useState<Conta | "nova" | null>(null);
@@ -46,9 +48,9 @@ export function PainelCartoes({
 
   return (
     <div className="flex flex-col" style={{ gap: 22 }}>
-      <CabecalhoVoltar titulo="Cartões e contas" />
+      <CabecalhoVoltar titulo={aba === "contas" ? "Contas" : "Cartões"} />
 
-      <SeletorMes ano={ano} mes={mes} />
+      {aba === "cartoes" ? <><SeletorMes ano={ano} mes={mes} />
 
       <section className="flex flex-col" style={{ gap: 12 }}>
         <h2 style={{ fontSize: 17 }}>Faturas do mês</h2>
@@ -85,9 +87,9 @@ export function PainelCartoes({
             Cadastre um banco primeiro — todo cartão pertence a um.
           </p>
         ) : null}
-      </section>
+      </section></> : null}
 
-      <section className="flex flex-col" style={{ gap: 12 }}>
+      {aba === "contas" ? <section className="flex flex-col" style={{ gap: 12 }}>
         <h2 style={{ fontSize: 17 }}>Bancos e carteiras</h2>
 
         {contas.length === 0 ? (
@@ -181,7 +183,7 @@ export function PainelCartoes({
             Adicionar banco
           </span>
         </Botao>
-      </section>
+      </section> : null}
 
       {conta ? (
         <FolhaConta conta={conta === "nova" ? null : conta} aoFechar={fechar} />

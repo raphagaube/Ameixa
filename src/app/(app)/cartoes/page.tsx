@@ -5,7 +5,7 @@ import { resumoDoMes } from "@/lib/dados/resumo-mes";
 import { panoramaDasContas } from "@/lib/dados/saldos";
 import { PainelCartoes } from "./painel-cartoes";
 
-export const metadata = { title: "Cartões e contas · Ameixa" };
+export const metadata = { title: "Cartões · Ameixa" };
 
 export default async function CartoesEContas({
   searchParams,

@@ -29,7 +29,7 @@ export default function Termos() {
       <p>
         Os lançamentos, contas e categorias que você cadastra pertencem a
         você. Pode exportar tudo quando quiser, em{" "}
-        <em>Ajustes → Dados</em>, e pode pedir a exclusão da conta a qualquer
+        <em>Menu → Configurações → Backup dos meus dados</em>, e pode pedir a exclusão da conta a qualquer
         momento. Como tratamos esses dados está na{" "}
         <a href="/privacidade">Política de Privacidade</a>.
       </p>

@@ -38,6 +38,9 @@ export function Segmentos<T extends string>({
               style={{
                 flex: colunas ? undefined : 1,
                 height: 44,
+                minWidth: 0,
+                padding: "4px 6px",
+                lineHeight: 1.2,
                 borderRadius: "var(--rs)",
                 border: `1px solid ${ativo ? "var(--deep)" : "var(--ln)"}`,
                 background: ativo ? "var(--tint)" : "transparent",

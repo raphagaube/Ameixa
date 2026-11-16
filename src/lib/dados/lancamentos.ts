@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { filtroOu, filtroPeloVencimento, interpretarBusca, padraoSemAcento } from "@/lib/busca";
 import { paraIso } from "@/lib/formato";
 import { lerTudo } from "@/lib/supabase/paginas";
@@ -67,6 +68,10 @@ export type FiltroExtrato = {
 export async function lancamentosDoPeriodo(
   f: FiltroExtrato,
 ): Promise<LancamentoNaLista[]> {
+  return (await consultarLancamentos(f)) ?? [];
+}
+
+async function consultarLancamentos(f: FiltroExtrato): Promise<LancamentoNaLista[] | null> {
   const supabase = await criarClienteServidor();
   const porVencimento = f.datasPor === "vencimento";
   const ordem = f.ordem ?? "recentes";
@@ -133,7 +138,7 @@ export async function lancamentosDoPeriodo(
   // ficava sabendo. Quem chama decide, e o relatório pede o suficiente.
   // Em páginas: um `.limit(5000)` sozinho ainda parava em 1000.
   const data = await lerTudo((de, ate) => montar().range(de, ate), f.limite ?? 500);
-  if (!data) return [];
+  if (!data) return null;
   const lista = (data as unknown as Bruto[]).map(normalizar);
 
   // Pelo vencimento, quem não tem vencimento entra na ordem pela data do
@@ -265,28 +270,8 @@ function naOrdemDaSerie(lista: LancamentoNaLista[]): LancamentoNaLista[] {
  * nenhuma, porque ninguém repara. Erro no meio devolve `null`, e não a
  * metade que chegou.
  */
-export async function lancamentosParaPlanilha(f: {
-  de?: string;
-  ate?: string;
-}): Promise<LancamentoNaLista[] | null> {
-  const supabase = await criarClienteServidor();
-  const PAGINA = 1000;
-  const todos: Bruto[] = [];
-
-  for (let inicio = 0; ; inicio += PAGINA) {
-    let q = supabase.from("lancamentos").select(CAMPOS).neq("tipo", "aporte");
-    if (f.de) q = q.gte("data_registro", f.de);
-    if (f.ate) q = q.lte("data_registro", f.ate);
-    const { data, error } = await q
-      .order("data_registro", { ascending: true })
-      .order("id", { ascending: true })
-      .range(inicio, inicio + PAGINA - 1);
-    if (error || !data) return null;
-    todos.push(...(data as Bruto[]));
-    if (data.length < PAGINA) break;
-  }
-
-  return todos.map(normalizar);
+export async function lancamentosParaPlanilha(f: FiltroExtrato): Promise<LancamentoNaLista[] | null> {
+  return consultarLancamentos({ ...f, semAportes: true, limite: Infinity, ordem: f.ordem ?? "antigos" });
 }
 
 /** Os últimos lançamentos, para o bloco do Início. */
@@ -310,14 +295,14 @@ export async function ultimosLancamentos(n = 4): Promise<LancamentoNaLista[]> {
  * pendentes!" com pendências existindo — o único aviso proativo do app
  * dizia o contrário da verdade.
  */
-export async function contarPendencias(): Promise<number> {
+export const contarPendencias = cache(async (): Promise<number> => {
   const supabase = await criarClienteServidor();
   const { count } = await supabase
     .from("lancamentos")
     .select("id", { count: "exact", head: true })
     .eq("incompleto", true);
   return count ?? 0;
-}
+});
 
 export function limitesDoMes(ano: number, mes: number) {
   return {

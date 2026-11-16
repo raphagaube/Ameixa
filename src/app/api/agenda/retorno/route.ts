@@ -14,7 +14,7 @@ import { COOKIE_ESTADO } from "../conectar/route";
 /**
  * Volta do Google com o código de autorização.
  *
- * Todo desfecho — inclusive os ruins — sai por `/ajustes?agenda=<motivo>`,
+ * Todo desfecho sai por `/configuracoes/google-agenda?agenda=<motivo>`,
  * onde a tela traduz para uma frase em português. Erro cru do Google não
  * ajuda ninguém a resolver nada.
  */
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const { origin, searchParams } = req.nextUrl;
 
   const voltar = (motivo: MotivoRetorno) => {
-    const r = NextResponse.redirect(`${origin}/ajustes?agenda=${motivo}`);
+    const r = NextResponse.redirect(`${origin}/configuracoes/google-agenda?agenda=${motivo}`);
     r.cookies.delete(COOKIE_ESTADO);
     return r;
   };

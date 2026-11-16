@@ -65,7 +65,7 @@ export default function Privacidade() {
         </li>
         <li>
           O seu endereço de e-mail do Google é lido apenas para mostrar, na
-          tela de Ajustes, qual conta está conectada.
+          tela do Google Agenda, qual conta está conectada.
         </li>
         <li>
           A chave de acesso fornecida pelo Google é guardada de forma cifrada e
@@ -73,7 +73,7 @@ export default function Privacidade() {
         </li>
       </ul>
       <p>
-        Você pode desconectar a qualquer momento em <em>Ajustes → Google
+        Você pode desconectar a qualquer momento em <em>Menu → Configurações → Google
         Agenda</em>, ou revogar o acesso diretamente em{" "}
         <a
           href="https://myaccount.google.com/permissions"
@@ -112,7 +112,7 @@ export default function Privacidade() {
       <h2>Seus direitos</h2>
       <ul>
         <li>
-          <strong>Ver e exportar:</strong> em <em>Ajustes → Dados</em> você
+          <strong>Ver e exportar:</strong> em <em>Menu → Configurações → Backup dos meus dados</em> você
           baixa um arquivo com tudo que é seu.
         </li>
         <li>

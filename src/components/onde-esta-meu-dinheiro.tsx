@@ -22,7 +22,7 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
           Cadastre seus bancos para ver o saldo de cada um.
         </p>
         <Link
-          href="/cartoes"
+          href="/contas"
           style={{ fontSize: 13, color: "var(--deep)", fontWeight: 600 }}
         >
           Cadastrar banco
@@ -36,7 +36,7 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
       <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
         <h2 style={{ fontSize: 17 }}>Onde está meu dinheiro</h2>
         <Link
-          href="/cartoes"
+          href="/contas"
           style={{ fontSize: 13, color: "var(--deep)", fontWeight: 600 }}
         >
           gerenciar

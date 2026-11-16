@@ -46,6 +46,7 @@ export function PainelExtrato({
   ate,
   formas,
   datasPor,
+  planilhas,
 }: {
   lancamentos: LancamentoNaLista[];
   categorias: Categoria[];
@@ -58,6 +59,7 @@ export function PainelExtrato({
   ordem: Ordem;
   de: string;
   ate: string;
+  planilhas: React.ReactNode;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -87,7 +89,7 @@ export function PainelExtrato({
     const restam = await atualizarAgendaNaTela();
     setAvisoAgenda(
       restam > 0
-        ? `${restam} ${restam === 1 ? "compromisso ficou" : "compromissos ficaram"} na fila do Google Agenda. Em Ajustes, toque em Tentar agora.`
+        ? `${restam} ${restam === 1 ? "compromisso ficou" : "compromissos ficaram"} na fila do Google Agenda. Em Menu → Configurações → Google Agenda, toque em Tentar agora.`
         : "Google Agenda atualizado.",
     );
   }
@@ -304,8 +306,10 @@ export function PainelExtrato({
 
   return (
     <div className="flex flex-col" style={{ gap: 14, paddingTop: 22 }}>
-      <div className="flex items-center justify-between" style={{ gap: 12 }}>
+      <div className="flex flex-wrap items-center justify-between" style={{ gap: 12 }}>
         <h1 style={{ fontSize: 30 }}>Extrato</h1>
+        <div className="flex flex-wrap" style={{ gap: 8 }}>
+        {planilhas}
         {/* Leva o endereço como está: o documento sai com o período e os
             filtros que estão valendo na tela. */}
         <button
@@ -328,6 +332,7 @@ export function PainelExtrato({
           <Printer size={18} strokeWidth={1.5} aria-hidden />
           Imprimir / PDF
         </button>
+        </div>
       </div>
 
       {/* Filtros e lista: empilhados no celular, lado a lado no notebook. */}

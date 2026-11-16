@@ -8,6 +8,7 @@ import { Botao } from "@/components/ui/botao";
 import { dataBr, moeda } from "@/lib/formato";
 import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
 import { Dinheiro } from "@/components/dinheiro";
+import { CircleCheck } from "lucide-react";
 
 /** O que falta preencher num lançamento vindo do Registro Fácil. */
 function faltando(l: LancamentoNaLista): string[] {
@@ -37,9 +38,11 @@ export function ListaPendencias({ lista }: { lista: LancamentoNaLista[] }) {
 
   if (lista.length === 0) {
     return (
-      <p style={{ fontSize: 14, color: "var(--mut)", padding: "24px 0" }}>
-        Tudo em dia — nenhum lançamento pendente.
-      </p>
+      <section className="flex flex-col items-center" style={{ gap: 10, padding: "32px 20px", background: "var(--sf)", border: "1px solid var(--ln2)", borderRadius: "var(--r)", textAlign: "center" }}>
+        <CircleCheck size={32} strokeWidth={1.5} style={{ color: "var(--deep)" }} aria-hidden />
+        <h2 style={{ fontSize: 20 }}>Tudo em dia</h2>
+        <p style={{ fontSize: 14, color: "var(--mut)" }}>Nenhum lançamento para completar.</p>
+      </section>
     );
   }
 

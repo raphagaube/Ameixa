@@ -97,6 +97,7 @@ describe("desfechos", () => {
   it("cancelar no Google volta sem erro assustador", async () => {
     const r = await GET(pedido("error=access_denied&state=x", "x"));
     expect(motivo(r)).toBe("cancelado");
+    expect(new URL(r.headers.get("location")!).pathname).toBe("/configuracoes/google-agenda");
     expect(fetchFalso).not.toHaveBeenCalled();
   });
 

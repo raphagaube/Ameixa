@@ -162,7 +162,7 @@ export function PainelConciliacao({ contas }: { contas: Conta[] }) {
   if (contas.length === 0) {
     return (
       <p style={{ fontSize: 14, color: "var(--mut)", padding: "24px 0" }}>
-        Cadastre um banco em Ajustes → Cartões e contas antes de conciliar.
+        Cadastre um banco em Menu → Bancos → Contas antes de conciliar.
       </p>
     );
   }

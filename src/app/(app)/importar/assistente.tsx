@@ -433,7 +433,7 @@ export function Assistente({
               "backup",
               FileText,
               "Backup do Ameixa",
-              "Arquivo .json baixado em Ajustes",
+              "Arquivo .json baixado em Backup dos meus dados",
             )}
           </div>
 

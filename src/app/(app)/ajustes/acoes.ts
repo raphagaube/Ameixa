@@ -33,7 +33,7 @@ export async function alterarNome(nome: string): Promise<Resultado> {
   if (error) return { ok: false, erro: "Não deu para salvar o nome." };
 
   revalidatePath("/");
-  revalidatePath("/ajustes");
+  revalidatePath("/configuracoes/minha-conta");
   return { ok: true };
 }
 
@@ -56,6 +56,6 @@ export async function salvarAcento(hex: string): Promise<Resultado> {
 
   if (error) return { ok: false, erro: "Não deu para salvar a cor." };
 
-  revalidatePath("/ajustes");
+  revalidatePath("/configuracoes/aparencia");
   return { ok: true };
 }

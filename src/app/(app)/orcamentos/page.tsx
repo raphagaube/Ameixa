@@ -2,6 +2,7 @@ import { hojeEmBrasilia } from "@/lib/formato";
 import { categoriasDoUsuario } from "@/lib/dados/categorias";
 import { mesReferencia, orcamentosDoMes } from "@/lib/dados/orcamentos";
 import { PainelOrcamentos } from "./painel-orcamentos";
+import { CabecalhoPlanejamento } from "@/components/cabecalho-planejamento";
 
 export const metadata = { title: "Orçamentos · Ameixa" };
 
@@ -21,12 +22,12 @@ export default async function Orcamentos({
   ]);
 
   return (
-    <PainelOrcamentos
+    <><CabecalhoPlanejamento ativa="orcamentos" /><PainelOrcamentos
       orcamentos={orcamentos}
       categorias={categorias.filter((c) => c.tipo === "despesa")}
       ano={ano}
       mes={mes}
       mesIso={mesReferencia(ano, mes)}
-    />
+    /></>
   );
 }

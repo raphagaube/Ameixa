@@ -4,7 +4,6 @@ import { Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { CabecalhoVoltar } from "@/components/cabecalho-voltar";
 import { SeletorMes } from "@/components/seletor-mes";
 import { Botao } from "@/components/ui/botao";
 import { BarraProgresso } from "@/components/ui/barra-progresso";
@@ -83,7 +82,6 @@ export function PainelOrcamentos({
 
   return (
     <div className="flex flex-col" style={{ gap: 14 }}>
-      <CabecalhoVoltar titulo="Orçamentos" />
 
       <SeletorMes ano={ano} mes={mes} />
 

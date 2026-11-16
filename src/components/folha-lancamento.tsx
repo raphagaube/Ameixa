@@ -260,7 +260,7 @@ export function FolhaLancamento({
           ]}
           valor={tipo}
           aoEscolher={trocarTipo}
-          colunas="1fr 1fr 1.3fr"
+          colunas="repeat(3, minmax(0, 1fr))"
         />
 
         <CampoValor rotulo="Valor" valor={valor} aoMudar={setValor} />
@@ -370,7 +370,7 @@ export function FolhaLancamento({
           <span className="rotulo">Conta / banco</span>
           {dados.contas.length === 0 ? (
             <p style={{ fontSize: 13, color: "var(--mut)" }}>
-              Cadastre um banco em Ajustes → Cartões e contas.
+              Cadastre um banco em Menu → Bancos → Contas.
             </p>
           ) : (
             <div className="grid grid-cols-2" style={{ gap: 8 }}>

@@ -6,7 +6,7 @@ import {
   ChartPie,
   House,
   ReceiptText,
-  Settings,
+  Menu,
   Target,
 } from "lucide-react";
 
@@ -15,11 +15,11 @@ export const ABAS = [
   { href: "/extrato", rotulo: "Extrato", Icone: ReceiptText },
   { href: "/relatorios", rotulo: "Relatórios", Icone: ChartPie },
   { href: "/metas", rotulo: "Metas", Icone: Target },
-  { href: "/ajustes", rotulo: "Ajustes", Icone: Settings },
 ] as const;
 
-export function BarraAbas() {
+export function BarraAbas({ aoMenu, menuAberto }: { aoMenu: () => void; menuAberto: boolean }) {
   const caminho = usePathname();
+  const menuAtivo = menuAberto || !ABAS.some(({ href }) => href === "/" ? caminho === "/" : caminho.startsWith(href) || (href === "/metas" && caminho.startsWith("/orcamentos")));
 
   return (
     <nav
@@ -38,7 +38,7 @@ export function BarraAbas() {
       >
         {ABAS.map(({ href, rotulo, Icone }) => {
           const ativa =
-            href === "/" ? caminho === "/" : caminho.startsWith(href);
+            href === "/" ? caminho === "/" : caminho.startsWith(href) || (href === "/metas" && caminho.startsWith("/orcamentos"));
           return (
             <li key={href}>
               <Link
@@ -63,6 +63,12 @@ export function BarraAbas() {
             </li>
           );
         })}
+        <li>
+          <button type="button" onClick={aoMenu} aria-expanded={menuAberto} aria-haspopup="dialog" aria-controls="menu-movel" className="flex h-14 w-full flex-col items-center justify-center gap-1" style={{ color: menuAtivo ? "var(--deep)" : "var(--mut)", background: "transparent" }}>
+            <Menu size={20} strokeWidth={1.5} aria-hidden />
+            <span style={{ fontSize: 10, fontWeight: menuAtivo ? 700 : 500, letterSpacing: ".02em" }}>Menu</span>
+          </button>
+        </li>
       </ul>
     </nav>
   );

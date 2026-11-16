@@ -150,7 +150,7 @@ export function PainelSerie({
     const restam = await atualizarAgendaNaTela();
     setAvisoAgenda(
       restam > 0
-        ? `${restam} ${restam === 1 ? "compromisso ficou" : "compromissos ficaram"} na fila do Google Agenda. Em Ajustes, toque em Tentar agora.`
+        ? `${restam} ${restam === 1 ? "compromisso ficou" : "compromissos ficaram"} na fila do Google Agenda. Em Menu → Configurações → Google Agenda, toque em Tentar agora.`
         : "Google Agenda atualizado.",
     );
   }

@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   const cfg = configAgenda();
   if (!cfg) {
-    return NextResponse.redirect(`${origin}/ajustes?agenda=nao-configurado`);
+    return NextResponse.redirect(`${origin}/configuracoes/google-agenda?agenda=nao-configurado`);
   }
 
   const estado = randomBytes(32).toString("base64url");

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
-import { CabecalhoVoltar } from "@/components/cabecalho-voltar";
 import { pendencias } from "@/lib/dados/lancamentos";
 import { ListaPendencias } from "./lista-pendencias";
 
@@ -10,8 +9,12 @@ export default async function Pendencias() {
   const lista = await pendencias();
 
   return (
-    <div className="flex flex-col" style={{ gap: 14 }}>
-      <CabecalhoVoltar titulo="Pendências" />
+    <div className="flex flex-col" style={{ gap: 14, paddingTop: 22 }}>
+      <header>
+        <p className="rotulo">Minha gestão</p>
+        <h1 style={{ fontSize: 30, marginTop: 4 }}>Pendências</h1>
+        {lista.length > 0 ? <p style={{ fontSize: 14, color: "var(--mut)", marginTop: 6 }}>{lista.length} {lista.length === 1 ? "lançamento para completar" : "lançamentos para completar"}. Abra um item para preencher o que falta.</p> : null}
+      </header>
 
       {lista.length > 3 ? (
         <Link

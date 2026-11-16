@@ -95,7 +95,7 @@ export function FolhaMeta({
           <span className="rotulo">Onde está guardado</span>
           {contas.length === 0 ? (
             <p style={{ fontSize: 13, color: "var(--mut)" }}>
-              Cadastre um banco em Ajustes → Cartões e contas.
+              Cadastre um banco em Menu → Bancos → Contas.
             </p>
           ) : (
             <div className="grid grid-cols-2" style={{ gap: 8 }}>

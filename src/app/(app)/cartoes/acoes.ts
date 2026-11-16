@@ -64,6 +64,7 @@ export async function salvarConta(entrada: EntradaConta): Promise<Resultado> {
   if (error) return { ok: false, erro: traduzir(error.message, "banco") };
 
   revalidatePath("/cartoes");
+  revalidatePath("/contas");
   return { ok: true };
 }
 
@@ -118,6 +119,7 @@ export async function excluirConta(id: string): Promise<Resultado> {
   if (error) return { ok: false, erro: traduzir(error.message, "banco") };
 
   revalidatePath("/cartoes");
+  revalidatePath("/contas");
   return { ok: true };
 }
 
@@ -145,6 +147,7 @@ export async function salvarCartao(entrada: EntradaCartao): Promise<Resultado> {
   await supabase.from("contas").update({ tem_credito: true }).eq("id", campos.conta_id);
 
   revalidatePath("/cartoes");
+  revalidatePath("/contas");
   return { ok: true };
 }
 
@@ -169,6 +172,7 @@ export async function excluirCartao(id: string): Promise<Resultado> {
   if (error) return { ok: false, erro: traduzir(error.message, "cartão") };
 
   revalidatePath("/cartoes");
+  revalidatePath("/contas");
   return { ok: true };
 }
 

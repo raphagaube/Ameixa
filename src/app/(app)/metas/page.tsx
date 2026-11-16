@@ -2,6 +2,7 @@ import { contasDoUsuario } from "@/lib/dados/contas";
 import { metasDoUsuario } from "@/lib/dados/metas";
 import { perfilDoUsuario } from "@/lib/dados/perfil";
 import { PainelMetas } from "./painel-metas";
+import { CabecalhoPlanejamento } from "@/components/cabecalho-planejamento";
 
 export const metadata = { title: "Metas · Ameixa" };
 
@@ -13,10 +14,10 @@ export default async function Metas() {
   ]);
 
   return (
-    <PainelMetas
+    <><CabecalhoPlanejamento ativa="metas" /><PainelMetas
       metas={metas}
       contas={contas}
       destaque={perfil?.meta_destaque ?? null}
-    />
+    /></>
   );
 }

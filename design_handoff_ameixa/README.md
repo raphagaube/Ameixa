@@ -29,10 +29,13 @@ são definitivos. Recrie a UI fielmente.
 
 ## Estrutura de telas
 
-Navegação: barra inferior fixa com 5 abas — **Início, Extrato, Relatórios, Metas,
-Ajustes**. Telas de segundo nível (Pendências, Orçamentos, Cartões, Categorias) abrem
-com botão de voltar no cabeçalho e pilha de histórico própria. Botão flutuante
-"Registro fácil" acima da barra, presente em todas as telas do app.
+Navegação atualizada em 16/11/2026: barra inferior com **Início, Extrato, Relatórios,
+Metas e Menu**. Menu abre uma lateral no celular, com as mesmas opções da lateral
+fixa do computador. **Minha gestão** fica visível; **Bancos** e **Configurações**
+podem ser recolhidos e abrem quando contêm a página atual. Não há uma página central
+de Ajustes nem uma lista duplicada de atalhos. Contas e Cartões têm acessos separados;
+Metas e Orçamentos compartilham um cabeçalho com abas. Planilhas ficam no Extrato.
+O botão flutuante "Registro fácil" fica no Início.
 
 Largura máxima do conteúdo: 430px centralizado; padding lateral 16px; padding inferior
 156px (para não colidir com o botão flutuante e a barra).
@@ -56,10 +59,9 @@ Tela sem barra de abas, centralizada verticalmente.
   que abre folha com grade de 12 meses (4 colunas) e navegação de ano.
 - **Card de saldo**: fundo `--tint`, radius 16px. "Saldo total · {mês}" 11px maiúsculo;
   valor 44px/700; abaixo, duas células (Receitas em `--ok`, Despesas em `--bad`), 20px.
-- **Aviso de pendências**: quando há lançamentos incompletos, bloco com borda `--bad`,
-  ícone de alerta e animação de pulso (halo `box-shadow` 2.4s, respeitando
-  `prefers-reduced-motion`). Sem pendências: bloco em `--tint` com borda `--deep` e o
-  texto "Não há lançamentos pendentes! 🥳".
+- **Aviso de pendências**: quando há lançamentos incompletos, aviso estável com
+  quantidade e link "Ver pendências", sem pulsação. Sem pendências, o aviso some.
+  O menu mantém acesso permanente a Pendências e mostra um contador quando há itens.
 - **Meta em destaque**: nome, botão "Trocar" (abre seletor de metas), banco · tipo,
   valor atual / alvo, barra de progresso 8px em pílula, e linha com percentual e prazo.
 - **Orçamentos do mês**: três primeiros, cada um com nome, resumo colorido por estado e
@@ -105,7 +107,8 @@ tracejados com o que falta, e botões **Completar** (abre o formulário completo
 
 ### 7. Formulário de lançamento (folha inferior, `max-height:92vh`)
 Título: "Novo lançamento" / "Completar lançamento" / "Editar lançamento".
-1. **Tipo**: Despesa | Receita | Guardar em meta (grade `1fr 1fr 1.3fr`).
+1. **Tipo**: Despesa | Receita | Guardar em meta (três colunas de largura igual,
+   com quebra de texto em telas pequenas e alvos de pelo menos 44px).
    - Em "Guardar em meta": some categoria, meio de pagamento e repetição; aparece a
      lista de metas. O valor sai da conta e **entra na meta**, sem contar como despesa.
 2. **Valor** + **Situação** (Já pago / A pagar para despesa; Recebido / A receber para receita).

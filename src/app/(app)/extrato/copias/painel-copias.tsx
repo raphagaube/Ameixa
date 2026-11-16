@@ -188,7 +188,7 @@ export function PainelCopias({
       setRecado(
         `${feitos} ${feitos === 1 ? "lançamento excluído" : "lançamentos excluídos"}. ` +
           (restam > 0
-            ? `${restam} ${restam === 1 ? "compromisso ficou" : "compromissos ficaram"} na fila do Google Agenda; em Ajustes, toque em Tentar agora.`
+            ? `${restam} ${restam === 1 ? "compromisso ficou" : "compromissos ficaram"} na fila do Google Agenda; em Menu → Configurações → Google Agenda, toque em Tentar agora.`
             : "Google Agenda atualizado."),
       );
     });
@@ -224,7 +224,7 @@ export function PainelCopias({
         Duas listas. As <strong>cópias de importação</strong> são certeza e chegam marcadas. Os{" "}
         <strong>parecidos</strong> são palpite e chegam desmarcados. Confira antes de excluir —
         excluir não tem volta. Vale{" "}
-        <Link href="/ajustes" style={{ color: "var(--deep)", fontWeight: 600 }}>
+        <Link href="/configuracoes/backup" style={{ color: "var(--deep)", fontWeight: 600 }}>
           baixar um backup
         </Link>{" "}
         antes.

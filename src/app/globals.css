@@ -184,19 +184,123 @@ button {
   animation: pulsar 1.4s ease-in-out infinite;
 }
 
-/* Aviso de pendências: halo pulsante para o olho não passar batido. */
-@keyframes pulso-halo {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(192, 85, 79, 0.34);
-  }
-  50% {
-    box-shadow: 0 0 0 7px rgba(192, 85, 79, 0);
-  }
+.barra-menu {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 40;
+  width: var(--barra-lateral);
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 14px;
+  background: var(--sf);
+  border-right: 1px solid var(--ln);
+  overflow-y: auto;
 }
-
-.pulso-pendencia {
-  animation: pulso-halo 2.4s ease-in-out infinite;
+.menu-marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text);
+  font-size: 20px;
+  font-weight: 700;
+}
+.menu-novo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 8px;
+  min-height: 44px;
+  width: 100%;
+  border-radius: var(--rs);
+  background: var(--deep);
+  color: var(--on-ac);
+  font-size: 14px;
+  font-weight: 700;
+}
+.menu-grupos { display: flex; flex-direction: column; gap: 10px; }
+.menu-titulo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+}
+.menu-grupo > summary { cursor: pointer; list-style: none; }
+.menu-grupo > summary::-webkit-details-marker { display: none; }
+.menu-grupo[open] > summary > svg { transform: rotate(180deg); }
+.menu-itens { display: flex; flex-direction: column; gap: 2px; }
+.menu-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border-radius: var(--rs);
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+.menu-link > svg { flex-shrink: 0; }
+.menu-link > span:first-of-type { flex: 1; }
+.menu-link[aria-current="page"] { color: var(--deep); background: var(--tint); font-weight: 700; }
+.menu-contador {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--tint);
+  color: var(--deep);
+  font-size: 12px;
+  font-weight: 700;
+}
+.menu-movel {
+  position: fixed;
+  inset: 0 auto 0 0;
+  margin: 0;
+  width: min(88vw, 360px);
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  padding: 16px 12px calc(16px + env(safe-area-inset-bottom));
+  border: none;
+  background: var(--sf);
+  color: var(--color-text);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.menu-movel[open] { display: flex; flex-direction: column; gap: 16px; }
+.menu-movel::backdrop { background: rgba(0, 0, 0, .45); }
+.menu-fechar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  color: var(--mut);
+  border-radius: var(--rs);
+}
+.abas-planejamento {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.abas-planejamento > a {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  border: 1px solid var(--ln);
+  border-radius: var(--rs);
+  color: var(--color-text);
+}
+.abas-planejamento > a[aria-current="page"] {
+  color: var(--deep);
+  border-color: var(--deep);
+  background: var(--tint);
+  font-weight: 700;
 }
 
 /* ── Impressão: o "Baixar PDF" é o próprio print do navegador ────── */
