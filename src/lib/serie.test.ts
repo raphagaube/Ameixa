@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MAX_OCORRENCIAS, dataNoPasso, gerarSerie, type BaseSerie } from "./serie";
 
-const HOJE = "2026-09-01";
 
 const base: BaseSerie = {
   tipo: "despesa",
@@ -11,9 +10,30 @@ const base: BaseSerie = {
   situacao: "pago",
 };
 
+describe("a data não substitui a situação informada", () => {
+  for (const config of [
+    { repeticao: "parcelada" as const, parcelaAtual: 1, parcelaTotal: 12 },
+    { repeticao: "recorrente" as const, frequencia: "mensal" as const, ocorrencias: 12 },
+    { repeticao: "assinatura" as const, meses: 12 },
+  ]) {
+    it(`${config.repeticao}: contas antigas a pagar continuam a pagar`, () => {
+      const lista = gerarSerie({ ...base, dataRegistro: "2026-01-01", situacao: "a_pagar" }, config);
+      expect(lista.every((l) => l.situacao === "a_pagar")).toBe(true);
+    });
+    it(`${config.repeticao}: receitas antigas a receber continuam a receber`, () => {
+      const lista = gerarSerie({ ...base, tipo: "receita", dataRegistro: "2026-01-01", situacao: "a_receber" }, config);
+      expect(lista.every((l) => l.situacao === "a_receber")).toBe(true);
+    });
+    it(`${config.repeticao}: pagamento antecipado continua pago em datas futuras`, () => {
+      const lista = gerarSerie({ ...base, dataRegistro: "2027-01-01", situacao: "pago" }, config);
+      expect(lista.every((l) => l.situacao === "pago")).toBe(true);
+    });
+  }
+});
+
 describe("lançamento único", () => {
   it("gera uma ocorrência só, sem marca de série", () => {
-    const r = gerarSerie(base, { repeticao: "unica" }, HOJE);
+    const r = gerarSerie(base, { repeticao: "unica" });
     expect(r).toHaveLength(1);
     expect(r[0].serie_tipo).toBeNull();
     expect(r[0].descricao).toBe("Notebook");
@@ -26,7 +46,6 @@ describe("parcelada", () => {
     const r = gerarSerie(
       base,
       { repeticao: "parcelada", parcelaAtual: 3, parcelaTotal: 10 },
-      HOJE,
     );
     expect(r).toHaveLength(8);
   });
@@ -35,7 +54,6 @@ describe("parcelada", () => {
     const r = gerarSerie(
       base,
       { repeticao: "parcelada", parcelaAtual: 3, parcelaTotal: 10 },
-      HOJE,
     );
     expect(r[0].descricao).toBe("Notebook — 3/10");
     expect(r[7].descricao).toBe("Notebook — 10/10");
@@ -43,30 +61,27 @@ describe("parcelada", () => {
     expect(r[7].parcela_total).toBe(10);
   });
 
-  it("as parcelas futuras entram como a pagar", () => {
+  it("mantém a escolha de pago inclusive nas parcelas futuras", () => {
     const r = gerarSerie(
       base,
       { repeticao: "parcelada", parcelaAtual: 3, parcelaTotal: 10 },
-      HOJE,
     );
     expect(r[0].situacao).toBe("pago");
-    expect(r.slice(1).every((o) => o.situacao === "a_pagar")).toBe(true);
+    expect(r.every((o) => o.situacao === "pago")).toBe(true);
   });
 
-  it("numa receita, as futuras entram como a receber", () => {
+  it("mantém a escolha de recebido inclusive nas parcelas futuras", () => {
     const r = gerarSerie(
       { ...base, tipo: "receita", situacao: "recebido" },
       { repeticao: "parcelada", parcelaAtual: 1, parcelaTotal: 3 },
-      HOJE,
     );
-    expect(r[1].situacao).toBe("a_receber");
+    expect(r.every((o) => o.situacao === "recebido")).toBe(true);
   });
 
   it("avança de mês em mês", () => {
     const r = gerarSerie(
       base,
       { repeticao: "parcelada", parcelaAtual: 1, parcelaTotal: 3 },
-      HOJE,
     );
     expect(r.map((o) => o.data_registro)).toEqual([
       "2026-09-01",
@@ -80,7 +95,6 @@ describe("parcelada", () => {
     const r = gerarSerie(
       { ...base, dataRegistro: "2026-01-31" },
       { repeticao: "parcelada", parcelaAtual: 1, parcelaTotal: 3 },
-      "2026-01-01",
     );
     expect(r.map((o) => o.data_registro)).toEqual([
       "2026-01-31",
@@ -93,7 +107,6 @@ describe("parcelada", () => {
     const r = gerarSerie(
       base,
       { repeticao: "parcelada", parcelaAtual: 10, parcelaTotal: 10 },
-      HOJE,
     );
     expect(r).toHaveLength(1);
   });
@@ -105,7 +118,6 @@ describe("assinatura", () => {
     const r = gerarSerie(
       { ...base, descricao: "Netflix" },
       { repeticao: "assinatura", meses: 12 },
-      HOJE,
     );
     expect(r).toHaveLength(12);
     expect(r[0].descricao).toBe("Netflix — assinatura 1/12");
@@ -118,7 +130,6 @@ describe("recorrente", () => {
     const r = gerarSerie(
       base,
       { repeticao: "recorrente", frequencia: "mensal", ocorrencias: 6 },
-      HOJE,
     );
     expect(r).toHaveLength(6);
   });
@@ -127,7 +138,6 @@ describe("recorrente", () => {
     const r = gerarSerie(
       base,
       { repeticao: "recorrente", frequencia: "semanal", ocorrencias: 3 },
-      HOJE,
     );
     expect(r.map((o) => o.data_registro)).toEqual([
       "2026-09-01",
@@ -140,7 +150,6 @@ describe("recorrente", () => {
     const r = gerarSerie(
       base,
       { repeticao: "recorrente", frequencia: "quinzenal", ocorrencias: 2 },
-      HOJE,
     );
     expect(r[1].data_registro).toBe("2026-09-15");
   });
@@ -149,7 +158,6 @@ describe("recorrente", () => {
     const r = gerarSerie(
       base,
       { repeticao: "recorrente", frequencia: "anual", ocorrencias: 2 },
-      HOJE,
     );
     expect(r[1].data_registro).toBe("2027-09-01");
   });
@@ -164,7 +172,6 @@ describe("recorrente", () => {
         ocorrencias: 0,
         ate: "2026-12-01",
       },
-      HOJE,
     );
     expect(r).toHaveLength(4);
     expect(r[3].data_registro).toBe("2026-12-01");
@@ -180,7 +187,6 @@ describe("recorrente", () => {
         ocorrencias: 0,
         ate: "2200-01-01",
       },
-      HOJE,
     );
     expect(r).toHaveLength(MAX_OCORRENCIAS);
   });
@@ -189,7 +195,6 @@ describe("recorrente", () => {
     const r = gerarSerie(
       base,
       { repeticao: "recorrente", frequencia: "mensal", ocorrencias: 9999 },
-      HOJE,
     );
     expect(r).toHaveLength(MAX_OCORRENCIAS);
   });
@@ -203,7 +208,6 @@ describe("recorrente", () => {
         ocorrencias: 0,
         ate: "2020-01-01",
       },
-      HOJE,
     );
     expect(r).toHaveLength(1);
   });
@@ -214,7 +218,6 @@ describe("vencimento", () => {
     const r = gerarSerie(
       { ...base, dataRegistro: "2026-09-01", dataVencimento: "2026-09-11" },
       { repeticao: "parcelada", parcelaAtual: 1, parcelaTotal: 3 },
-      HOJE,
     );
     expect(r[0].data_vencimento).toBe("2026-09-11");
     expect(r[1].data_vencimento).toBe("2026-10-11");
@@ -225,7 +228,6 @@ describe("vencimento", () => {
     const r = gerarSerie(
       base,
       { repeticao: "parcelada", parcelaAtual: 1, parcelaTotal: 2 },
-      HOJE,
     );
     expect(r[1].data_vencimento).toBeNull();
   });
@@ -244,7 +246,6 @@ describe("vencimento não escorrega com o tamanho do mês", () => {
     const r = gerarSerie(
       conta,
       { repeticao: "parcelada", parcelaAtual: 1, parcelaTotal: 8 },
-      HOJE,
     );
     expect(r.map((o) => o.data_vencimento!.slice(8))).toEqual(
       Array(8).fill("10"),
@@ -257,7 +258,6 @@ describe("vencimento não escorrega com o tamanho do mês", () => {
     const r = gerarSerie(
       conta,
       { repeticao: "recorrente", frequencia: "mensal", ocorrencias: 12 },
-      HOJE,
     );
     expect(new Set(r.map((o) => o.data_vencimento!.slice(8)))).toEqual(
       new Set(["10"]),
@@ -265,7 +265,7 @@ describe("vencimento não escorrega com o tamanho do mês", () => {
   });
 
   it("assinatura mantém o dia 10", () => {
-    const r = gerarSerie(conta, { repeticao: "assinatura", meses: 6 }, HOJE);
+    const r = gerarSerie(conta, { repeticao: "assinatura", meses: 6 });
     expect(r.every((o) => o.data_vencimento!.endsWith("-10"))).toBe(true);
   });
 
@@ -273,7 +273,6 @@ describe("vencimento não escorrega com o tamanho do mês", () => {
     const r = gerarSerie(
       { ...base, dataRegistro: "2026-01-15", dataVencimento: "2026-01-31" },
       { repeticao: "recorrente", frequencia: "mensal", ocorrencias: 4 },
-      HOJE,
     );
     expect(r.map((o) => o.data_vencimento)).toEqual([
       "2026-01-31",
@@ -287,7 +286,6 @@ describe("vencimento não escorrega com o tamanho do mês", () => {
     const r = gerarSerie(
       { ...base, dataRegistro: "2026-09-01", dataVencimento: "2026-09-03" },
       { repeticao: "recorrente", frequencia: "semanal", ocorrencias: 3 },
-      HOJE,
     );
     expect(r.map((o) => o.data_vencimento)).toEqual([
       "2026-09-03",

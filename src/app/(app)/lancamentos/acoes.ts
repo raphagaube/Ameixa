@@ -33,7 +33,7 @@ const esquema = z.object({
   descricao: z.string().trim().min(1, "Escreva uma descrição.").max(120),
   data_registro: z.string().regex(ISO, "Data inválida."),
   data_vencimento: z.string().regex(ISO).nullable().optional(),
-  situacao: z.enum(["pago", "a_pagar", "recebido", "a_receber", "guardado"]),
+  situacao: z.enum(["pago", "a_pagar", "recebido", "a_receber", "guardado"], { error: "Escolha a situação do lançamento." }),
   categoria_id: uuidOuVazio,
   subcategoria_id: uuidOuVazio,
   conta_id: uuidOuVazio,
@@ -85,6 +85,10 @@ export async function salvarLancamento(
     return { ok: false, erro: v.error.issues[0]?.message ?? "Dados inválidos." };
   }
   const d = v.data;
+
+  if (!situacoesDoTipo(d.tipo).includes(d.situacao)) {
+    return { ok: false, erro: "Escolha uma situação compatível com o tipo do lançamento." };
+  }
 
   // Aporte precisa de meta: é o que faz o dinheiro chegar lá.
   if (d.tipo === "aporte" && !d.meta_id) {
@@ -144,7 +148,6 @@ export async function salvarLancamento(
       situacao: d.situacao,
     },
     d.repeticao as ConfigSerie,
-    paraIso(hojeEmBrasilia()),
   );
 
   const serieId =
@@ -282,8 +285,13 @@ export async function salvarRapido(
   valor: number,
   tipo: "despesa" | "receita",
   contaId: string | null,
+  situacao: Situacao,
 ): Promise<Resultado> {
   if (!(valor > 0)) return { ok: false, erro: "Digite um valor." };
+  const estado = z.enum(["pago", "a_pagar", "recebido", "a_receber"]).safeParse(situacao);
+  if (!estado.success || !situacoesDoTipo(tipo).includes(estado.data)) {
+    return { ok: false, erro: "Escolha a situação do lançamento." };
+  }
 
   const supabase = await criarClienteServidor();
   const {
@@ -292,20 +300,21 @@ export async function salvarRapido(
   if (!user) return { ok: false, erro: "Sessão expirada. Entre de novo." };
 
   const hoje = paraIso(hojeEmBrasilia());
-  const { error } = await supabase.from("lancamentos").insert({
+  const { data: criados, error } = await supabase.from("lancamentos").insert({
     user_id: user.id,
     tipo,
     valor,
     descricao: tipo === "despesa" ? "Gasto rápido" : "Entrada rápida",
     data_registro: hoje,
-    situacao: tipo === "despesa" ? "pago" : "recebido",
+    situacao: estado.data,
     conta_id: contaId,
     incompleto: true,
-  });
+  }).select("id");
 
   if (error) return { ok: false, erro: traduzir(error.message) };
 
   revalidarTudo();
+  await naAgenda((criados ?? []).map((c) => c.id));
   return { ok: true, criados: 1 };
 }
 

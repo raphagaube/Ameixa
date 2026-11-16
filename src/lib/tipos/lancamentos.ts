@@ -93,22 +93,6 @@ export function dataQueVale(l: {
 }
 
 /**
- * Situação padrão pelo tipo e pela data.
- * Regra 3 do modelo de dados: lançamento com data futura entra
- * automaticamente como a pagar / a receber.
- */
-export function situacaoPadrao(
-  tipo: TipoLancamento,
-  dataIso: string,
-  hojeIso: string,
-): Situacao {
-  if (tipo === "aporte") return "guardado";
-  const futuro = dataIso > hojeIso;
-  if (tipo === "receita") return futuro ? "a_receber" : "recebido";
-  return futuro ? "a_pagar" : "pago";
-}
-
-/**
  * Para onde vai cada tipo numa mudança de situação em lote.
  *
  * Devolve `null` quando o lançamento não deve ser tocado. Aporte em meta é

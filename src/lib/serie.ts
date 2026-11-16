@@ -1,11 +1,10 @@
-import { hojeEmBrasilia, paraIso } from "@/lib/formato";
+import { paraIso } from "@/lib/formato";
 import {
   type Frequencia,
   type Situacao,
   type TipoLancamento,
   type TipoRepeticao,
   type UnidadeIntervalo,
-  situacaoPadrao,
 } from "@/lib/tipos/lancamentos";
 
 /** Teto de segurança: uma recorrência mal configurada não vira 10 mil linhas. */
@@ -108,13 +107,12 @@ function comoData(iso: string): Date {
  * Expande um lançamento na lista de ocorrências que devem ir para o banco.
  * A primeira da lista é sempre o próprio lançamento que o usuário salvou.
  *
- * Ocorrências com data futura entram como a pagar / a receber, mesmo que o
- * usuário tenha marcado a primeira como já paga.
+ * Todas as ocorrências mantêm a situação informada pelo usuário.
+ * Datas passadas ou futuras não comprovam pagamento nem recebimento.
  */
 export function gerarSerie(
   base: BaseSerie,
   config: ConfigSerie,
-  hojeIso: string = paraIso(hojeEmBrasilia()),
 ): Ocorrencia[] {
   const inicio = comoData(base.dataRegistro);
 
@@ -134,15 +132,13 @@ export function gerarSerie(
     parcelaAtual: number | null,
     parcelaTotal: number | null,
     serieTipo: TipoRepeticao | null,
-    primeira: boolean,
   ): Ocorrencia => {
     const iso = paraIso(passo(inicio));
     return {
       descricao,
       data_registro: iso,
       data_vencimento: vencimentoBase === null ? null : paraIso(passo(vencimentoBase)),
-      // A primeira respeita o que o usuário escolheu; as seguintes seguem a data.
-      situacao: primeira ? base.situacao : situacaoPadrao(base.tipo, iso, hojeIso),
+      situacao: base.situacao,
       serie_tipo: serieTipo,
       parcela_atual: parcelaAtual,
       parcela_total: parcelaTotal,
@@ -150,7 +146,7 @@ export function gerarSerie(
   };
 
   if (config.repeticao === "unica") {
-    return [monta((d) => d, base.descricao, null, null, null, true)];
+    return [monta((d) => d, base.descricao, null, null, null)];
   }
 
   if (config.repeticao === "parcelada") {
@@ -166,7 +162,6 @@ export function gerarSerie(
         numero,
         parcelaTotal,
         "parcelada",
-        i === 0,
       );
     });
   }
@@ -180,7 +175,6 @@ export function gerarSerie(
         i + 1,
         total,
         "assinatura",
-        i === 0,
       ),
     );
   }
@@ -199,13 +193,13 @@ export function gerarSerie(
   for (let i = 0; i < quantas; i++) {
     const passo = (d: Date) => avancar(d, i, frequencia, intervalo, unidade);
     if (fim && passo(inicio) > fim) break;
-    lista.push(monta(passo, base.descricao, null, null, "recorrente", i === 0));
+    lista.push(monta(passo, base.descricao, null, null, "recorrente"));
   }
 
   // Uma data final anterior à primeira ocorrência ainda salva o lançamento
   // que o usuário digitou — senão o salvar não faria nada.
   if (lista.length === 0) {
-    lista.push(monta((d) => d, base.descricao, null, null, "recorrente", true));
+    lista.push(monta((d) => d, base.descricao, null, null, "recorrente"));
   }
 
   return lista;

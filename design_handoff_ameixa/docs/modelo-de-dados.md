@@ -26,8 +26,10 @@ insert, update e delete.
 subtrai. Isso evita relatórios errados por sinal invertido em importações.
 
 **3. Situação.** Despesa → `pago` | `a_pagar`. Receita → `recebido` | `a_receber`.
-Aporte → `guardado`. Lançamento com `data_registro` futura entra automaticamente em
-`a_pagar`/`a_receber`.
+Aporte → `guardado`. Para despesas e receitas, o usuário escolhe a situação:
+nenhuma opção começa selecionada e o aviso de campo faltante aparece ao salvar.
+Datas passadas ou futuras nunca mudam essa escolha. A situação informada também
+vale para todas as ocorrências geradas numa série.
 
 **4. Séries.** Parcelamento, recorrência e assinatura compartilham `serie_id`. Cada
 ocorrência é um lançamento independente — editável e excluível isoladamente. Ofereça
@@ -52,7 +54,7 @@ importação. Grave o `fitid` tanto ao conciliar quanto ao criar a partir do ban
 do cliente pode depender de filtro por `user_id` no código — a política é a garantia.
 
 ## Fluxos que valem teste automatizado
-- Salvar parcelada 3/10 gera 8 lançamentos, todos com o mesmo `serie_id`, os futuros em `a_pagar`.
+- Salvar parcelada 3/10 gera 8 lançamentos, todos com o mesmo `serie_id` e a situação escolhida, independentemente das datas.
 - Assinatura de 12 meses gera 12 cobranças numeradas.
 - Recorrente personalizada respeita a data final e nunca passa de 240 ocorrências.
 - Aporte de R$ 500 sobe `metas.guardado` em 500 e não altera `v_movimento_mensal`.

@@ -8,7 +8,7 @@ import { BotaoRegistroFacil } from "@/components/botao-registro-facil";
 import { FolhaLancamento, type ValoresIniciais } from "@/components/folha-lancamento";
 import { RegistroFacil } from "@/components/registro-facil";
 import type { DadosDeApoio } from "@/lib/tipos/apoio";
-import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
+import type { LancamentoNaLista, Situacao } from "@/lib/tipos/lancamentos";
 
 type Abrir = {
   /** Abre o formulário completo já preenchido com um lançamento existente. */
@@ -74,10 +74,11 @@ export function CascaLancamentos({
     valor: number,
     tipo: "despesa" | "receita",
     contaId: string | null,
+    situacao: Situacao | null,
   ) {
     setRegistroAberto(false);
     setEmEdicao(null);
-    setIniciais({ valor, tipo, contaId });
+    setIniciais({ valor, tipo, contaId, situacao });
     setGeracao((g) => g + 1);
     setFormAberto(true);
   }

@@ -13,7 +13,7 @@ export function Segmentos<T extends string>({
 }: {
   rotulo?: string;
   opcoes: readonly { valor: T; texto: string }[];
-  valor: T;
+  valor: T | null;
   aoEscolher: (v: T) => void;
   colunas?: string;
 }) {

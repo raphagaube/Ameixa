@@ -9,6 +9,7 @@ import { Segmentos } from "@/components/ui/segmentos";
 import { moeda } from "@/lib/formato";
 import { acaoDaTecla } from "@/lib/teclado-valor";
 import type { Conta } from "@/lib/tipos/contas";
+import { ROTULO_SITUACAO, situacoesDoTipo, type Situacao } from "@/lib/tipos/lancamentos";
 import { salvarRapido } from "@/app/(app)/lancamentos/acoes";
 import { Dinheiro } from "@/components/dinheiro";
 
@@ -28,12 +29,13 @@ export function RegistroFacil({
   aberta: boolean;
   aoFechar: () => void;
   contas: Conta[];
-  aoDetalhar: (valor: number, tipo: "despesa" | "receita", contaId: string | null) => void;
+  aoDetalhar: (valor: number, tipo: "despesa" | "receita", contaId: string | null, situacao: Situacao | null) => void;
 }) {
   const router = useRouter();
   const [tipo, setTipo] = useState<"despesa" | "receita">("despesa");
   const [digitos, setDigitos] = useState("");
   const [contaId, setContaId] = useState<string | null>(null);
+  const [situacao, setSituacao] = useState<Situacao | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, iniciar] = useTransition();
 
@@ -54,6 +56,7 @@ export function RegistroFacil({
 
   function fecharLimpo() {
     setDigitos("");
+    setSituacao(null);
     setErro(null);
     aoFechar();
   }
@@ -64,8 +67,12 @@ export function RegistroFacil({
       setErro("Digite um valor primeiro.");
       return;
     }
+    if (!situacao) {
+      setErro("Escolha a situação do lançamento.");
+      return;
+    }
     iniciar(async () => {
-      const r = await salvarRapido(valor, tipo, contaId);
+      const r = await salvarRapido(valor, tipo, contaId, situacao);
       if (r.ok) {
         fecharLimpo();
         router.refresh();
@@ -84,8 +91,10 @@ export function RegistroFacil({
     const v = valor;
     const t = tipo;
     const c = contaId;
+    const s = situacao;
     setDigitos("");
-    aoDetalhar(v, t, c);
+    setSituacao(null);
+    aoDetalhar(v, t, c, s);
   }
 
   /**
@@ -137,7 +146,14 @@ export function RegistroFacil({
             { valor: "receita" as const, texto: "Receita" },
           ]}
           valor={tipo}
-          aoEscolher={setTipo}
+          aoEscolher={(t) => { if (t !== tipo) { setTipo(t); setSituacao(null); } }}
+        />
+
+        <Segmentos
+          rotulo="Situação"
+          opcoes={situacoesDoTipo(tipo).map((s) => ({ valor: s, texto: ROTULO_SITUACAO[s] }))}
+          valor={situacao}
+          aoEscolher={(s) => { setSituacao(s); if (erro === "Escolha a situação do lançamento.") setErro(null); }}
         />
 
         <div

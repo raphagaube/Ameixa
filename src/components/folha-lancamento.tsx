@@ -21,7 +21,6 @@ import {
   type Situacao,
   type TipoLancamento,
   type TipoRepeticao,
-  situacaoPadrao,
   situacoesDoTipo,
 } from "@/lib/tipos/lancamentos";
 import { escreverValor, lerValor } from "@/lib/valor";
@@ -31,6 +30,7 @@ export type ValoresIniciais = {
   valor?: number;
   tipo?: "despesa" | "receita";
   contaId?: string | null;
+  situacao?: Situacao | null;
 };
 
 const REPETICOES: { valor: TipoRepeticao; texto: string }[] = [
@@ -71,8 +71,8 @@ export function FolhaLancamento({
     lancamento?.data_registro ?? hoje,
   );
   const [vencimento, setVencimento] = useState(lancamento?.data_vencimento ?? "");
-  const [situacao, setSituacao] = useState<Situacao>(
-    lancamento?.situacao ?? situacaoPadrao(tipo, dataRegistro, hoje),
+  const [situacao, setSituacao] = useState<Situacao | null>(
+    lancamento?.situacao ?? iniciais?.situacao ?? (tipo === "aporte" ? "guardado" : null),
   );
   const [categoriaId, setCategoriaId] = useState<string | null>(
     lancamento?.categoria_id ?? null,
@@ -124,8 +124,9 @@ export function FolhaLancamento({
   );
 
   function trocarTipo(t: TipoLancamento) {
+    if (t === tipo) return;
     setTipo(t);
-    setSituacao(situacaoPadrao(t, dataRegistro, hoje));
+    setSituacao(t === "aporte" ? "guardado" : null);
     // Categoria de despesa não serve para receita e vice-versa.
     setCategoriaId(null);
     setSubcategoriaId(null);
@@ -134,12 +135,6 @@ export function FolhaLancamento({
       setForma("");
       setRepeticao("unica");
     }
-  }
-
-  function trocarData(iso: string) {
-    setDataRegistro(iso);
-    // Data futura vira a pagar / a receber sozinha, como manda a regra 3.
-    setSituacao(situacaoPadrao(tipo, iso, hoje));
   }
 
   function adicionarForma() {
@@ -161,6 +156,10 @@ export function FolhaLancamento({
     }
     if (!descricao.trim()) {
       setErro("Escreva uma descrição.");
+      return;
+    }
+    if (!situacao || !situacoesDoTipo(tipo).includes(situacao)) {
+      setErro("Escolha a situação do lançamento.");
       return;
     }
     if (ehAporte && !metaId) {
@@ -274,7 +273,7 @@ export function FolhaLancamento({
               texto: ROTULO_SITUACAO[s],
             }))}
             valor={situacao}
-            aoEscolher={setSituacao}
+            aoEscolher={(s) => { setSituacao(s); if (erro === "Escolha a situação do lançamento.") setErro(null); }}
           />
         ) : null}
 
@@ -286,7 +285,7 @@ export function FolhaLancamento({
           placeholder={ehAporte ? "Ex.: Reserva de emergência" : "Ex.: Mercado"}
         />
 
-        <CampoData rotulo="Data do registro" valor={dataRegistro} aoMudar={trocarData} />
+        <CampoData rotulo="Data do registro" valor={dataRegistro} aoMudar={setDataRegistro} />
 
         {!ehAporte ? (
           <CampoData rotulo="Vencimento" valor={vencimento} aoMudar={setVencimento} opcional />
@@ -490,6 +489,12 @@ export function FolhaLancamento({
                   aoEscolher={setRepeticao}
                   colunas="1fr 1fr"
                 />
+
+                {repeticao !== "unica" ? (
+                  <p style={{ fontSize: 12, lineHeight: 1.5, color: "var(--mut)" }}>
+                    A situação escolhida será aplicada a todas as ocorrências, sem mudanças pelas datas.
+                  </p>
+                ) : null}
 
                 {repeticao === "parcelada" ? (
                   <div className="grid grid-cols-2" style={{ gap: 12 }}>
