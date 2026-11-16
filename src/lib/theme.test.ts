@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ACENTOS,
+  ACENTO_PADRAO,
   derivarTokens,
   hexParaRgb,
   luminancia,
@@ -25,7 +26,7 @@ describe("conversão de cor", () => {
   });
 
   it("cai no acento padrão quando o hex é inválido", () => {
-    expect(hexParaRgb("banana")).toEqual(hexParaRgb(ACENTOS.verde));
+    expect(hexParaRgb("banana")).toEqual(hexParaRgb(ACENTO_PADRAO));
   });
 
   it("calcula luminância pela fórmula do handoff", () => {

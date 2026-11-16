@@ -149,7 +149,7 @@ export function BotaoRegistroFacil({ onClick }: { onClick?: () => void }) {
           aria-label="Registro fácil — lançar um valor rápido. Arraste para mover o botão."
           className="flex items-center gap-2 rounded-full shadow-lg"
           style={{
-            background: "var(--deep)",
+            background: "var(--primary)",
             color: "var(--on-ac)",
             height: ALTURA,
             paddingInline: 20,

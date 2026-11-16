@@ -16,8 +16,7 @@ type Props = React.ButtonHTMLAttributes<HTMLButtonElement> &
   };
 
 /**
- * Botão primário do handoff: fundo --deep, texto --on-ac, 14px de padding,
- * maiúsculo com letter-spacing .1em. Usa --deep e nunca --ac puro.
+ * Ações preenchidas usam --primary; --deep é a tinta de destaque nos dois temas.
  */
 export function Botao({
   variante = "primario",
@@ -29,11 +28,11 @@ export function Botao({
   ...resto
 }: Props) {
   const base: React.CSSProperties = {
-    padding: 14,
-    fontSize: 16,
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: ".1em",
+    padding: "11px 14px",
+    fontSize: 14,
+    fontWeight: 600,
+    textTransform: "none",
+    letterSpacing: "normal",
     borderRadius: "var(--rs)",
     width: "100%",
     transition: "opacity 150ms ease-out",
@@ -41,7 +40,7 @@ export function Botao({
   };
 
   const porVariante: Record<string, React.CSSProperties> = {
-    primario: { background: "var(--deep)", color: "var(--on-ac)", border: "none" },
+    primario: { background: "var(--primary)", color: "var(--on-ac)", border: "none" },
     contorno: {
       background: "transparent",
       color: "var(--color-text)",

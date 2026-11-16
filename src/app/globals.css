@@ -2,26 +2,33 @@
 
 /* ---------------------------------------------------------------
    Ameixa — design tokens
-   Fonte: design_handoff_ameixa/README.md › "Design tokens"
-   As cores de acento (--ac, --on-ac, --deep, --tint, --chart2) NÃO
-   ficam aqui: são derivadas de um único hex em src/lib/theme.ts e
-   injetadas no <html> pelo ProvedorTema.
+   Identidade vinho aprovada em 16/11/2026, com Inter e dois temas.
+   --primary preenche ações; --deep mantém textos e ícones legíveis.
+   As cores estão disponíveis antes da hidratação, sem flash de acento.
    --------------------------------------------------------------- */
 
 :root {
-  --color-bg: #f4f4f3;
+  --color-bg: #f8f6f8;
   --sf: #ffffff;
-  --color-text: #1c1e20;
-  --mut: #7b7f83;
-  --ln: rgba(28, 30, 32, 0.16);
-  --ln2: rgba(28, 30, 32, 0.08);
-  --ok: #3f8a5f;
-  --warn: #b8862a;
-  --bad: #c0554f;
+  --color-text: #261d25;
+  --mut: #756771;
+  --ln: #e6dfe4;
+  --ln2: #eee8ed;
+  --ok: #287657;
+  --warn: #9c6a1b;
+  --bad: #b54c4c;
+  --ac: #53142d;
+  --primary: #53142d;
+  --marca: #53142d;
+  --on-ac: #ffffff;
+  --deep: #53142d;
+  --tint: #f1e7ed;
+  --chart2: #9d6a84;
+  color-scheme: light;
 
-  /* Raio — cartões 16, botões e campos 12, folhas 20 no topo */
-  --r: 16px;
-  --rs: 12px;
+  /* Raio — cartões 14, botões e campos 10, folhas 20 no topo */
+  --r: 14px;
+  --rs: 10px;
   --rf: 20px;
 
   /* Largura máxima do conteúdo e respiro para o botão flutuante + abas
@@ -36,19 +43,21 @@
 }
 
 :root[data-mode="dark"] {
-  --color-bg: #000000;
-  --sf: #131313;
-  --color-text: #f4f4f4;
-  --mut: #8a8a8a;
-  --ln: rgba(255, 255, 255, 0.18);
-  --ln2: rgba(255, 255, 255, 0.09);
-  --ok: #7fc79c;
-  --warn: #e0b45f;
-  --bad: #e5867f;
-}
-
-:root[data-mode="dark"] .logo-ameixa {
-  filter: invert(1);
+  --color-bg: #151116;
+  --sf: #211b23;
+  --color-text: #f7f1f5;
+  --mut: #bcaeb8;
+  --ln: #4c404c;
+  --ln2: #3a303b;
+  --ok: #86cba7;
+  --warn: #e9bc70;
+  --bad: #e99795;
+  --primary: #aa4f72;
+  --marca: #e7b4ca;
+  --deep: #e7b4ca;
+  --tint: #35232e;
+  --chart2: #b899af;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -66,7 +75,7 @@
   --color-deep: var(--deep);
   --color-tint: var(--tint);
   --color-chart2: var(--chart2);
-  --font-sans: var(--fonte-open-sans), system-ui, sans-serif;
+  --font-sans: var(--fonte-inter), system-ui, sans-serif;
 }
 
 html,
@@ -78,8 +87,9 @@ body {
   margin: 0;
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: var(--fonte-open-sans), system-ui, sans-serif;
+  font-family: var(--fonte-inter), system-ui, sans-serif;
   font-size: 15px;
+  letter-spacing: -0.012em;
   -webkit-font-smoothing: antialiased;
   /* Evita o "puxa e balança" do iOS por cima das folhas inferiores */
   overscroll-behavior-y: none;
@@ -89,8 +99,8 @@ h1,
 h2,
 h3,
 h4 {
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 600 !important;
+  letter-spacing: -0.025em;
   margin: 0;
 }
 
@@ -108,6 +118,13 @@ a[role="button"],
 input,
 select {
   min-height: 44px;
+}
+
+button,
+input,
+select,
+textarea {
+  font-variant-numeric: tabular-nums;
 }
 
 button {
@@ -213,7 +230,7 @@ button {
   min-height: 44px;
   width: 100%;
   border-radius: var(--rs);
-  background: var(--deep);
+  background: var(--primary);
   color: var(--on-ac);
   font-size: 14px;
   font-weight: 700;
@@ -354,12 +371,12 @@ button {
     filter: none !important;
   }
 
-  /* O acento do tema escuro é claro demais para papel branco.
-     Precisa de !important: o ProvedorTema escreve essas variáveis como
-     estilo inline no <html>, e estilo inline vence qualquer seletor. */
+  /* A impressão mantém a identidade clara, inclusive após usar o tema escuro. */
   :root {
-    --deep: #2f6b47 !important;
-    --tint: #eef3ef !important;
+    --primary: #53142d !important;
+    --marca: #53142d !important;
+    --deep: #53142d !important;
+    --tint: #f1e7ed !important;
     --on-ac: #ffffff !important;
     --ok: #2f6b47 !important;
     --warn: #8a6417 !important;

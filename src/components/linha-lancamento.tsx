@@ -85,7 +85,7 @@ export function LinhaLancamento({
             flexShrink: 0,
             borderRadius: 6,
             border: `2px solid ${selecionado ? "var(--deep)" : "var(--ln2)"}`,
-            background: selecionado ? "var(--deep)" : "transparent",
+            background: selecionado ? "var(--primary)" : "transparent",
             color: "var(--on-ac)",
           }}
         >

@@ -1,10 +1,8 @@
-import Image from "next/image";
 import logo from "../../public/ameixa-logo-v2.png";
 
 /**
  * Marca transparente preparada pelo Raphael no Canva.
- * O CSS acompanha o tema desde a primeira pintura e mantém o traço preto
- * na impressão, sem acrescentar um fundo à imagem.
+ * A máscara preserva o desenho e acompanha a paleta nos dois temas.
  */
 export function LogoAmeixa({
   tamanho = 46,
@@ -14,14 +12,21 @@ export function LogoAmeixa({
   className?: string;
 }) {
   return (
-    <Image
-      src={logo}
-      alt="Ameixa"
-      width={tamanho}
-      height={Math.round((tamanho * logo.height) / logo.width)}
-      priority
+    <span
+      role="img"
+      aria-label="Ameixa"
       className={["logo-ameixa", className].filter(Boolean).join(" ")}
-      style={{ height: "auto" }}
+      style={{
+        display: "inline-block",
+        flexShrink: 0,
+        width: tamanho,
+        height: Math.round((tamanho * logo.height) / logo.width),
+        background: "var(--marca)",
+        maskImage: `url(${logo.src})`,
+        maskSize: "contain",
+        maskPosition: "center",
+        maskRepeat: "no-repeat",
+      }}
     />
   );
 }

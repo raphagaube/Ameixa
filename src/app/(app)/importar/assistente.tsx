@@ -371,7 +371,7 @@ export function Assistente({
                 flexShrink: 0,
                 fontSize: 12,
                 fontWeight: 700,
-                background: passo >= n ? "var(--deep)" : "var(--ln2)",
+                background: passo >= n ? "var(--primary)" : "var(--ln2)",
                 color: passo >= n ? "var(--on-ac)" : "var(--mut)",
               }}
             >
@@ -383,7 +383,7 @@ export function Assistente({
                 style={{
                   flex: 1,
                   height: 2,
-                  background: passo > n ? "var(--deep)" : "var(--ln2)",
+                  background: passo > n ? "var(--primary)" : "var(--ln2)",
                 }}
               />
             ) : null}

@@ -1,9 +1,6 @@
 /**
- * Derivação da família de cores a partir de um único hex de acento.
- * Regras em design_handoff_ameixa/README.md › "Acento e cor derivada".
- *
- * Regra crítica: elementos coloridos (abas ativas, barras, botões) usam --deep,
- * nunca --ac puro. Com um acento quase preto no tema escuro, --ac some no fundo.
+ * Utilitários de cor para categorias e compatibilidade com acentos antigos.
+ * A identidade global fixa e seus dois temas ficam em app/globals.css.
  */
 
 export type Modo = "light" | "dark";
@@ -14,7 +11,7 @@ export const ACENTOS = {
   verde: "#93C9A8",
 } as const;
 
-export const ACENTO_PADRAO = ACENTOS.verde;
+export const ACENTO_PADRAO = "#53142D";
 
 type Rgb = { r: number; g: number; b: number };
 type Hsl = { h: number; s: number; l: number };

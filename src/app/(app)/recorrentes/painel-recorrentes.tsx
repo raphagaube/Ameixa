@@ -344,7 +344,7 @@ export function PainelRecorrentes({
               padding: "0 12px",
               borderRadius: "var(--rs)",
               border: "1px solid var(--deep)",
-              background: soRepetidas ? "var(--deep)" : "transparent",
+              background: soRepetidas ? "var(--primary)" : "transparent",
               color: soRepetidas ? "var(--on-ac)" : "var(--deep)",
               fontSize: 13,
               fontWeight: 600,
