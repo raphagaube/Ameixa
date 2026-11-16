@@ -31,8 +31,8 @@ são definitivos. Recrie a UI fielmente.
 
 Navegação atualizada em 16/11/2026: barra inferior com **Início, Extrato, Relatórios,
 Metas e Menu**. Menu abre uma lateral no celular, com as mesmas opções da lateral
-fixa do computador. **Minha gestão** fica visível; **Bancos** e **Configurações**
-podem ser recolhidos e abrem quando contêm a página atual. Não há uma página central
+fixa do computador. **Minha gestão**, **Bancos** e **Configurações** ficam sempre
+abertos, com títulos fixos e sem controles de expandir ou recolher. Não há uma página central
 de Ajustes nem uma lista duplicada de atalhos. Contas e Cartões têm acessos separados;
 Metas e Orçamentos compartilham um cabeçalho com abas. Planilhas ficam no Extrato.
 O botão flutuante "Registro fácil" fica no Início.

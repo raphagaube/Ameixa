@@ -226,9 +226,6 @@ button {
   min-height: 44px;
   padding: 0 12px;
 }
-.menu-grupo > summary { cursor: pointer; list-style: none; }
-.menu-grupo > summary::-webkit-details-marker { display: none; }
-.menu-grupo[open] > summary > svg { transform: rotate(180deg); }
 .menu-itens { display: flex; flex-direction: column; gap: 2px; }
 .menu-link {
   display: flex;

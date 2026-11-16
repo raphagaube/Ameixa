@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  ArrowLeftRight, CalendarDays, ChartPie, ChevronDown, CreditCard,
+  ArrowLeftRight, CalendarDays, ChartPie, CreditCard,
   DatabaseBackup, House, Landmark, ListTree, Palette, ReceiptText,
   Repeat, Target, Trash2, TriangleAlert, UserRound,
 } from "lucide-react";
@@ -63,16 +63,10 @@ export function MenuPrincipal({ pendencias, aoNavegar }: { pendencias: number; a
             })}
           </ul>
         );
-        if (grupo.id === "gestao") return (
-          <section key={grupo.id} aria-label={grupo.titulo}>
-            <p className="rotulo menu-titulo">{grupo.titulo}</p>{lista}
-          </section>
-        );
-        const ativo = grupo.itens.some((item) => corresponde(caminho, item.href));
         return (
-          <details key={`${grupo.id}-${ativo}`} open={ativo} className="menu-grupo">
-            <summary className="rotulo menu-titulo">{grupo.titulo}<ChevronDown size={16} strokeWidth={1.5} aria-hidden /></summary>{lista}
-          </details>
+          <section key={grupo.id} aria-label={grupo.titulo}>
+            <h2 className="rotulo menu-titulo">{grupo.titulo}</h2>{lista}
+          </section>
         );
       })}
     </div>

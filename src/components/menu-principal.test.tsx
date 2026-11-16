@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const rota = vi.hoisted(() => ({ caminho: "/" }));
@@ -12,11 +12,14 @@ afterEach(cleanup);
 beforeEach(() => { rota.caminho = "/"; });
 
 describe("navegação organizada", () => {
-  it("mantém a gestão visível e recolhe Bancos e Configurações no Início", () => {
-    const { container } = render(<MenuPrincipal pendencias={3} />);
+  it("mantém os três grupos abertos, com acesso direto a todos os itens no Início", () => {
+    render(<MenuPrincipal pendencias={3} />);
     expect(screen.getByRole("region", { name: "Minha gestão" })).toBeTruthy();
     expect(screen.getByRole("link", { name: /Pendências/ }).textContent).toBe("Pendências3");
-    expect(Array.from(container.querySelectorAll("details")).every(el => !el.open)).toBe(true);
+    expect(within(screen.getByRole("region", { name: "Bancos" })).getByRole("link", { name: "Contas" })).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "Configurações" })).getByRole("link", { name: "Minha conta" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Bancos" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Configurações" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Ajustes" })).toBeNull();
     expect(screen.queryByText("Atalhos")).toBeNull();
   });
@@ -27,13 +30,12 @@ describe("navegação organizada", () => {
     ["/configuracoes/google-agenda", "Google Agenda", "Configurações"],
     ["/categorias", "Categorias", "Configurações"],
   ]) {
-    it(`abre o grupo e marca a página em ${caminho}`, () => {
+    it(`mantém o grupo visível e marca a página em ${caminho}`, () => {
       rota.caminho = caminho;
       render(<MenuPrincipal pendencias={0} />);
       const link = screen.getByRole("link", { name: texto });
       expect(link.getAttribute("aria-current")).toBe("page");
-      expect(link.closest("details")?.open).toBe(true);
-      expect(link.closest("details")?.querySelector("summary")?.textContent).toBe(grupo);
+      expect(link.closest("section")?.getAttribute("aria-label")).toBe(grupo);
     });
   }
 
