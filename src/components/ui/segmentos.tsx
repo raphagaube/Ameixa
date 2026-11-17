@@ -21,6 +21,7 @@ export function Segmentos<T extends string>({
     <div className="flex flex-col" style={{ gap: 6 }}>
       {rotulo ? <span className="rotulo">{rotulo}</span> : null}
       <div
+        className="controle-segmentos"
         style={
           colunas
             ? { display: "grid", gridTemplateColumns: colunas, gap: 8 }
@@ -35,6 +36,7 @@ export function Segmentos<T extends string>({
               type="button"
               onClick={() => aoEscolher(o.valor)}
               aria-pressed={ativo}
+              data-ameixa-segmento
               style={{
                 flex: colunas ? undefined : 1,
                 height: 44,

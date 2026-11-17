@@ -86,6 +86,7 @@ export function CampoData({
       {opcional && !valor ? (
         <button
           type="button"
+          data-ameixa-data-vazia
           onClick={() =>
             montar(hoje.getDate(), hoje.getMonth(), hoje.getFullYear())
           }
@@ -100,7 +101,7 @@ export function CampoData({
         </button>
       ) : (
         <div
-          className="grid"
+          className="controle-data grid"
           style={{ gridTemplateColumns: "72px 1fr 92px", gap: 8 }}
         >
           <input

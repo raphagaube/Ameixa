@@ -146,6 +146,7 @@ export function BotaoRegistroFacil({ onClick }: { onClick?: () => void }) {
           onPointerMove={aoMover}
           onPointerUp={aoSoltar}
           onPointerCancel={aoSoltar}
+          data-ameixa-flutuante
           aria-label="Registro fácil — lançar um valor rápido. Arraste para mover o botão."
           className="flex items-center gap-2 rounded-full shadow-lg"
           style={{

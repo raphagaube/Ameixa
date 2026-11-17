@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import "./controles.css";
 import { ProvedorTema, scriptAntiFlash } from "@/components/provedor-tema";
 import { scriptAntiFlashValores } from "@/lib/privacidade";
 import { RegistrarSW } from "@/components/registrar-sw";

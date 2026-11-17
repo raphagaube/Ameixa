@@ -31,7 +31,7 @@ export function SeletorMes({ ano, mes }: { ano: number; mes: number }) {
 
   return (
     <div
-      className="grid items-center"
+      className="controle-mes grid items-center"
       style={{ gridTemplateColumns: "44px 1fr 44px", gap: 8 }}
     >
       <Link

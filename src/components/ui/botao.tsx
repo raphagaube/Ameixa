@@ -65,6 +65,7 @@ export function Botao({
     return (
       <a
         href={href}
+        data-ameixa-botao={variante}
         aria-disabled={disabled || carregando || undefined}
         style={{
           ...aparencia,
@@ -81,6 +82,7 @@ export function Botao({
   return (
     <button
       {...resto}
+      data-ameixa-botao={variante}
       disabled={disabled || carregando}
       aria-busy={carregando || undefined}
       style={aparencia}

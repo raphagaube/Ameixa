@@ -306,6 +306,7 @@ export function FolhaLancamento({
                     type="button"
                     onClick={() => setMetaId(m.id)}
                     aria-pressed={metaId === m.id}
+                    data-ameixa-escolha
                     style={chip(metaId === m.id)}
                   >
                     {m.nome}
@@ -333,6 +334,7 @@ export function FolhaLancamento({
                         setSubcategoriaId(null);
                       }}
                       aria-pressed={ativo}
+                      data-ameixa-escolha
                       style={chip(ativo, c.cor, c.cor_texto)}
                     >
                       {c.nome}
@@ -354,6 +356,7 @@ export function FolhaLancamento({
                         type="button"
                         onClick={() => setSubcategoriaId(ativo ? null : s.id)}
                         aria-pressed={ativo}
+                        data-ameixa-escolha
                         style={chip(ativo)}
                       >
                         {s.nome}
@@ -382,6 +385,7 @@ export function FolhaLancamento({
                     type="button"
                     onClick={() => setContaId(ativo ? null : c.id)}
                     aria-pressed={ativo}
+                    data-ameixa-escolha
                     style={{
                       height: 44,
                       borderRadius: "var(--rs)",
@@ -416,6 +420,7 @@ export function FolhaLancamento({
                         if (f.toLowerCase() !== "crédito") setCartaoId(null);
                       }}
                       aria-pressed={ativo}
+                      data-ameixa-escolha
                       style={chip(ativo)}
                     >
                       {f}
@@ -469,6 +474,7 @@ export function FolhaLancamento({
                         type="button"
                         onClick={() => setCartaoId(ativo ? null : k.id)}
                         aria-pressed={ativo}
+                        data-ameixa-escolha
                         style={chip(ativo, ativo ? k.cor : undefined, "#ffffff")}
                       >
                         {k.nome}

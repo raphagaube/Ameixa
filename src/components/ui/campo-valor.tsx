@@ -28,7 +28,7 @@ export function CampoValor({
         {rotulo}
       </label>
       <div
-        className="flex items-center"
+        className="controle-valor flex items-center"
         style={{
           borderRadius: "var(--rs)",
           border: `1px solid ${erro ? "var(--bad)" : "var(--ln)"}`,
@@ -39,6 +39,7 @@ export function CampoValor({
         <span style={{ fontSize: 15, color: "var(--mut)" }}>R$</span>
         <input
           id={id}
+          data-ameixa-valor
           value={valor}
           onChange={(e) => aoMudar(e.target.value)}
           inputMode="decimal"
