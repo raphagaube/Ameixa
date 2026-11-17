@@ -116,14 +116,14 @@ export function LinhaLancamento({
 
       <span className="min-w-0 flex-1">
         <span
-          className="block truncate"
+          className="tip-descricao block truncate"
           style={{ fontSize: 15, fontWeight: 500 }}
         >
           {l.descricao}
         </span>
         {meta ? (
           <span
-            className="block truncate"
+            className="tip-detalhe block truncate"
             style={{ fontSize: 12, color: "var(--mut)" }}
           >
             {ehAporte ? `guardado · ${meta}` : meta}
@@ -131,7 +131,7 @@ export function LinhaLancamento({
         ) : null}
         {quando || pendente ? (
           <span
-            className="flex items-center"
+            className="tip-data flex items-center"
             style={{ gap: 6, fontSize: 12, color: "var(--mut)" }}
           >
             {quando ? <span style={{ flexShrink: 0 }}>{quando}</span> : null}
@@ -150,7 +150,7 @@ export function LinhaLancamento({
         ) : null}
       </span>
 
-      <span style={{ fontSize: 16, fontWeight: 600, color: cor, flexShrink: 0 }}>
+      <span className="tip-valor" style={{ fontSize: 16, fontWeight: 600, color: cor, flexShrink: 0 }}>
         {sinal}
         <Dinheiro>{moeda(l.valor)}</Dinheiro>
       </span>

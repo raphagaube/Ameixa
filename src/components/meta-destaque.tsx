@@ -30,12 +30,12 @@ export function MetaDestaque({ meta }: { meta: Meta }) {
         </Link>
       </div>
 
-      <p style={{ fontSize: 12, color: "var(--mut)", marginTop: 4 }}>
+      <p className="tip-detalhe" style={{ fontSize: 12, color: "var(--mut)", marginTop: 4 }}>
         {[meta.conta?.nome, meta.aplicacao].filter(Boolean).join(" · ")}
       </p>
 
       <div className="flex items-baseline justify-between" style={{ gap: 8, marginTop: 6 }}>
-        <span style={{ fontSize: 22, fontWeight: 700 }}><Dinheiro>{moeda(meta.guardado)}</Dinheiro></span>
+        <span className="tip-total" style={{ fontSize: 22, fontWeight: 700 }}><Dinheiro>{moeda(meta.guardado)}</Dinheiro></span>
         <span style={{ fontSize: 14, color: "var(--mut)" }}>de <Dinheiro>{moeda(meta.alvo)}</Dinheiro></span>
       </div>
 
@@ -43,7 +43,7 @@ export function MetaDestaque({ meta }: { meta: Meta }) {
         <BarraProgresso percentual={pct} rotulo={`Progresso de ${meta.nome}`} />
       </div>
 
-      <p style={{ fontSize: 12, color: "var(--mut)", marginTop: 6 }}>
+      <p className="tip-detalhe" style={{ fontSize: 12, color: "var(--mut)", marginTop: 6 }}>
         {pct}%{prazo ? ` · prazo de ${prazo}` : ""}
       </p>
     </section>

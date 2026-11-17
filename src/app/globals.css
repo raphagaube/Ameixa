@@ -711,3 +711,64 @@ button {
     left: var(--barra-lateral);
   }
 }
+
+/* Etapa 1: somente tipografia no Início e no Extrato. */
+.tipografia-financeira .tip-titulo {
+  font-size: 28px !important; font-weight: 600 !important;
+  letter-spacing: -.035em; line-height: 1.2 !important;
+}
+.tipografia-financeira h2 {
+  font-size: 18px !important; letter-spacing: -.02em; line-height: 1.35;
+}
+.tipografia-financeira .rotulo {
+  font-size: 13px; line-height: 1.4; text-transform: none;
+  letter-spacing: 0; font-weight: 500;
+}
+.tipografia-financeira .tip-principal {
+  font-size: clamp(36px, 3.2vw, 42px) !important;
+  font-weight: 600 !important; letter-spacing: -.045em; line-height: 1.15 !important;
+  font-variant-numeric: tabular-nums;
+}
+.tipografia-financeira .tip-total {
+  font-size: 23px !important; font-weight: 600 !important;
+  letter-spacing: -.025em; font-variant-numeric: tabular-nums;
+}
+.tipografia-financeira .tip-resumo-mes p:not(.rotulo) {
+  font-size: 18px !important; letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+}
+.tipografia-financeira .tip-descricao {
+  font-size: 15px !important; font-weight: 600 !important;
+  line-height: 1.4; letter-spacing: -.015em;
+}
+.tipografia-financeira .tip-valor {
+  font-size: 16px !important; font-weight: 600 !important;
+  letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+}
+.tipografia-financeira .tip-detalhe {
+  font-size: 13px !important; line-height: 1.45;
+  letter-spacing: 0; color: var(--mut);
+}
+.tipografia-financeira .tip-data {
+  font-size: 13px !important; font-weight: 500 !important;
+  line-height: 1.4; letter-spacing: 0;
+}
+.tipografia-financeira .tip-total-dia {
+  font-size: 13px !important; font-weight: 600 !important;
+  letter-spacing: -.015em; font-variant-numeric: tabular-nums;
+}
+
+/* Valores longos mantêm todos os dígitos legíveis em telas estreitas. */
+.tip-quebra-moeda { display: none; }
+@media (max-width: 540px) {
+  .inicio-tipografia .tip-total {
+    font-size: clamp(15px, calc(6.67vw - 6.3px), 23px) !important;
+  }
+  .inicio-tipografia .tip-resumo-mes p:not(.rotulo) {
+    font-size: clamp(16px, 4.6vw, 18px) !important;
+  }
+  .tip-quebra-moeda { display: inline; }
+  .inicio-tipografia .tip-detalhe.flex { flex-wrap: wrap; }
+  .inicio-tipografia .tip-detalhe.flex > span:last-child {
+    flex-shrink: 1 !important; margin-left: auto; text-align: right;
+  }
+}

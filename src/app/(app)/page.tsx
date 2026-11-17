@@ -7,7 +7,8 @@ import { OndeEstaMeuDinheiro } from "@/components/onde-esta-meu-dinheiro";
 import { BarraProgresso } from "@/components/ui/barra-progresso";
 import { SeletorMes } from "@/components/seletor-mes";
 import { perfilDoUsuario } from "@/lib/dados/perfil";
-import { contarPendencias, ultimosLancamentos } from "@/lib/dados/lancamentos";
+import { ultimosLancamentos } from "@/lib/dados/lancamentos";
+import { resumoDasPendencias } from "@/lib/dados/pendencias";
 import { metasDoUsuario } from "@/lib/dados/metas";
 import { orcamentosDoMes } from "@/lib/dados/orcamentos";
 import { panoramaDasContas } from "@/lib/dados/saldos";
@@ -20,6 +21,13 @@ import {
 import { hojeEmBrasilia, mesAno, moeda } from "@/lib/formato";
 import { Dinheiro } from "@/components/dinheiro";
 import { BotaoPrivacidade } from "@/components/botao-privacidade";
+
+/** Quebra tipográfica opcional, sem alterar o valor nem o modo privado. */
+function DinheiroResumo({ valor }: { valor: number }) {
+  const texto = moeda(valor);
+  const corte = texto.indexOf("\u00a0") + 1;
+  return <Dinheiro>{texto.slice(0, corte)}<wbr className="tip-quebra-moeda" />{texto.slice(corte)}</Dinheiro>;
+}
 
 export default async function Inicio({
   searchParams,
@@ -41,7 +49,7 @@ export default async function Inicio({
       orcamentosDoMes(ano, mes),
       panoramaDasContas(),
       // Global, não do mês: é a mesma conta que a tela de Pendências faz.
-      contarPendencias(),
+      resumoDasPendencias(),
     ]);
 
   const primeiroNome = (perfil?.nome ?? "").split(" ")[0];
@@ -51,11 +59,11 @@ export default async function Inicio({
   const tresOrcamentos = orcamentos.slice(0, 3);
 
   return (
-    <div className="flex flex-col" style={{ gap: 16, paddingTop: 22 }}>
+    <div className="tipografia-financeira inicio-tipografia flex flex-col" style={{ gap: 16, paddingTop: 22 }}>
       <header className="flex items-start justify-between" style={{ gap: 12 }}>
         <div>
           <p className="rotulo">Meu painel</p>
-          <h1 style={{ fontSize: 30, lineHeight: 1.15, marginTop: 4 }}>
+          <h1 className="tip-titulo" style={{ fontSize: 30, lineHeight: 1.15, marginTop: 4 }}>
             Olá, {primeiroNome}
           </h1>
         </div>
@@ -78,7 +86,7 @@ export default async function Inicio({
             }}
           >
             <p className="rotulo">Disponível · até {mesAno(referencia)}</p>
-            <p
+            <p className="tip-principal"
               style={{
                 fontSize: 44,
                 fontWeight: 700,
@@ -89,21 +97,21 @@ export default async function Inicio({
             >
               <Dinheiro>{moeda(panorama.disponivel)}</Dinheiro>
             </p>
-            <p style={{ fontSize: 12, color: "var(--mut)" }}>
+            <p className="tip-detalhe" style={{ fontSize: 12, color: "var(--mut)" }}>
               contas correntes e dinheiro
             </p>
 
-            <div className="grid grid-cols-3" style={{ gap: 10, marginTop: 14 }}>
+            <div className="tip-resumo-mes grid grid-cols-3" style={{ gap: 10, marginTop: 14 }}>
               <div>
                 <p className="rotulo">Receitas</p>
                 <p style={{ fontSize: 17, fontWeight: 600, color: "var(--ok)" }}>
-                  <Dinheiro>{moeda(resumo.receitas)}</Dinheiro>
+                  <DinheiroResumo valor={resumo.receitas} />
                 </p>
               </div>
               <div>
                 <p className="rotulo">Despesas</p>
                 <p style={{ fontSize: 17, fontWeight: 600, color: "var(--bad)" }}>
-                  <Dinheiro>{moeda(resumo.despesas)}</Dinheiro>
+                  <DinheiroResumo valor={resumo.despesas} />
                 </p>
               </div>
               <div>
@@ -116,7 +124,7 @@ export default async function Inicio({
                   }}
                 >
                   {resumo.resultado > 0 ? "+" : ""}
-                  <Dinheiro>{moeda(resumo.resultado)}</Dinheiro>
+                  <DinheiroResumo valor={resumo.resultado} />
                 </p>
               </div>
             </div>
@@ -124,7 +132,7 @@ export default async function Inicio({
 
           <OndeEstaMeuDinheiro panorama={panorama} />
 
-          <AvisoPendencias quantidade={pendencias} />
+          <AvisoPendencias quantidade={pendencias.quantidade} semConta={pendencias.semConta} />
         </div>
 
         <div className="inicio-coluna">

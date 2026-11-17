@@ -8,7 +8,7 @@ export const metadata = { title: "Organizar pendências · Ameixa" };
 
 export default async function Organizar() {
   const [lista, categorias] = await Promise.all([
-    pendencias(),
+    pendencias().then((lista) => lista.filter((l) => l.incompleto)),
     categoriasDoUsuario().then((c) => c ?? []),
   ]);
 

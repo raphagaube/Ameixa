@@ -305,9 +305,9 @@ export function PainelExtrato({
   };
 
   return (
-    <div className="flex flex-col" style={{ gap: 14, paddingTop: 22 }}>
+    <div className="tipografia-financeira extrato-tipografia flex flex-col" style={{ gap: 14, paddingTop: 22 }}>
       <div className="flex flex-wrap items-center justify-between" style={{ gap: 12 }}>
-        <h1 style={{ fontSize: 30 }}>Extrato</h1>
+        <h1 className="tip-titulo" style={{ fontSize: 30 }}>Extrato</h1>
         <div className="flex flex-wrap" style={{ gap: 8 }}>
         {planilhas}
         {/* Leva o endereço como está: o documento sai com o período e os
@@ -748,7 +748,7 @@ export function PainelExtrato({
           )}
 
           <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
-            <span style={{ fontSize: 12, color: "var(--mut)" }}>
+            <span className="tip-detalhe" style={{ fontSize: 12, color: "var(--mut)" }}>
               {periodo === "mes"
                 ? `${nomeMes(mes)} ${ano}`
                 : periodo === "ano"
@@ -756,10 +756,10 @@ export function PainelExtrato({
                   : `${dataBr(de)} — ${dataBr(ate)}`}
               {datasPor === "vencimento" ? " · pelo vencimento" : ""}
             </span>
-            <span style={{ fontSize: 12, color: "var(--mut)" }}>
+            <span className="tip-detalhe" style={{ fontSize: 12, color: "var(--mut)" }}>
               {lancamentos.length}{" "}
               {lancamentos.length === 1 ? "lançamento" : "lançamentos"} ·{" "}
-              <span style={{ color: total < 0 ? "var(--bad)" : "var(--ok)" }}>
+              <span className="tip-total-dia" style={{ color: total < 0 ? "var(--bad)" : "var(--ok)" }}>
                 {total < 0 ? "−" : "+"}
                 <Dinheiro>{moeda(Math.abs(total))}</Dinheiro>
               </span>
@@ -804,10 +804,10 @@ export function PainelExtrato({
                         borderBottom: "1px solid var(--ln2)",
                       }}
                     >
-                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--mut)" }}>
+                      <span className="tip-data" style={{ fontSize: 12, fontWeight: 600, color: "var(--mut)" }}>
                         {dataBr(data)}
                       </span>
-                      <span
+                      <span className="tip-total-dia"
                         style={{
                           fontSize: 12,
                           color: totalDia < 0 ? "var(--bad)" : "var(--ok)",

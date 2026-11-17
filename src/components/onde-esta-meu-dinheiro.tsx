@@ -1,4 +1,3 @@
-import { TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import type { PanoramaDasContas } from "@/lib/dados/saldos";
 import { dataBr, moeda } from "@/lib/formato";
@@ -12,7 +11,7 @@ import { Dinheiro } from "@/components/dinheiro";
  * onde se entra para criar e editar. Aqui é de consulta.
  */
 export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas }) {
-  const { contas, total, guardado, semConta } = panorama;
+  const { contas, total, guardado } = panorama;
 
   if (contas.length === 0) {
     return (
@@ -54,7 +53,7 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
           }}
         >
           <p className="rotulo">Total de tudo</p>
-          <p
+          <p className="tip-total"
             style={{
               fontSize: 22,
               fontWeight: 700,
@@ -65,7 +64,7 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
           >
             <Dinheiro>{moeda(total)}</Dinheiro>
           </p>
-          <p style={{ fontSize: 12, color: "var(--mut)" }}>contas e guardado</p>
+          <p className="tip-detalhe" style={{ fontSize: 12, color: "var(--mut)" }}>contas e guardado</p>
         </div>
 
         <div
@@ -77,10 +76,10 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
           }}
         >
           <p className="rotulo">Guardado</p>
-          <p style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.15, marginTop: 4 }}>
+          <p className="tip-total" style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.15, marginTop: 4 }}>
             <Dinheiro>{moeda(guardado)}</Dinheiro>
           </p>
-          <p style={{ fontSize: 12, color: "var(--mut)" }}>investimentos</p>
+          <p className="tip-detalhe" style={{ fontSize: 12, color: "var(--mut)" }}>investimentos</p>
         </div>
       </div>
 
@@ -119,7 +118,7 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
               </div>
 
               <div
-                className="flex items-baseline justify-between"
+                className="tip-detalhe flex items-baseline justify-between"
                 style={{ gap: 8, marginTop: 6, fontSize: 12 }}
               >
                 <span style={{ color: "var(--mut)" }}>
@@ -158,36 +157,6 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
         })}
       </ul>
 
-      {/* Sem este aviso, o total daqui não bateria com o saldo do painel e a
-          diferença ficaria sem explicação. */}
-      {Math.abs(semConta) >= 0.01 ? (
-        <Link
-          href="/extrato"
-          className="flex items-start"
-          style={{
-            gap: 10,
-            borderRadius: "var(--r)",
-            border: "1px solid var(--warn)",
-            padding: "12px 14px",
-            color: "var(--color-text)",
-          }}
-        >
-          <TriangleAlert
-            size={18}
-            strokeWidth={1.5}
-            style={{ color: "var(--warn)", flexShrink: 0, marginTop: 2 }}
-            aria-hidden
-          />
-          <span>
-            <span style={{ display: "block", fontSize: 13, fontWeight: 600 }}>
-              <Dinheiro>{moeda(Math.abs(semConta))}</Dinheiro> em lançamentos sem conta escolhida
-            </span>
-            <span style={{ display: "block", fontSize: 12, color: "var(--mut)" }}>
-              Por isso o total daqui pode não bater com o saldo do painel.
-            </span>
-          </span>
-        </Link>
-      ) : null}
     </section>
   );
 }

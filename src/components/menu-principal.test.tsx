@@ -67,4 +67,16 @@ describe("aviso de pendências no Início", () => {
     expect(screen.getByRole("link").getAttribute("href")).toBe("/pendencias");
     expect(screen.getByText("Você tem 2 lançamentos para completar")).toBeTruthy();
   });
+  it("reúne o aviso sem conta e o acesso às pendências em um único cartão", () => {
+    render(<AvisoPendencias quantidade={2} semConta={{ quantidade: 1, valor: 42 }} />);
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+    expect(screen.getByRole("link").getAttribute("href")).toBe("/pendencias");
+    expect(screen.getByText(/Isso pode causar diferença nos saldos/)).toBeTruthy();
+    expect(screen.getByText(/42,00/).classList.contains("dinheiro")).toBe(true);
+  });
+  it("continua visível quando falta apenas escolher a conta", () => {
+    render(<AvisoPendencias quantidade={1} semConta={{ quantidade: 1, valor: 20 }} />);
+    expect(screen.getByText("Você tem 1 lançamento para completar")).toBeTruthy();
+    expect(screen.getByText("Ver pendências")).toBeTruthy();
+  });
 });

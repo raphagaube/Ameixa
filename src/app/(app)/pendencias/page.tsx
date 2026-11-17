@@ -7,6 +7,7 @@ export const metadata = { title: "Pendências · Ameixa" };
 
 export default async function Pendencias() {
   const lista = await pendencias();
+  const paraOrganizar = lista.filter((l) => l.incompleto).length;
 
   return (
     <div className="flex flex-col" style={{ gap: 14, paddingTop: 22 }}>
@@ -16,7 +17,7 @@ export default async function Pendencias() {
         {lista.length > 0 ? <p style={{ fontSize: 14, color: "var(--mut)", marginTop: 6 }}>{lista.length} {lista.length === 1 ? "lançamento para completar" : "lançamentos para completar"}. Abra um item para preencher o que falta.</p> : null}
       </header>
 
-      {lista.length > 3 ? (
+      {paraOrganizar > 3 ? (
         <Link
           href="/pendencias/organizar"
           className="flex items-center"
@@ -40,7 +41,7 @@ export default async function Pendencias() {
               Organizar em lote
             </span>
             <span style={{ display: "block", fontSize: 12, color: "var(--mut)" }}>
-              Categorizar {lista.length} de uma vez, pela origem
+              Categorizar {paraOrganizar} de uma vez, pela origem
             </span>
           </span>
         </Link>

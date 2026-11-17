@@ -7,6 +7,7 @@ import { criarClienteServidor } from "@/lib/supabase/servidor";
 import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
 
 import { numeroDaParcela, separarSufixo } from "@/lib/recorrentes";
+import { FILTRO_PENDENCIAS } from "@/lib/pendencias";
 
 const CAMPOS = `
   id, tipo, valor, descricao, data_registro, data_vencimento, situacao,
@@ -152,14 +153,14 @@ async function consultarLancamentos(f: FiltroExtrato): Promise<LancamentoNaLista
   return lista;
 }
 
-/** Lançamentos do Registro Fácil que ainda faltam completar. */
+/** Registro Fácil incompleto e receitas/despesas sem conta, sem repetir itens. */
 export async function pendencias(): Promise<LancamentoNaLista[]> {
   const supabase = await criarClienteServidor();
   const data = await lerTudo((de, ate) =>
     supabase
       .from("lancamentos")
       .select(CAMPOS)
-      .eq("incompleto", true)
+      .or(FILTRO_PENDENCIAS)
       .order("criado_em", { ascending: false })
       .order("id", { ascending: true })
       .range(de, ate),
@@ -288,7 +289,7 @@ export async function ultimosLancamentos(n = 4): Promise<LancamentoNaLista[]> {
 }
 
 /**
- * Quantos lançamentos estão incompletos, no app inteiro.
+ * Quantos lançamentos precisam de revisão, no app inteiro.
  *
  * O Início contava só os do mês aberto, mas a tela de Pendências lista
  * todos. Navegar para um mês vazio fazia aparecer "Não há lançamentos
@@ -300,7 +301,7 @@ export const contarPendencias = cache(async (): Promise<number> => {
   const { count } = await supabase
     .from("lancamentos")
     .select("id", { count: "exact", head: true })
-    .eq("incompleto", true);
+    .or(FILTRO_PENDENCIAS);
   return count ?? 0;
 });
 
