@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import type { Modo } from "@/lib/theme";
@@ -47,6 +48,12 @@ export function ProvedorTema({ children }: { children: React.ReactNode }) {
   // Começa alinhado ao que o script anti-flash já escreveu, para não repintar.
   const [modo, setModo] = useState<Modo>("light");
   const [montado, setMontado] = useState(false);
+  const timerCores = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (timerCores.current !== null) window.clearTimeout(timerCores.current);
+    document.documentElement.classList.remove("tema-em-troca");
+  }, []);
 
   useEffect(() => {
     // Leitura única na montagem. O servidor não tem localStorage, então o
@@ -76,11 +83,25 @@ export function ProvedorTema({ children }: { children: React.ReactNode }) {
   }, [modo, montado]);
 
   const definirModo = useCallback((m: Modo) => {
+    const raiz = document.documentElement;
+    if (timerCores.current !== null) window.clearTimeout(timerCores.current);
+    const reduzirMovimento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const animar = !reduzirMovimento && raiz.dataset.mode !== m;
+    raiz.classList.toggle("tema-em-troca", animar);
+    // As cores mudam sem fotografar nem bloquear a página.
+    raiz.setAttribute("data-mode", m);
+    raiz.style.colorScheme = m;
     setModo(m);
     try {
       localStorage.setItem(CHAVE_MODO, m);
     } catch {
-      // Navegador com armazenamento bloqueado: o tema vale só para esta sessão.
+      // Sem armazenamento, a escolha vale somente nesta sessão.
+    }
+    if (animar) {
+      timerCores.current = window.setTimeout(() => {
+        raiz.classList.remove("tema-em-troca");
+        timerCores.current = null;
+      }, 450);
     }
   }, []);
 

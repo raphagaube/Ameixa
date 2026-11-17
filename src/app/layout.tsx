@@ -35,7 +35,7 @@ export const viewport: Viewport = {
   // Acompanha o tema para a barra de status do celular não destoar.
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f8f6f8" },
-    { media: "(prefers-color-scheme: dark)", color: "#151116" },
+    { media: "(prefers-color-scheme: dark)", color: "#09080b" },
   ],
 };
 

@@ -43,19 +43,19 @@
 }
 
 :root[data-mode="dark"] {
-  --color-bg: #151116;
-  --sf: #211b23;
-  --color-text: #f7f1f5;
-  --mut: #bcaeb8;
-  --ln: #4c404c;
-  --ln2: #3a303b;
+  --color-bg: #09080b;
+  --sf: #141116;
+  --color-text: #eee8ed;
+  --mut: #b2a6af;
+  --ln: #362d37;
+  --ln2: #29222b;
   --ok: #86cba7;
   --warn: #e9bc70;
   --bad: #e99795;
   --primary: #aa4f72;
   --marca: #e7b4ca;
   --deep: #e7b4ca;
-  --tint: #35232e;
+  --tint: #21141d;
   --chart2: #b899af;
   color-scheme: dark;
 }
@@ -931,10 +931,13 @@ button {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  display: block;
+  transition: opacity 360ms cubic-bezier(.4,0,.2,1);
 }
-.menu-simbolo .menu-simbolo-escuro { display: none; }
-:root[data-mode="dark"] .menu-simbolo-claro { display: none; }
-:root[data-mode="dark"] .menu-simbolo .menu-simbolo-escuro { display: block; }
+.menu-simbolo-claro { opacity: 1; }
+.menu-simbolo-escuro { opacity: 0; }
+:root[data-mode="dark"] .menu-simbolo-claro { opacity: 0; }
+:root[data-mode="dark"] .menu-simbolo-escuro { opacity: 1; }
 :root[data-mode="dark"] .menu-marca { color: var(--color-text); }
 .menu-movel .menu-marca { font-size: 24px; }
 .menu-movel .menu-simbolo { width: 48px; height: 48px; }
@@ -971,4 +974,22 @@ button {
   body:has(.barra-rodape) .novo-lancamento-desktop {
     bottom: 160px;
   }
+}
+
+/* A troca de tema anima cores, sem deslocar ou bloquear os controles. */
+@media screen {
+  :root.tema-em-troca *,
+  :root.tema-em-troca *::before,
+  :root.tema-em-troca *::after {
+    transition-property: background-color, color, border-color, outline-color, box-shadow, fill, stroke !important;
+    transition-duration: 360ms !important;
+    transition-timing-function: cubic-bezier(.4,0,.2,1) !important;
+  }
+  :root.tema-em-troca .menu-simbolo img { transition-property: opacity !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root.tema-em-troca *,
+  :root.tema-em-troca *::before,
+  :root.tema-em-troca *::after,
+  .menu-simbolo img { transition-duration: 0.01ms !important; }
 }
