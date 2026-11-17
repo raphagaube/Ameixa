@@ -114,7 +114,7 @@ export function FolhaCategoria({ categoria, aoFechar }: {
                 className={s.opcaoIcone} aria-pressed={icone === i.id} title={i.nome}
                 aria-label={"Ícone " + i.id + ": " + i.nome}
                 onClick={() => escolherIcone(i.id)}>
-                <span style={{ background: cor, color: corTexto }}><IconeCategoria icone={i.id} tamanho={30} /></span>
+                <span style={{ background: cor, color: corTexto }}><IconeCategoria icone={i.id} tamanho={56} /></span>
               </button>)}
             </div>
             <p className={s.detalhe} role="status">{filtrados.length ? filtrados.length + (filtrados.length === 1 ? " ícone" : " ícones") : "Nenhum ícone encontrado."}</p>
