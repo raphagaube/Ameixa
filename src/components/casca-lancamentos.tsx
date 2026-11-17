@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { Plus } from "lucide-react";
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { BarraAbas } from "@/components/barra-abas";
 import { BarraLateral } from "@/components/barra-lateral";
@@ -109,7 +110,10 @@ export function CascaLancamentos({
         </main>
       </div>
 
-      <BarraLateral aoLancar={novo} pendencias={pendencias} />
+      <BarraLateral pendencias={pendencias} />
+      <button type="button" onClick={novo} className="so-notebook novo-lancamento-desktop nao-imprimir" aria-haspopup="dialog">
+        <Plus size={20} strokeWidth={1.8} aria-hidden />Novo lançamento
+      </button>
       <BarraAbas aoMenu={() => setMenuAberto(true)} menuAberto={menuAberto} botaoMenu={botaoMenu} />
       {menuAberto ? <MenuMovel aoFechar={() => setMenuAberto(false)} aoLancar={novo} pendencias={pendencias} botaoOrigem={botaoMenu} /> : null}
 

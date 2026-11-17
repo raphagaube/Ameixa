@@ -1,16 +1,21 @@
 "use client";
 
-import { Plus } from "lucide-react";
 import Link from "next/link";
-import { LogoAmeixa } from "@/components/logo-ameixa";
+import { LogoMenu } from "@/components/logo-menu";
 import { MenuPrincipal } from "@/components/menu-principal";
 
-export function BarraLateral({ aoLancar, pendencias }: { aoLancar: () => void; pendencias: number }) {
+export function BarraLateral({ pendencias }: { pendencias: number }) {
   return (
     <nav aria-label="Navegação principal" className="so-notebook barra-menu">
-      <Link href="/" className="menu-marca"><LogoAmeixa tamanho={30} /><span>Ameixa</span></Link>
-      <button type="button" onClick={aoLancar} className="menu-novo"><Plus size={18} strokeWidth={1.5} aria-hidden />Novo lançamento</button>
-      <MenuPrincipal pendencias={pendencias} />
+      <header className="menu-cabecalho">
+        <Link href="/" className="menu-marca" aria-label="Ameixa — Início">
+          <LogoMenu />
+          <span>Ameixa</span>
+        </Link>
+      </header>
+      <div className="menu-rolagem">
+        <MenuPrincipal pendencias={pendencias} />
+      </div>
     </nav>
   );
 }
