@@ -9,6 +9,7 @@ import { CampoData } from "@/components/ui/campo-data";
 import { CampoValor } from "@/components/ui/campo-valor";
 import { Folha } from "@/components/ui/folha";
 import { Segmentos } from "@/components/ui/segmentos";
+import { IconeCategoria } from "@/components/icone-categoria";
 import { hojeEmBrasilia, paraIso } from "@/lib/formato";
 import type { DadosDeApoio } from "@/lib/tipos/apoio";
 import {
@@ -337,7 +338,9 @@ export function FolhaLancamento({
                       data-ameixa-escolha
                       style={chip(ativo, c.cor, c.cor_texto)}
                     >
-                      {c.nome}
+                      <span className="inline-flex items-center" style={{ gap: 6 }}>
+                        <IconeCategoria icone={c.icone} tamanho={18} />{c.nome}
+                      </span>
                     </button>
                   );
                 })}

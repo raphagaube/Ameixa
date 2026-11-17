@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { iconeCategoriaValido } from "@/lib/icones-categorias";
+import { corTextoCategoria } from "@/lib/cores-categoria";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
@@ -12,6 +14,8 @@ const esquema = z.object({
   tipo: z.enum(["despesa", "receita"]),
   cor: z.string().regex(HEX, "Cor inválida."),
   cor_texto: z.string().regex(HEX, "Cor de texto inválida."),
+  icone: z.string().refine(iconeCategoriaValido, "Escolha um ícone válido.").nullable().optional(),
+  cor_texto_modo: z.enum(["auto", "branco", "preto"]).optional(),
   subcategorias: z.array(z.string().trim().min(1)).max(40),
 });
 
@@ -23,7 +27,13 @@ export async function salvarCategoria(entrada: EntradaCategoria): Promise<Result
   if (!validado.success) {
     return { ok: false, erro: validado.error.issues[0]?.message ?? "Dados inválidos." };
   }
-  const { id, nome, tipo, cor, cor_texto, subcategorias } = validado.data;
+  const { id, nome, tipo, cor, cor_texto, icone, cor_texto_modo, subcategorias } = validado.data;
+  const aparencia = {
+    nome, tipo, cor,
+    cor_texto: cor_texto_modo ? corTextoCategoria(cor, cor_texto_modo) : cor_texto,
+    ...(icone !== undefined ? { icone } : {}),
+    ...(cor_texto_modo !== undefined ? { cor_texto_modo } : {}),
+  };
 
   const supabase = await criarClienteServidor();
   const {
@@ -36,13 +46,13 @@ export async function salvarCategoria(entrada: EntradaCategoria): Promise<Result
   if (id) {
     const { error } = await supabase
       .from("categorias")
-      .update({ nome, tipo, cor, cor_texto })
+      .update(aparencia)
       .eq("id", id);
     if (error) return { ok: false, erro: traduzir(error.message) };
   } else {
     const { data, error } = await supabase
       .from("categorias")
-      .insert({ user_id: user.id, nome, tipo, cor, cor_texto })
+      .insert({ user_id: user.id, ...aparencia })
       .select("id")
       .single();
     if (error || !data) return { ok: false, erro: traduzir(error?.message ?? "") };
@@ -92,6 +102,7 @@ export async function salvarCategoria(entrada: EntradaCategoria): Promise<Result
   }
 
   revalidatePath("/categorias");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 

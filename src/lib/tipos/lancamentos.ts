@@ -68,7 +68,7 @@ export type Lancamento = {
 
 /** Como o lançamento aparece no extrato, já com nomes resolvidos. */
 export type LancamentoNaLista = Lancamento & {
-  categoria: { nome: string; cor: string; cor_texto: string } | null;
+  categoria: { nome: string; cor: string; cor_texto: string; icone?: string | null } | null;
   subcategoria: { nome: string } | null;
   conta: { nome: string } | null;
   cartao: { nome: string } | null;

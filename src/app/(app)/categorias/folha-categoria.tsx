@@ -1,321 +1,167 @@
 "use client";
 
-import { X } from "lucide-react";
-import { useState, useTransition } from "react";
+import { Check, ChevronDown, Plus, Search, X } from "lucide-react";
+import { useId, useState, useTransition } from "react";
 import { Botao } from "@/components/ui/botao";
 import { Campo } from "@/components/ui/campo";
 import { Folha } from "@/components/ui/folha";
-import type { Categoria } from "@/lib/tipos/categorias";
-import { tintaSobreAcento } from "@/lib/theme";
-import { excluirCategoria, salvarCategoria } from "./acoes";
+import { Segmentos } from "@/components/ui/segmentos";
 import { BotaoExcluir } from "@/components/ui/botao-excluir";
+import { IconeCategoria } from "@/components/icone-categoria";
+import { ICONES_CATEGORIAS } from "@/lib/icones-categorias";
+import { corTextoCategoria, tintaCategoria, type ModoCorCategoria } from "@/lib/cores-categoria";
+import type { Categoria } from "@/lib/tipos/categorias";
+import { excluirCategoria, salvarCategoria } from "./acoes";
+import s from "./categoria.module.css";
 
-/** Os oito atalhos de cor do handoff. */
-const ATALHOS = [
-  "#8FB3D9",
-  "#E9A28E",
-  "#A9A0D8",
-  "#8FCFC4",
-  "#E7A8C4",
-  "#E3C879",
-  "#BDA8E0",
-  "#93C9A8",
-];
+const ATALHOS = ["#8FB3D9", "#E9A28E", "#A9A0D8", "#8FCFC4", "#E7A8C4", "#E3C879", "#BDA8E0", "#93C9A8"];
+const TIPOS = [{ valor: "despesa", texto: "Despesa" }, { valor: "receita", texto: "Receita" }] as const;
+const TINTAS = [{ valor: "auto", texto: "Automático" }, { valor: "branco", texto: "Branco" }, { valor: "preto", texto: "Preto" }] as const;
+const normalizarBusca = (texto: string) => texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
 
-type ModoTinta = "auto" | "claro" | "escuro";
-
-export function FolhaCategoria({
-  categoria,
-  aoFechar,
-}: {
-  categoria: Categoria | null;
-  aoFechar: (salvou: boolean) => void;
+export function FolhaCategoria({ categoria, aoFechar }: {
+  categoria: Categoria | null; aoFechar: (salvou: boolean) => void;
 }) {
+  const id = useId();
   const [nome, setNome] = useState(categoria?.nome ?? "");
-  const [tipo, setTipo] = useState<"despesa" | "receita">(
-    categoria?.tipo ?? "despesa",
-  );
+  const [tipo, setTipo] = useState<"despesa" | "receita">(categoria?.tipo ?? "despesa");
   const [cor, setCor] = useState(categoria?.cor ?? ATALHOS[0]);
-  const [modoTinta, setModoTinta] = useState<ModoTinta>("auto");
-  const [tintaManual, setTintaManual] = useState(categoria?.cor_texto ?? "#14161a");
-  const [subs, setSubs] = useState<string[]>(
-    categoria?.subcategorias.map((s) => s.nome) ?? [],
+  // Categorias antigas conservam a tinta salva; as novas começam no automático.
+  const [modoTinta, setModoTinta] = useState<ModoCorCategoria>(
+    categoria?.cor_texto_modo ?? (categoria ? (categoria.cor_texto.toLowerCase() === "#ffffff" ? "branco" : "preto") : "auto"),
   );
+  const [icone, setIcone] = useState<string | null>(categoria?.icone ?? null);
+  const [escolhendoIcone, setEscolhendoIcone] = useState(false);
+  const [busca, setBusca] = useState("");
+  const [subs, setSubs] = useState<string[]>(categoria?.subcategorias.map(s => s.nome) ?? []);
   const [novaSub, setNovaSub] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, iniciarSalvar] = useTransition();
+  const corTexto = corTextoCategoria(cor, modoTinta);
+  const escolhido = ICONES_CATEGORIAS.find(i => i.id === icone);
+  const termo = normalizarBusca(busca.trim());
+  const filtrados = ICONES_CATEGORIAS.filter(i => normalizarBusca(i.id + " " + i.nome + " " + i.grupo).includes(termo));
 
-  // "Automático" escolhe a tinta por luminância — o mesmo cálculo do tema.
-  const corTexto =
-    modoTinta === "auto"
-      ? tintaSobreAcento(cor)
-      : modoTinta === "claro"
-        ? "#ffffff"
-        : "#14161a";
-
+  function escolherIcone(valor: string | null) {
+    setIcone(valor);
+    setEscolhendoIcone(false);
+    setBusca("");
+  }
   function adicionarSub() {
     const limpo = novaSub.trim();
     if (!limpo) return;
-    if (subs.some((s) => s.toLowerCase() === limpo.toLowerCase())) {
-      setNovaSub("");
-      return;
-    }
-    setSubs([...subs, limpo]);
+    if (!subs.some(s => s.toLowerCase() === limpo.toLowerCase())) setSubs([...subs, limpo]);
     setNovaSub("");
   }
-
   function salvar() {
     setErro(null);
     iniciarSalvar(async () => {
       const r = await salvarCategoria({
-        id: categoria?.id,
-        nome,
-        tipo,
-        cor,
-        cor_texto: modoTinta === "auto" ? corTexto : tintaManual,
-        subcategorias: subs,
+        id: categoria?.id, nome, tipo, cor, cor_texto: corTexto,
+        cor_texto_modo: modoTinta, icone, subcategorias: subs,
       });
-      if (r.ok) aoFechar(true);
-      else setErro(r.erro);
+      if (r.ok) aoFechar(true); else setErro(r.erro);
     });
   }
-
   function excluir() {
     if (!categoria) return;
     setErro(null);
     iniciarSalvar(async () => {
       const r = await excluirCategoria(categoria.id);
-      if (r.ok) aoFechar(true);
-      else setErro(r.erro);
+      if (r.ok) aoFechar(true); else setErro(r.erro);
     });
   }
 
-  const segmento = (ativo: boolean): React.CSSProperties => ({
-    flex: 1,
-    height: 44,
-    borderRadius: "var(--rs)",
-    border: `1px solid ${ativo ? "var(--deep)" : "var(--ln)"}`,
-    background: ativo ? "var(--tint)" : "transparent",
-    color: ativo ? "var(--deep)" : "var(--color-text)",
-    fontSize: 14,
-    fontWeight: ativo ? 700 : 500,
-  });
-
-  return (
-    <Folha
-      aberta
-      aoFechar={() => aoFechar(false)}
-      titulo={categoria ? "Editar categoria" : "Nova categoria"}
-      alturaMaxima="92vh"
-    >
-      <div className="flex flex-col" style={{ gap: "var(--espaco-secao)", paddingBottom: 8 }}>
-        <Campo
-          rotulo="Nome"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          maxLength={40}
-        />
-
-        <div className="flex flex-col" style={{ gap: 6 }}>
-          <span className="rotulo">Tipo</span>
-          <div className="flex" style={{ gap: 8 }}>
-            <button type="button" onClick={() => setTipo("despesa")} style={segmento(tipo === "despesa")}>
-              Despesa
-            </button>
-            <button type="button" onClick={() => setTipo("receita")} style={segmento(tipo === "receita")}>
-              Receita
-            </button>
-          </div>
+  return <Folha aberta aoFechar={() => aoFechar(false)} titulo={categoria ? "Editar categoria" : "Nova categoria"} alturaMaxima="92vh">
+    <div className={s.formulario}>
+      <div className={s.previa} aria-label="Prévia da categoria">
+        <span className={s.emblema} style={{ background: cor, color: corTexto }}>
+          {icone ? <IconeCategoria icone={icone} tamanho={32} /> : (nome.trim() || "C").slice(0, 1).toUpperCase()}
+        </span>
+        <div className="min-w-0">
+          <span className={s.legenda}>Assim aparece no extrato</span>
+          <strong className={s.nomePrevia}>{nome.trim() || "Nome da categoria"}</strong>
+          <span className={s.detalhe}>{tipo === "despesa" ? "Despesa" : "Receita"}</span>
         </div>
+      </div>
 
-        <div className="flex flex-col" style={{ gap: 6 }}>
-          <span className="rotulo">Cor</span>
-          <div className="flex items-center" style={{ gap: 10 }}>
-            <input
-              type="color"
-              value={cor}
-              onChange={(e) => setCor(e.target.value)}
-              aria-label="Escolher cor da categoria"
-              style={{
-                width: 52,
-                height: 44,
-                minHeight: 44,
-                padding: 2,
-                border: "1px solid var(--ln)",
-                borderRadius: "var(--rs)",
-                background: "var(--sf)",
-              }}
-            />
-            <div className="flex flex-wrap" style={{ gap: 6 }}>
-              {ATALHOS.map((a) => (
-                <button
-                  key={a}
-                  type="button"
-                  onClick={() => setCor(a)}
-                  aria-label={`Usar a cor ${a}`}
-                  aria-pressed={cor.toLowerCase() === a.toLowerCase()}
-                  style={{
-                    width: 44,
-                    height: 44,
-                    minHeight: 44,
-                    borderRadius: 999,
-                    background: a,
-                    border:
-                      cor.toLowerCase() === a.toLowerCase()
-                        ? "2px solid var(--color-text)"
-                        : "1px solid var(--ln)",
-                  }}
-                />
-              ))}
+      <Campo rotulo="Nome" value={nome} onChange={e => setNome(e.target.value)} maxLength={40} placeholder="Ex.: Alimentação" />
+      <Segmentos rotulo="Tipo" opcoes={TIPOS} valor={tipo} aoEscolher={setTipo} />
+
+      <section className={s.aparencia} aria-label="Aparência da categoria">
+        <div className={s.campo}>
+          <span className="rotulo" id={id + "-icone-rotulo"}>Ícone</span>
+          <button type="button" className={s.seletorIcone} aria-labelledby={id + "-icone-rotulo " + id + "-icone-valor"}
+            aria-expanded={escolhendoIcone} aria-controls={id + "-icones"} onClick={() => setEscolhendoIcone(!escolhendoIcone)}>
+            <span className={s.amostraIcone} style={{ background: cor, color: corTexto }}>
+              {icone ? <IconeCategoria icone={icone} tamanho={26} /> : <span className={s.semIcone}>—</span>}
+            </span>
+            <span className={s.valorIcone} id={id + "-icone-valor"}>{escolhido?.nome ?? "Sem ícone"}</span>
+            <span className={s.trocar}>{icone ? "Trocar" : "Escolher"}</span>
+            <ChevronDown size={17} aria-hidden style={{ transform: escolhendoIcone ? "rotate(180deg)" : undefined }} />
+          </button>
+          {escolhendoIcone ? <div className={s.escolha} id={id + "-icones"} role="region" aria-label="Escolher ícone da categoria">
+            <div className={s.busca}>
+              <Search size={17} aria-hidden />
+              <input aria-label="Buscar ícone" placeholder="Buscar por nome ou número" value={busca} onChange={e => setBusca(e.target.value)} />
+              {busca ? <button type="button" aria-label="Limpar busca de ícones" onClick={() => setBusca("")}><X size={16} aria-hidden /></button> : null}
             </div>
-          </div>
+            <button type="button" className={s.opcaoSemIcone} aria-pressed={!icone} onClick={() => escolherIcone(null)}>
+              Sem ícone {!icone ? <Check size={16} aria-hidden /> : null}
+            </button>
+            <div className={s.gradeIcones}>
+              {filtrados.map(i => <button type="button" key={i.id}
+                className={s.opcaoIcone} aria-pressed={icone === i.id} title={i.nome}
+                aria-label={"Ícone " + i.id + ": " + i.nome}
+                onClick={() => escolherIcone(i.id)}>
+                <span style={{ background: cor, color: corTexto }}><IconeCategoria icone={i.id} tamanho={30} /></span>
+              </button>)}
+            </div>
+            <p className={s.detalhe} role="status">{filtrados.length ? filtrados.length + (filtrados.length === 1 ? " ícone" : " ícones") : "Nenhum ícone encontrado."}</p>
+          </div> : null}
         </div>
 
-        <div className="flex flex-col" style={{ gap: 6 }}>
-          <span className="rotulo">Cor do texto</span>
-          <div className="flex" style={{ gap: 8 }}>
-            {(["auto", "claro", "escuro"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => {
-                  setModoTinta(m);
-                  if (m !== "auto") setTintaManual(m === "claro" ? "#ffffff" : "#14161a");
-                }}
-                style={segmento(modoTinta === m)}
-              >
-                {m === "auto" ? "Automático" : m === "claro" ? "Claro" : "Escuro"}
-              </button>
-            ))}
+        <div className={s.campo}>
+          <span className="rotulo">Cor da categoria</span>
+          <div className={s.paleta} role="group" aria-label="Cores da categoria">
+            {ATALHOS.map(a => <button key={a} type="button" className={s.corAtalho}
+              onClick={() => setCor(a)} aria-label={"Usar a cor " + a} aria-pressed={cor.toLowerCase() === a.toLowerCase()}>
+              <span style={{ background: a, color: tintaCategoria(a) }}>{cor.toLowerCase() === a.toLowerCase() ? <Check size={17} strokeWidth={2.5} aria-hidden /> : null}</span>
+            </button>)}
           </div>
+          <label className={s.corLivre}>
+            <input type="color" value={cor} onChange={e => setCor(e.target.value)} aria-label="Escolher cor da categoria" />
+            <span>Cor personalizada</span><span className={s.hex}>{cor.toUpperCase()}</span>
+          </label>
         </div>
 
-        <div className="flex flex-col" style={{ gap: 6 }}>
-          <span className="rotulo">Prévia</span>
-          <div
-            style={{
-              borderRadius: "var(--r)",
-              border: "1px solid var(--ln2)",
-              padding: "var(--espaco-cartao)",
-            }}
-          >
-            <span
-              style={{
-                background: cor,
-                color: corTexto,
-                borderRadius: 999,
-                padding: "4px 12px",
-                fontSize: 14,
-                fontWeight: 600,
-              }}
-            >
-              {nome.trim() || "Nome da categoria"}
+        <div className={s.campo}>
+          <Segmentos rotulo="Cor do texto e ícone" opcoes={TINTAS} valor={modoTinta} aoEscolher={setModoTinta} />
+          <p className={s.detalhe}>{modoTinta === "auto" ? "O contraste se ajusta à cor da categoria." : "Sua escolha vale para o texto e para o ícone."}</p>
+          <div className={s.chipPrevia}>
+            <span style={{ background: cor, color: corTexto }} data-previa-cor>
+              <IconeCategoria icone={icone} tamanho={20} />{nome.trim() || "Nome da categoria"}
             </span>
           </div>
         </div>
+      </section>
 
-        <div className="flex flex-col" style={{ gap: 6 }}>
-          <span className="rotulo">Subcategorias</span>
-          {subs.length > 0 ? (
-            <ul className="flex flex-wrap" style={{ gap: 6 }}>
-              {subs.map((s) => (
-                <li
-                  key={s}
-                  className="flex items-center"
-                  style={{
-                    gap: 4,
-                    minHeight: 44,
-                    fontSize: 13,
-                    border: "1px solid var(--ln)",
-                    borderRadius: 999,
-                    padding: "3px 4px 3px 12px",
-                  }}
-                >
-                  {s}
-                  <button
-                    type="button"
-                    onClick={() => setSubs(subs.filter((x) => x !== s))}
-                    aria-label={`Remover ${s}`}
-                    className="grid place-items-center"
-                    style={{
-                      // Estreito mas da altura do chip: o dedo acerta a
-                      // faixa inteira, sem o X virar uma bola de 44px ao
-                      // lado de um texto de 13.
-                      width: 34,
-                      height: 38,
-                      minHeight: 38,
-                      borderRadius: 999,
-                      color: "var(--mut)",
-                      background: "transparent",
-                    }}
-                  >
-                    <X size={15} strokeWidth={2} aria-hidden />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          <div className="flex" style={{ gap: 8 }}>
-            <input
-              value={novaSub}
-              onChange={(e) => setNovaSub(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  adicionarSub();
-                }
-              }}
-              placeholder="Nova subcategoria"
-              aria-label="Nova subcategoria"
-              style={{
-                flex: 1,
-                padding: 12,
-                fontSize: 15,
-                borderRadius: "var(--rs)",
-                border: "1px solid var(--ln)",
-                background: "var(--sf)",
-                color: "var(--color-text)",
-              }}
-            />
-            <Botao
-              variante="contorno"
-              type="button"
-              onClick={adicionarSub}
-              style={{ width: "auto", paddingInline: 18 }}
-            >
-              Adicionar
-            </Botao>
-          </div>
+      <div className={s.campo}>
+        <span className="rotulo">Subcategorias</span>
+        {subs.length ? <ul className={s.subcategorias}>{subs.map(sub => <li key={sub}>
+          {sub}<button type="button" aria-label={"Remover " + sub} onClick={() => setSubs(subs.filter(x => x !== sub))}><X size={15} aria-hidden /></button>
+        </li>)}</ul> : null}
+        <div className={s.novaSub}>
+          <input value={novaSub} onChange={e => setNovaSub(e.target.value)} onKeyDown={e => { if(e.key === "Enter") { e.preventDefault(); adicionarSub(); } }}
+            placeholder="Nova subcategoria" aria-label="Nova subcategoria" />
+          <Botao variante="contorno" type="button" onClick={adicionarSub} style={{ width: "auto", paddingInline: 14 }}><Plus size={17} aria-hidden /><span>Adicionar</span></Botao>
         </div>
-
-        {erro ? (
-          <p
-            role="alert"
-            style={{
-              fontSize: 13,
-              color: "var(--bad)",
-              borderLeft: "3px solid var(--bad)",
-              paddingLeft: 10,
-            }}
-          >
-            {erro}
-          </p>
-        ) : null}
-
-        <Botao onClick={salvar} carregando={salvando}>
-          Salvar
-        </Botao>
-
-        {categoria ? (
-          <BotaoExcluir
-            rotulo="Excluir categoria"
-            oQueSePerde="A categoria e as subcategorias dela. Os lançamentos continuam existindo, mas ficam sem classificação nos relatórios."
-            aoConfirmar={excluir}
-            carregando={salvando}
-          />
-        ) : null}
       </div>
-    </Folha>
-  );
+      {erro ? <p className={s.erro} role="alert">{erro}</p> : null}
+      <div className={s.acoes}>
+        <Botao onClick={salvar} carregando={salvando}>Salvar</Botao>
+        {categoria ? <BotaoExcluir rotulo="Excluir categoria" oQueSePerde="A categoria e as subcategorias dela. Os lançamentos continuam existindo, mas ficam sem classificação nos relatórios." aoConfirmar={excluir} carregando={salvando} /> : null}
+      </div>
+    </div>
+  </Folha>;
 }

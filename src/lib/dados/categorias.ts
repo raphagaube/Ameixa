@@ -16,7 +16,7 @@ export async function categoriasDoUsuario(): Promise<Categoria[] | null> {
 
   const { data, error } = await supabase
     .from("categorias")
-    .select("id, nome, tipo, cor, cor_texto, ordem, subcategorias(id, nome)")
+    .select("id, nome, tipo, cor, cor_texto, icone, cor_texto_modo, ordem, subcategorias(id, nome)")
     .order("nome", { ascending: true });
 
   if (error || !data) return null;

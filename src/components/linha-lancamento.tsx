@@ -9,6 +9,8 @@ import {
   type LancamentoNaLista,
 } from "@/lib/tipos/lancamentos";
 import { Dinheiro } from "@/components/dinheiro";
+import { IconeCategoria } from "@/components/icone-categoria";
+import { iconeCategoriaValido } from "@/lib/icones-categorias";
 
 /**
  * Uma linha da lista do extrato. Clicar abre o formulário de edição.
@@ -109,6 +111,8 @@ export function LinhaLancamento({
       >
         {ehAporte ? (
           <ArrowUpRight size={16} strokeWidth={2} />
+        ) : iconeCategoriaValido(l.categoria?.icone) ? (
+          <IconeCategoria icone={l.categoria?.icone} tamanho={24} />
         ) : (
           (l.categoria?.nome ?? "?").slice(0, 1).toUpperCase()
         )}

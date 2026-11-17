@@ -7,6 +7,7 @@ import { CabecalhoVoltar } from "@/components/cabecalho-voltar";
 import { Botao } from "@/components/ui/botao";
 import type { Categoria } from "@/lib/tipos/categorias";
 import { FolhaCategoria } from "./folha-categoria";
+import { IconeCategoria } from "@/components/icone-categoria";
 
 export function PainelCategorias({ categorias }: { categorias: Categoria[] }) {
   const router = useRouter();
@@ -55,7 +56,9 @@ export function PainelCategorias({ categorias }: { categorias: Categoria[] }) {
 
               <div className="flex items-start justify-between" style={{ gap: 10 }}>
                 <span
+                  className="inline-flex items-center"
                   style={{
+                    gap: 7,
                     background: c.cor,
                     color: c.cor_texto,
                     borderRadius: 999,
@@ -64,6 +67,7 @@ export function PainelCategorias({ categorias }: { categorias: Categoria[] }) {
                     fontWeight: 600,
                   }}
                 >
+                  <IconeCategoria icone={c.icone} tamanho={20} />
                   {c.nome}
                 </span>
                 <button

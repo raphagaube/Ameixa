@@ -14,7 +14,7 @@ const CAMPOS = `
   categoria_id, subcategoria_id, conta_id, cartao_id, forma_pagamento,
   responsavel, observacao, meta_id, serie_id, serie_tipo, parcela_atual,
   parcela_total, incompleto,
-  categoria:categorias(nome, cor, cor_texto),
+  categoria:categorias(nome, cor, cor_texto, icone),
   subcategoria:subcategorias(nome),
   conta:contas(nome),
   cartao:cartoes(nome)
