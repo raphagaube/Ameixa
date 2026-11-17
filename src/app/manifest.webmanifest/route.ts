@@ -19,19 +19,19 @@ export function GET() {
     categories: ["finance", "productivity"],
     icons: [
       {
-        src: "/icone-192-v3.png",
+        src: "/icone-192-v4.png",
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icone-512-v3.png",
+        src: "/icone-512-v4.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icone-maskable-512-v3.png",
+        src: "/icone-maskable-512-v4.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
