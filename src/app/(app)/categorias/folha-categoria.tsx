@@ -108,7 +108,7 @@ export function FolhaCategoria({
       titulo={categoria ? "Editar categoria" : "Nova categoria"}
       alturaMaxima="92vh"
     >
-      <div className="flex flex-col" style={{ gap: 16, paddingBottom: 8 }}>
+      <div className="flex flex-col" style={{ gap: "var(--espaco-secao)", paddingBottom: 8 }}>
         <Campo
           rotulo="Nome"
           value={nome}
@@ -196,7 +196,7 @@ export function FolhaCategoria({
             style={{
               borderRadius: "var(--r)",
               border: "1px solid var(--ln2)",
-              padding: 14,
+              padding: "var(--espaco-cartao)",
             }}
           >
             <span

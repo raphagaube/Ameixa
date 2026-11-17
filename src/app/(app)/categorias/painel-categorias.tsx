@@ -18,7 +18,7 @@ export function PainelCategorias({ categorias }: { categorias: Categoria[] }) {
   }
 
   return (
-    <div className="flex flex-col" style={{ gap: 14 }}>
+    <div className="flex flex-col" style={{ gap: "var(--espaco-secao)" }}>
       <CabecalhoVoltar titulo="Categorias" />
 
       <Botao variante="contorno" onClick={() => setEmEdicao("nova")}>
@@ -42,7 +42,8 @@ export function PainelCategorias({ categorias }: { categorias: Categoria[] }) {
                 borderRadius: "var(--r)",
                 border: "1px solid var(--ln2)",
                 background: "var(--sf)",
-                padding: "13px 14px 13px 18px",
+                padding: "var(--espaco-cartao)",
+                paddingLeft: "calc(var(--espaco-cartao) + 4px)",
               }}
             >
               {/* Faixa lateral de 4px na cor da categoria */}

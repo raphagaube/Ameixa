@@ -312,7 +312,7 @@ export function PainelSerie({
   });
 
   return (
-    <div className="flex flex-col" style={{ gap: 14 }}>
+    <div className="flex flex-col" style={{ gap: "var(--espaco-secao)" }}>
       <p style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.5 }}>
         {itens.length} {itens.length === 1 ? "lançamento" : "lançamentos"} · {pagas}{" "}
         {pagas === 1 ? "já pago" : "já pagos"} · {itens.length - pagas} pendentes, somando{" "}
@@ -332,7 +332,7 @@ export function PainelSerie({
         className="flex flex-col"
         style={{
           gap: 10,
-          padding: 14,
+          padding: "var(--espaco-cartao)",
           borderRadius: "var(--r)",
           border: "1px solid var(--ln2)",
           background: "var(--sf)",

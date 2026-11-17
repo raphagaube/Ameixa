@@ -66,7 +66,7 @@ export function LinhaLancamento({
       type="button"
       onClick={() => (selecionavel ? aoAlternar?.(l.id) : editar(l))}
       aria-pressed={selecionavel ? !!selecionado : undefined}
-      className="flex w-full items-center text-left"
+      className="espaco-lancamento flex w-full items-center text-left"
       style={{
         gap: 10,
         padding: "10px 0",
@@ -114,7 +114,7 @@ export function LinhaLancamento({
         )}
       </span>
 
-      <span className="min-w-0 flex-1">
+      <span className="espaco-lancamento-textos min-w-0 flex-1">
         <span
           className="tip-descricao block truncate"
           style={{ fontSize: 15, fontWeight: 500 }}

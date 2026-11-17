@@ -35,7 +35,7 @@ export function CartaoFatura({
     >
       <div
         className="flex items-center justify-between"
-        style={{ gap: 10, background: k.cor, padding: "12px 14px" }}
+        style={{ gap: 10, background: k.cor, padding: "var(--espaco-cartao)" }}
       >
         <div className="min-w-0">
           <p className="truncate" style={{ fontSize: 15, fontWeight: 700, color: "#ffffff" }}>
@@ -64,7 +64,7 @@ export function CartaoFatura({
         </button>
       </div>
 
-      <div style={{ background: "var(--sf)", padding: "13px 14px" }}>
+      <div style={{ background: "var(--sf)", padding: "var(--espaco-cartao)" }}>
         <p className="rotulo">Fatura aberta</p>
         <p style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1, marginTop: 2 }}>
           <Dinheiro>{moeda(total)}</Dinheiro>

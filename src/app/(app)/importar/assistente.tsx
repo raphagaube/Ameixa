@@ -293,7 +293,7 @@ export function Assistente({
     borderRadius: "var(--r)",
     border: "1px solid var(--ln2)",
     background: "var(--sf)",
-    padding: 14,
+    padding: "var(--espaco-cartao)",
   };
 
   const estiloSelect: React.CSSProperties = {
@@ -319,8 +319,8 @@ export function Assistente({
       aria-pressed={origem === valor}
       className="flex items-start text-left"
       style={{
-        gap: 10,
-        padding: 14,
+        gap: 12,
+        padding: "var(--espaco-cartao)",
         borderRadius: "var(--r)",
         border: `1px solid ${origem === valor ? "var(--deep)" : "var(--ln)"}`,
         background: origem === valor ? "var(--tint)" : "transparent",
@@ -357,7 +357,7 @@ export function Assistente({
   }
 
   return (
-    <div className="flex flex-col" style={{ gap: 16 }}>
+    <div className="flex flex-col" style={{ gap: "var(--espaco-secao)" }}>
       {/* Trilha dos passos */}
       <ol className="flex items-center" style={{ gap: 6 }}>
         {[1, 2, 3, 4].map((n) => (
@@ -796,7 +796,7 @@ export function Assistente({
               className="flex flex-col"
               style={{
                 gap: 10,
-                padding: 14,
+                padding: "var(--espaco-cartao)",
                 borderRadius: "var(--r)",
                 border: "1px solid var(--warn, var(--ln))",
               }}

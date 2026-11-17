@@ -21,7 +21,7 @@ export default function Carregando() {
   return (
     <div
       className="flex flex-col"
-      style={{ gap: 16, paddingTop: 22 }}
+      style={{ gap: "var(--espaco-secao)", paddingTop: 24 }}
       aria-busy="true"
       aria-label="Carregando"
     >

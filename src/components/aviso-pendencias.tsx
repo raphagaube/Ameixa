@@ -9,7 +9,7 @@ export function AvisoPendencias({ quantidade, semConta }: {
 }) {
   if (quantidade === 0) return null;
   return (
-    <Link href="/pendencias" className="flex items-center" style={{ gap: 12, padding: "13px 14px", border: "1px solid var(--ln)", borderRadius: "var(--r)", background: "var(--sf)", color: "var(--color-text)" }}>
+    <Link href="/pendencias" className="espaco-card espaco-aviso flex items-center" style={{ gap: 12, padding: "13px 14px", border: "1px solid var(--ln)", borderRadius: "var(--r)", background: "var(--sf)", color: "var(--color-text)" }}>
       <TriangleAlert size={22} strokeWidth={1.5} style={{ color: "var(--warn)", flexShrink: 0 }} aria-hidden />
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 14, fontWeight: 600 }}>{quantidade === 1 ? "Você tem 1 lançamento para completar" : `Você tem ${quantidade} lançamentos para completar`}</span>

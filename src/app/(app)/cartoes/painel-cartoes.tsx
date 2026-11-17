@@ -47,7 +47,7 @@ export function PainelCartoes({
   }
 
   return (
-    <div className="flex flex-col" style={{ gap: 22 }}>
+    <div className="flex flex-col" style={{ gap: "var(--espaco-secao)" }}>
       <CabecalhoVoltar titulo={aba === "contas" ? "Contas" : "Cartões"} />
 
       {aba === "cartoes" ? <><SeletorMes ano={ano} mes={mes} />
@@ -105,7 +105,7 @@ export function PainelCartoes({
                   borderRadius: "var(--r)",
                   border: "1px solid var(--ln2)",
                   background: "var(--sf)",
-                  padding: "13px 14px",
+                  padding: "var(--espaco-cartao)",
                 }}
               >
                 <div className="flex items-start justify-between" style={{ gap: 10 }}>

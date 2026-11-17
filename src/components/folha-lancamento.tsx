@@ -250,7 +250,7 @@ export function FolhaLancamento({
 
   return (
     <Folha aberta={aberta} aoFechar={() => aoFechar(false)} titulo={titulo} alturaMaxima="92vh">
-      <div className="flex flex-col" style={{ gap: 16, paddingBottom: 8 }}>
+      <div className="flex flex-col" style={{ gap: "var(--espaco-secao)", paddingBottom: 8 }}>
         <Segmentos
           rotulo="Tipo"
           opcoes={[
@@ -621,7 +621,7 @@ export function FolhaLancamento({
           style={{
             border: "1px solid var(--ln)",
             borderRadius: "var(--r)",
-            padding: 14,
+            padding: "var(--espaco-cartao)",
           }}
         >
           <Campo

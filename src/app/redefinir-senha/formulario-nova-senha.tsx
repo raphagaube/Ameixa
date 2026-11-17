@@ -75,7 +75,7 @@ export function FormularioNovaSenha() {
   }
 
   return (
-    <div className="flex flex-col" style={{ gap: 22 }}>
+    <div className="flex flex-col" style={{ gap: "var(--espaco-secao)" }}>
       <div className="flex items-center" style={{ gap: 10 }}>
         <LogoAmeixa tamanho={46} />
         <span style={{ fontSize: 30, fontWeight: 700 }}>Ameixa</span>

@@ -2,7 +2,7 @@ export function PaginaConfiguracao({ titulo, descricao, children }: {
   titulo: string; descricao: string; children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col" style={{ gap: 22, paddingTop: 22 }}>
+    <div className="flex flex-col" style={{ gap: "var(--espaco-secao)", paddingTop: 24 }}>
       <header>
         <p className="rotulo">Configurações</p>
         <h1 style={{ fontSize: 30, lineHeight: 1.15, marginTop: 4 }}>{titulo}</h1>

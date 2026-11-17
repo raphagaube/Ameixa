@@ -55,7 +55,7 @@ export function ListaPendencias({ lista }: { lista: LancamentoNaLista[] }) {
             borderRadius: "var(--r)",
             border: "1px solid var(--ln2)",
             background: "var(--sf)",
-            padding: "13px 14px",
+            padding: "var(--espaco-cartao)",
           }}
         >
           <p style={{ fontSize: 24, fontWeight: 700 }}>

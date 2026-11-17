@@ -86,7 +86,7 @@ export function MinhaConta({
     borderRadius: "var(--r)",
     border: "1px solid var(--ln2)",
     background: "var(--sf)",
-    padding: 14,
+    padding: "var(--espaco-cartao)",
     display: "flex",
     flexDirection: "column",
     gap: 10,

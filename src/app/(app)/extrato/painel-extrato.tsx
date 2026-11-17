@@ -305,8 +305,8 @@ export function PainelExtrato({
   };
 
   return (
-    <div className="tipografia-financeira extrato-tipografia flex flex-col" style={{ gap: 14, paddingTop: 22 }}>
-      <div className="flex flex-wrap items-center justify-between" style={{ gap: 12 }}>
+    <div className="espaco-extrato tipografia-financeira extrato-tipografia flex flex-col" style={{ gap: 14, paddingTop: 22 }}>
+      <div className="espaco-cabecalho-extrato flex flex-wrap items-center justify-between" style={{ gap: 12 }}>
         <h1 className="tip-titulo" style={{ fontSize: 30 }}>Extrato</h1>
         <div className="flex flex-wrap" style={{ gap: 8 }}>
         {planilhas}
@@ -424,7 +424,7 @@ export function PainelExtrato({
           ) : null}
 
           <section
-            className="flex flex-col"
+            className="espaco-filtros-avancados flex flex-col"
             style={{
               gap: 10,
               border: "1px solid var(--ln)",
@@ -747,7 +747,7 @@ export function PainelExtrato({
             </section>
           )}
 
-          <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
+          <div className="espaco-resumo-extrato flex items-baseline justify-between" style={{ gap: 8 }}>
             <span className="tip-detalhe" style={{ fontSize: 12, color: "var(--mut)" }}>
               {periodo === "mes"
                 ? `${nomeMes(mes)} ${ano}`
@@ -788,16 +788,16 @@ export function PainelExtrato({
               ) : null}
             </div>
           ) : porData ? (
-            <div className="flex flex-col" style={{ gap: 16 }}>
+            <div className="espaco-dias flex flex-col" style={{ gap: 16 }}>
               {grupos.map(([data, itens]) => {
                 const totalDia = itens.reduce((s, l) => {
                   if (l.tipo === "aporte") return s;
                   return l.tipo === "receita" ? s + l.valor : s - l.valor;
                 }, 0);
                 return (
-                  <div key={data}>
+                  <div className="espaco-dia" key={data}>
                     <div
-                      className="flex items-baseline justify-between"
+                      className="espaco-dia-cabecalho flex items-baseline justify-between"
                       style={{
                         gap: 8,
                         paddingBottom: 6,

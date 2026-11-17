@@ -38,7 +38,7 @@ export function PainelMetas({
   }
 
   return (
-    <div className="flex flex-col" style={{ gap: 14 }}>
+    <div className="flex flex-col" style={{ gap: "var(--espaco-secao)" }}>
 
       <Botao variante="contorno" onClick={() => setEmEdicao("nova")}>
         <span className="flex items-center justify-center" style={{ gap: 8 }}>
@@ -66,7 +66,7 @@ export function PainelMetas({
                   borderRadius: "var(--r)",
                   border: "1px solid var(--ln2)",
                   background: "var(--sf)",
-                  padding: "13px 14px",
+                  padding: "var(--espaco-cartao)",
                 }}
               >
                 <div className="flex items-start justify-between" style={{ gap: 8 }}>

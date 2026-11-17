@@ -1,7 +1,7 @@
 /** A identidade é a mesma em todos os aparelhos; o tema continua livre. */
 export function EscolhaAcento() {
   return (
-    <div style={{ border: "1px solid var(--ln)", padding: 16, borderRadius: "var(--r)", display: "grid", gap: 8 }}>
+    <div style={{ border: "1px solid var(--ln)", padding: "var(--espaco-cartao)", borderRadius: "var(--r)", display: "grid", gap: 8 }}>
       <h2 style={{ fontSize: 17 }}>Identidade Ameixa</h2>
       <p style={{ color: "var(--mut)", fontSize: 14 }}>
         Paleta vinho, com cores ajustadas para os temas claro e escuro.

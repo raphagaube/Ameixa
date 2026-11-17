@@ -81,7 +81,7 @@ export function PainelOrcamentos({
   ];
 
   return (
-    <div className="flex flex-col" style={{ gap: 14 }}>
+    <div className="flex flex-col" style={{ gap: "var(--espaco-secao)" }}>
 
       <SeletorMes ano={ano} mes={mes} />
 
@@ -121,7 +121,7 @@ export function PainelOrcamentos({
                   borderRadius: "var(--r)",
                   border: "1px solid var(--ln2)",
                   background: "var(--sf)",
-                  padding: "13px 14px",
+                  padding: "var(--espaco-cartao)",
                 }}
               >
                 <div className="flex items-start justify-between" style={{ gap: 8 }}>
@@ -198,7 +198,7 @@ export function PainelOrcamentos({
         aoFechar={() => setFolhaAberta(false)}
         titulo="Orçamento da categoria"
       >
-        <div className="flex flex-col" style={{ gap: 16, paddingBottom: 8 }}>
+        <div className="flex flex-col" style={{ gap: "var(--espaco-secao)", paddingBottom: 8 }}>
           <div className="flex flex-col" style={{ gap: 6 }}>
             <label htmlFor="cat-orc" className="rotulo">
               Categoria

@@ -302,7 +302,7 @@ export function PainelRecorrentes({
   const quantasRepetidas = Object.keys(repetidas).length;
 
   return (
-    <div className="flex flex-col" style={{ gap: 12 }}>
+    <div className="flex flex-col" style={{ gap: "var(--espaco-secao)" }}>
       <p style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.5 }}>
         {series.length} {series.length === 1 ? "série" : "séries"} com contas a pagar ou a
         receber. Mude o nome, o valor ou o dia no topo de um cartão e todos os meses
@@ -464,7 +464,7 @@ export function PainelRecorrentes({
               className="flex flex-col"
               style={{
                 gap: 10,
-                padding: 12,
+                padding: "var(--espaco-cartao)",
                 borderRadius: "var(--r)",
                 border: `1px solid ${mudancas.length ? "var(--deep)" : "var(--ln2)"}`,
               }}
@@ -702,7 +702,7 @@ export function PainelRecorrentes({
               <article
                 key={s.chave}
                 className="flex flex-col"
-                style={{ gap: 6, padding: 12, borderRadius: "var(--r)", border: "1px solid var(--ln2)" }}
+                style={{ gap: 6, padding: "var(--espaco-cartao)", borderRadius: "var(--r)", border: "1px solid var(--ln2)" }}
               >
                 <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
                   <span className="truncate" style={{ fontSize: 15, fontWeight: 600 }}>

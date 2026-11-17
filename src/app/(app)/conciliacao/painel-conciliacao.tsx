@@ -168,7 +168,7 @@ export function PainelConciliacao({ contas }: { contas: Conta[] }) {
   }
 
   return (
-    <div className="flex flex-col" style={{ gap: 16 }}>
+    <div className="flex flex-col" style={{ gap: "var(--espaco-secao)" }}>
       <div className="flex flex-col" style={{ gap: 6 }}>
         <label htmlFor="conta-ofx" className="rotulo">
           Conta do extrato
@@ -280,7 +280,7 @@ export function PainelConciliacao({ contas }: { contas: Conta[] }) {
                     borderRadius: "var(--r)",
                     border: "1px solid var(--ln2)",
                     background: "var(--sf)",
-                    padding: "12px 14px",
+                    padding: "var(--espaco-cartao)",
                     opacity: jaConciliado ? 0.62 : 1,
                   }}
                 >
@@ -366,7 +366,7 @@ export function PainelConciliacao({ contas }: { contas: Conta[] }) {
               style={{
                 borderRadius: "var(--r)",
                 border: "1px solid var(--ln2)",
-                padding: "13px 14px",
+                padding: "var(--espaco-cartao)",
               }}
             >
               <h2 style={{ fontSize: 15 }}>Só no app</h2>

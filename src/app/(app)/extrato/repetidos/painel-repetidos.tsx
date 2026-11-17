@@ -76,7 +76,7 @@ export function PainelRepetidos({
               borderRadius: "var(--r)",
               border: "1px solid var(--ln2)",
               background: "var(--sf)",
-              padding: "13px 14px",
+              padding: "var(--espaco-cartao)",
             }}
           >
             <div className="flex items-start justify-between" style={{ gap: 8 }}>

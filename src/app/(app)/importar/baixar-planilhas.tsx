@@ -80,7 +80,7 @@ export function BaixarPlanilhas({ listas }: { listas: ListasPlanilha }) {
       className="flex flex-col"
       style={{
         gap: 10,
-        padding: 14,
+        padding: "var(--espaco-cartao)",
         borderRadius: "var(--r)",
         border: "1px solid var(--ln2)",
         background: "var(--sf)",

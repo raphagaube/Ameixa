@@ -156,7 +156,7 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px;
+  padding: var(--espaco-cartao);
   min-height: 58px;
   list-style: none;
   cursor: pointer;
@@ -207,8 +207,8 @@ button {
   z-index: 40;
   width: var(--barra-lateral);
   flex-direction: column;
-  gap: 18px;
-  padding: 22px 14px;
+  gap: 20px;
+  padding: 24px 16px;
   background: var(--sf);
   border-right: 1px solid var(--ln);
   overflow-y: auto;
@@ -771,4 +771,70 @@ button {
   .inicio-tipografia .tip-detalhe.flex > span:last-child {
     flex-shrink: 1 !important; margin-left: auto; text-align: right;
   }
+}
+
+
+/* Espaçamentos aprovados: cartões e seções compartilham as mesmas medidas.
+   O Registro fácil conserva sua grade adaptável à altura do celular. */
+:root { --espaco-cartao: 16px; --espaco-secao: 20px; }
+@media (max-width: 360px) {
+  :root { --espaco-cartao: 14px; }
+}
+.relatorios-grade { gap: 24px; }
+@media (min-width: 1024px) {
+  .relatorios-grade { gap: 32px; }
+}
+
+/* Cada lançamento fornece o espaçamento da própria linha. */
+.espaco-lista-ultimos { display: flex; flex-direction: column; }
+
+/* Início: seções separadas e cartões com margens internas iguais. */
+.espaco-inicio { gap: 20px !important; padding-top: 24px !important; }
+.espaco-inicio .inicio-grade { gap: 24px; }
+.espaco-inicio .inicio-coluna { gap: 24px; }
+.espaco-inicio .espaco-card,
+.espaco-inicio .espaco-reservas > div { padding: 16px !important; }
+.espaco-inicio .tip-resumo-mes { margin-top: 16px !important; gap: 12px !important; }
+.espaco-inicio .espaco-financas { gap: 16px !important; }
+.espaco-inicio .espaco-conta { padding: 14px 16px !important; }
+.espaco-inicio .espaco-conta > .tip-detalhe { margin-top: 8px !important; }
+.espaco-inicio .espaco-meta-valores { margin-top: 8px !important; }
+.espaco-inicio .espaco-meta-progresso { margin-top: 12px !important; }
+.espaco-inicio .espaco-meta > p:last-child { margin-top: 8px !important; }
+.espaco-inicio .espaco-secao,
+.espaco-inicio .espaco-ultimos { gap: 12px !important; }
+.espaco-inicio .espaco-lista-orcamentos { gap: 12px !important; }
+.espaco-inicio .espaco-lista-ultimos { gap: 0; }
+
+/* Descrição, categoria e data ficam próximas; as linhas mantêm uma área de toque confortável. */
+:is(.espaco-inicio, .espaco-extrato) .espaco-lancamento { padding: 12px 0 !important; gap: 12px !important; }
+:is(.espaco-inicio, .espaco-extrato) .espaco-lancamento-textos { display: flex; flex-direction: column; gap: 2px; }
+
+/* Extrato: filtros agrupados e separação mais clara entre as datas. */
+.espaco-extrato { gap: 20px !important; padding-top: 24px !important; }
+.espaco-extrato .extrato-grade { gap: 24px; }
+.espaco-extrato .extrato-filtros,
+.espaco-extrato .extrato-lista { gap: 16px; }
+.espaco-extrato .espaco-filtros-avancados { padding: 16px !important; gap: 12px !important; }
+.espaco-extrato .espaco-filtros-avancados input { min-width: 0; }
+.espaco-extrato .espaco-resumo-extrato { padding-block: 4px; }
+.espaco-extrato .espaco-dias { gap: 24px !important; }
+.espaco-extrato .espaco-dia-cabecalho { padding-bottom: 8px !important; }
+
+@media (min-width: 1024px) {
+  .espaco-inicio .inicio-grade,
+  .espaco-extrato .extrato-grade { gap: 32px; }
+}
+@media (max-width: 540px) {
+  .espaco-inicio .inicio-grade,
+  .espaco-inicio .inicio-coluna { gap: 20px; }
+  .espaco-inicio .tip-resumo-mes { gap: 8px !important; }
+  .espaco-extrato .espaco-dias { gap: 20px !important; }
+  :is(.espaco-inicio, .espaco-extrato) .espaco-lancamento { padding-block: 10px !important; }
+}
+@media (max-width: 360px) {
+  .espaco-inicio .espaco-card,
+  .espaco-inicio .espaco-reservas > div,
+  .espaco-extrato .espaco-filtros-avancados { padding: 14px !important; }
+  .espaco-inicio .tip-resumo-mes { gap: 8px !important; }
 }

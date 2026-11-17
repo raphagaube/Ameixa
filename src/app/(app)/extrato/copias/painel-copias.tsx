@@ -48,7 +48,7 @@ const caixa: React.CSSProperties = {
   borderRadius: "var(--r)",
   border: "1px solid var(--ln2)",
   background: "var(--sf)",
-  padding: 14,
+  padding: "var(--espaco-cartao)",
 };
 
 function Lista({
@@ -219,7 +219,7 @@ export function PainelCopias({
 
   return (
     // A barra fixa do rodapé cobre o fim da lista sem este respiro.
-    <div className="flex flex-col" style={{ gap: 14, paddingBottom: 150 }}>
+    <div className="flex flex-col" style={{ gap: "var(--espaco-secao)", paddingBottom: 150 }}>
       <p style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.5 }}>
         Duas listas. As <strong>cópias de importação</strong> são certeza e chegam marcadas. Os{" "}
         <strong>parecidos</strong> são palpite e chegam desmarcados. Confira antes de excluir —

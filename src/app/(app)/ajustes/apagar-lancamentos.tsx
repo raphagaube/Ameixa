@@ -103,7 +103,7 @@ export function ApagarLancamentos() {
   }
 
   return (
-    <div className="flex flex-col" style={{ gap: 14 }} aria-busy={ocupado}>
+    <div className="flex flex-col" style={{ gap: "var(--espaco-secao)" }} aria-busy={ocupado}>
       <p style={{ fontSize: 13, lineHeight: 1.5, color: "var(--mut)" }}>
         Exclua receitas, despesas e valores guardados em metas, pagos ou pendentes.
         Bancos, cartões, categorias e configurações ficam preservados. Os saldos e o progresso das metas serão recalculados.

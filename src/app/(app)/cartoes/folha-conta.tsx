@@ -105,7 +105,7 @@ export function FolhaConta({
       titulo={conta ? "Editar banco" : "Novo banco"}
       alturaMaxima="92vh"
     >
-      <div className="flex flex-col" style={{ gap: 16, paddingBottom: 8 }}>
+      <div className="flex flex-col" style={{ gap: "var(--espaco-secao)", paddingBottom: 8 }}>
         <Campo
           rotulo="Nome do banco"
           value={nome}
@@ -163,7 +163,7 @@ export function FolhaConta({
             gap: 12,
             border: "1px solid var(--ln)",
             borderRadius: "var(--r)",
-            padding: 14,
+            padding: "var(--espaco-cartao)",
           }}
         >
           <CampoValor rotulo="Saldo" valor={saldo} aoMudar={setSaldo} />

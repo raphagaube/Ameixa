@@ -10,7 +10,7 @@ export default async function Pendencias() {
   const paraOrganizar = lista.filter((l) => l.incompleto).length;
 
   return (
-    <div className="flex flex-col" style={{ gap: 14, paddingTop: 22 }}>
+    <div className="flex flex-col" style={{ gap: "var(--espaco-secao)", paddingTop: 24 }}>
       <header>
         <p className="rotulo">Minha gestão</p>
         <h1 style={{ fontSize: 30, marginTop: 4 }}>Pendências</h1>

@@ -16,7 +16,7 @@ export function CabecalhoVoltar({
   return (
     <header
       className="flex items-center"
-      style={{ gap: 8, paddingTop: 22, paddingBottom: 4 }}
+      style={{ gap: 8, paddingTop: 24, paddingBottom: 4 }}
     >
       <button
         type="button"

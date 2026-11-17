@@ -59,7 +59,7 @@ export default async function Inicio({
   const tresOrcamentos = orcamentos.slice(0, 3);
 
   return (
-    <div className="tipografia-financeira inicio-tipografia flex flex-col" style={{ gap: 16, paddingTop: 22 }}>
+    <div className="espaco-inicio tipografia-financeira inicio-tipografia flex flex-col" style={{ gap: 16, paddingTop: 22 }}>
       <header className="flex items-start justify-between" style={{ gap: 12 }}>
         <div>
           <p className="rotulo">Meu painel</p>
@@ -78,7 +78,7 @@ export default async function Inicio({
       {/* No celular, uma coluna só; no notebook, duas. Ver .inicio-grade. */}
       <div className="inicio-grade">
         <div className="inicio-coluna">
-          <section
+          <section className="espaco-card espaco-resumo"
             style={{
               background: "var(--tint)",
               borderRadius: "var(--r)",
@@ -139,7 +139,7 @@ export default async function Inicio({
           {destaque ? <MetaDestaque meta={destaque} /> : null}
 
           {tresOrcamentos.length > 0 ? (
-            <section className="flex flex-col" style={{ gap: 10 }}>
+            <section className="espaco-secao espaco-orcamentos flex flex-col" style={{ gap: 10 }}>
               <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
                 <h2 style={{ fontSize: 17 }}>Orçamentos do mês</h2>
                 <Link
@@ -149,7 +149,7 @@ export default async function Inicio({
                   ver todos
                 </Link>
               </div>
-              <ul className="flex flex-col" style={{ gap: 10 }}>
+              <ul className="espaco-lista-orcamentos flex flex-col" style={{ gap: 10 }}>
                 {tresOrcamentos.map((o) => {
                   const estado = estadoDoOrcamento(o.gasto, o.limite);
                   const pct = percentualDoOrcamento(o.gasto, o.limite);
@@ -178,7 +178,7 @@ export default async function Inicio({
             </section>
           ) : null}
 
-          <section className="flex flex-col" style={{ gap: 4 }}>
+          <section className="espaco-ultimos flex flex-col" style={{ gap: 4 }}>
             <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
               <h2 style={{ fontSize: 17 }}>Últimos lançamentos</h2>
               <Link href="/extrato" style={{ fontSize: 13, color: "var(--deep)", fontWeight: 600 }}>
@@ -191,7 +191,7 @@ export default async function Inicio({
                 Nada lançado ainda. Toque em Registro Fácil para começar.
               </p>
             ) : (
-              ultimos.map((l) => <LinhaLancamento key={l.id} l={l} mostrarData />)
+              <div className="espaco-lista-ultimos">{ultimos.map((l) => <LinhaLancamento key={l.id} l={l} mostrarData />)}</div>
             )}
           </section>
         </div>

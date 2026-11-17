@@ -90,7 +90,7 @@ export function FolhaCartao({
       titulo={cartao ? "Editar cartão" : "Novo cartão de crédito"}
       alturaMaxima="92vh"
     >
-      <div className="flex flex-col" style={{ gap: 16, paddingBottom: 8 }}>
+      <div className="flex flex-col" style={{ gap: "var(--espaco-secao)", paddingBottom: 8 }}>
         <Campo
           rotulo="Nome do cartão"
           value={nome}

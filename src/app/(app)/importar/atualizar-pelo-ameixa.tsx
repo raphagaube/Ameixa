@@ -18,7 +18,7 @@ const ROTULO_ALVO = { categoria: "Categoria", subcategoria: "Subcategoria", cont
 const MOSTRAR = 40;
 
 const caixa: React.CSSProperties = {
-  padding: 14,
+  padding: "var(--espaco-cartao)",
   borderRadius: "var(--r)",
   border: "1px solid var(--ln2)",
   background: "var(--sf)",

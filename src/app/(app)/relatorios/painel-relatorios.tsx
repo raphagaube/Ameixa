@@ -50,11 +50,11 @@ export function PainelRelatorios({
     borderRadius: "var(--r)",
     border: "1px solid var(--ln2)",
     background: "var(--sf)",
-    padding: "15px 14px",
+    padding: "var(--espaco-cartao)",
   };
 
   return (
-    <div className="flex flex-col" style={{ gap: 16, paddingTop: 22 }}>
+    <div className="flex flex-col" style={{ gap: "var(--espaco-secao)", paddingTop: 24 }}>
       <h1 style={{ fontSize: 30 }}>Relatórios</h1>
 
       <SeletorMes ano={ano} mes={mes} />
@@ -76,7 +76,7 @@ export function PainelRelatorios({
 
       <div className="relatorios-grade">
         <section style={cartao} className="flex flex-col" aria-labelledby="t-rosca">
-          <h2 id="t-rosca" style={{ fontSize: 17, marginBottom: 14 }}>
+          <h2 id="t-rosca" style={{ fontSize: 17, marginBottom: 16 }}>
             Para onde foi o dinheiro
           </h2>
           <RoscaCategorias
@@ -87,14 +87,14 @@ export function PainelRelatorios({
         </section>
 
         <section style={cartao} aria-labelledby="t-evol">
-          <h2 id="t-evol" style={{ fontSize: 17, marginBottom: 14 }}>
+          <h2 id="t-evol" style={{ fontSize: 17, marginBottom: 16 }}>
             Receitas × despesas
           </h2>
           <BarrasEvolucao meses={dados.meses} />
         </section>
 
         <section style={cartao} aria-labelledby="t-origem">
-          <h2 id="t-origem" style={{ fontSize: 17, marginBottom: 14 }}>
+          <h2 id="t-origem" style={{ fontSize: 17, marginBottom: 16 }}>
             De onde veio
           </h2>
           {receitas.length === 0 ? (

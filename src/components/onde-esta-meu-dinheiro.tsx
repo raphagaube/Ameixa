@@ -31,7 +31,7 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
   }
 
   return (
-    <section className="flex flex-col" style={{ gap: 12 }}>
+    <section className="espaco-financas flex flex-col" style={{ gap: 12 }}>
       <div className="flex items-baseline justify-between" style={{ gap: 8 }}>
         <h2 style={{ fontSize: 17 }}>Onde está meu dinheiro</h2>
         <Link
@@ -44,7 +44,7 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
 
       {/* Total e guardado em campos separados: são perguntas diferentes.
           O total diz quanto existe; o guardado diz quanto não é para gastar. */}
-      <div className="grid grid-cols-2" style={{ gap: 12 }}>
+      <div className="espaco-reservas grid grid-cols-2" style={{ gap: 12 }}>
         <div
           style={{
             background: "var(--tint)",
@@ -83,11 +83,11 @@ export function OndeEstaMeuDinheiro({ panorama }: { panorama: PanoramaDasContas 
         </div>
       </div>
 
-      <ul className="celulas">
+      <ul className="espaco-contas celulas">
         {contas.map((c) => {
           const semMovimento = c.entradas === 0 && c.saidas === 0;
           return (
-            <li key={c.id} style={{ padding: "12px 14px" }}>
+            <li className="espaco-conta" key={c.id} style={{ padding: "12px 14px" }}>
               <div
                 className="flex items-baseline justify-between"
                 style={{ gap: 8 }}

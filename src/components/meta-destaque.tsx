@@ -12,7 +12,7 @@ export function MetaDestaque({ meta }: { meta: Meta }) {
   const prazo = prazoPorExtenso(meta);
 
   return (
-    <section
+    <section className="espaco-card espaco-meta"
       style={{
         borderRadius: "var(--r)",
         border: "1px solid var(--ln2)",
@@ -34,12 +34,12 @@ export function MetaDestaque({ meta }: { meta: Meta }) {
         {[meta.conta?.nome, meta.aplicacao].filter(Boolean).join(" · ")}
       </p>
 
-      <div className="flex items-baseline justify-between" style={{ gap: 8, marginTop: 6 }}>
+      <div className="espaco-meta-valores flex items-baseline justify-between" style={{ gap: 8, marginTop: 6 }}>
         <span className="tip-total" style={{ fontSize: 22, fontWeight: 700 }}><Dinheiro>{moeda(meta.guardado)}</Dinheiro></span>
         <span style={{ fontSize: 14, color: "var(--mut)" }}>de <Dinheiro>{moeda(meta.alvo)}</Dinheiro></span>
       </div>
 
-      <div style={{ marginTop: 8 }}>
+      <div className="espaco-meta-progresso" style={{ marginTop: 8 }}>
         <BarraProgresso percentual={pct} rotulo={`Progresso de ${meta.nome}`} />
       </div>
 

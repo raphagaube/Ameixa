@@ -104,7 +104,7 @@ export function PainelOrganizar({
     borderRadius: "var(--r)",
     border: "1px solid var(--ln2)",
     background: "var(--sf)",
-    padding: 14,
+    padding: "var(--espaco-cartao)",
   };
 
   const botao = (ativo: boolean): React.CSSProperties => ({
@@ -144,7 +144,7 @@ export function PainelOrganizar({
   }
 
   return (
-    <div className="flex flex-col" style={{ gap: 14, paddingBottom: 90 }}>
+    <div className="flex flex-col" style={{ gap: "var(--espaco-secao)", paddingBottom: 90 }}>
       <div style={{ ...caixa, background: "var(--tint)" }}>
         <p className="flex items-center" style={{ gap: 8, fontSize: 14, fontWeight: 600 }}>
           <Sparkles size={18} strokeWidth={1.5} style={{ color: "var(--deep)" }} aria-hidden />

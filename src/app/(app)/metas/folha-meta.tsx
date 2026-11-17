@@ -79,7 +79,7 @@ export function FolhaMeta({
       titulo={meta ? "Editar meta" : "Nova meta"}
       alturaMaxima="92vh"
     >
-      <div className="flex flex-col" style={{ gap: 16, paddingBottom: 8 }}>
+      <div className="flex flex-col" style={{ gap: "var(--espaco-secao)", paddingBottom: 8 }}>
         <Campo
           rotulo="Nome da meta"
           value={nome}
