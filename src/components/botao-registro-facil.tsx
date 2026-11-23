@@ -98,22 +98,17 @@ export function BotaoRegistroFacil({ onClick }: { onClick?: () => void }) {
   }
 
   function aoSoltar(e: React.PointerEvent<HTMLButtonElement>) {
-    const arrastou = moveu.current;
     inicio.current = null;
-    moveu.current = false;
     setArrastando(false);
 
-    if (arrastou) {
-      const finalizada: Posicao = {
-        lado: ladoMaisProximo(e.clientX, window.innerWidth),
-        deBaixo: prender(pos.deBaixo, window.innerHeight, ALTURA),
-      };
-      setPos(finalizada);
-      guardar(finalizada);
-      return;
-    }
+    if (!moveu.current) return;
 
-    onClick?.();
+    const finalizada: Posicao = {
+      lado: ladoMaisProximo(e.clientX, window.innerWidth),
+      deBaixo: prender(pos.deBaixo, window.innerHeight, ALTURA),
+    };
+    setPos(finalizada);
+    guardar(finalizada);
   }
 
   const comTeclado = alturaTeclado > 0;
@@ -146,7 +141,13 @@ export function BotaoRegistroFacil({ onClick }: { onClick?: () => void }) {
           onPointerMove={aoMover}
           onPointerUp={aoSoltar}
           onPointerCancel={aoSoltar}
+          onClick={(e) => {
+            // Abrir em pointerup deixa o fim do toque alcançar a folha.
+            // O click também permite abrir pelo teclado após um arrasto.
+            if (e.detail === 0 || !moveu.current) onClick?.();
+          }}
           data-ameixa-flutuante
+          aria-haspopup="dialog"
           aria-label="Registro fácil — lançar um valor rápido. Arraste para mover o botão."
           className="flex items-center gap-2 rounded-full shadow-lg"
           style={{
