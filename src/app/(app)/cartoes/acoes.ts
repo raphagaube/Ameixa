@@ -79,12 +79,15 @@ export async function excluirConta(id: string): Promise<Resultado> {
   // grava `cartao_id` e pode não ter conta nenhuma. Um banco usado só pelo
   // cartão passava na trava, o cartão sumia por cascade e as compras
   // ficavam órfãs, fora da fatura, sem nenhuma mensagem.
-  const { data: cartoes } = await supabase
+  const { data: cartoes, error: erroCartoes } = await supabase
     .from("cartoes")
     .select("id")
     .eq("conta_id", id);
+  if (erroCartoes || !cartoes) {
+    return { ok: false, erro: "Não foi possível conferir os cartões do banco. Tente novamente." };
+  }
 
-  const idsCartoes = (cartoes ?? []).map((c) => c.id);
+  const idsCartoes = cartoes.map((c) => c.id);
 
   const [naConta, nosCartoes] = await Promise.all([
     supabase
@@ -96,15 +99,19 @@ export async function excluirConta(id: string): Promise<Resultado> {
           .from("lancamentos")
           .select("id", { count: "exact", head: true })
           .in("cartao_id", idsCartoes)
-      : Promise.resolve({ count: 0 }),
+      : Promise.resolve({ count: 0, error: null }),
   ]);
 
-  const total = (naConta.count ?? 0) + (nosCartoes.count ?? 0);
+  if (naConta.error || nosCartoes.error || naConta.count === null || nosCartoes.count === null) {
+    return { ok: false, erro: "Não foi possível conferir os lançamentos do banco. Tente novamente." };
+  }
+
+  const total = naConta.count + nosCartoes.count;
 
   if (total > 0) {
-    const noCartao = nosCartoes.count ?? 0;
+    const noCartao = nosCartoes.count;
     const detalhe =
-      noCartao > 0 && (naConta.count ?? 0) > 0
+      noCartao > 0 && naConta.count > 0
         ? ` (${naConta.count} na conta e ${noCartao} nos cartões dele)`
         : noCartao > 0
           ? " — todos em cartões deste banco"
@@ -156,12 +163,16 @@ export async function excluirCartao(id: string): Promise<Resultado> {
 
   const supabase = await criarClienteServidor();
 
-  const { count } = await supabase
+  const { count, error: erroLancamentos } = await supabase
     .from("lancamentos")
     .select("id", { count: "exact", head: true })
     .eq("cartao_id", id);
 
-  if (count && count > 0) {
+  if (erroLancamentos || count === null) {
+    return { ok: false, erro: "Não foi possível conferir os lançamentos do cartão. Tente novamente." };
+  }
+
+  if (count > 0) {
     return {
       ok: false,
       erro: `Esse cartão está em ${count} lançamento${count > 1 ? "s" : ""}. Troque o cartão deles antes de excluir.`,

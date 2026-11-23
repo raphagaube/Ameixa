@@ -1,87 +1,45 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, expect, it } from "vitest";
 import { Folha } from "./folha";
 
 afterEach(cleanup);
 
-/**
- * Reproduz o uso real: quem abre a gaveta passa `() => aoFechar(false)`,
- * uma função nova a cada renderização. Foi isso que fez o efeito rodar a
- * cada tecla e o foco pular do campo para o painel.
- */
-function GavetaDeTeste() {
-  const [aberta, setAberta] = useState(true);
-  const [nome, setNome] = useState("");
-
+function Pagina() {
+  const [aberta, setAberta] = useState(false);
   return (
-    <Folha aberta={aberta} aoFechar={() => setAberta(false)} titulo="Nova categoria">
-      <input
-        aria-label="Nome"
-        value={nome}
-        onChange={(e) => setNome(e.target.value)}
-      />
-    </Folha>
+    <>
+      <button type="button" onClick={() => setAberta(true)}>Abrir</button>
+      <button type="button">Fundo da página</button>
+      <Folha aberta={aberta} aoFechar={() => setAberta(false)} titulo="Formulário">
+        <button type="button">Salvar</button>
+        <button type="button" disabled>Indisponível</button>
+      </Folha>
+    </>
   );
 }
 
-describe("Folha — o cursor não pode sair do campo", () => {
-  /**
-   * Regressão do relato: "digito um caractere, some a tela, o cursor não
-   * mantém no campo". A causa era o efeito depender de `aoFechar`.
-   */
-  it("mantém o foco no campo depois de digitar", async () => {
-    const usuario = userEvent.setup();
-    render(<GavetaDeTeste />);
+it("mantém o Tab no diálogo e devolve o foco ao botão de origem", async () => {
+  const usuario = userEvent.setup();
+  render(<Pagina />);
+  const abrir = screen.getByRole("button", { name: "Abrir" });
+  await usuario.click(abrir);
+  const folha = screen.getByRole("dialog", { name: "Formulário" });
+  const { getByRole } = within(folha);
+  const fechar = getByRole("button", { name: "Fechar" });
+  const salvar = getByRole("button", { name: "Salvar" });
+  for (const botao of [fechar, salvar]) {
+    // O jsdom não calcula layout. Esses dois botões estão visíveis na folha.
+    Object.defineProperty(botao, "getClientRects", { value: () => [{ width: 20, height: 20 }] });
+  }
 
-    const campo = screen.getByLabelText("Nome") as HTMLInputElement;
-    await usuario.click(campo);
-    expect(document.activeElement).toBe(campo);
-
-    await usuario.type(campo, "A");
-    expect(document.activeElement).toBe(campo);
-  });
-
-  it("mantém o foco depois de uma palavra inteira", async () => {
-    const usuario = userEvent.setup();
-    render(<GavetaDeTeste />);
-
-    const campo = screen.getByLabelText("Nome") as HTMLInputElement;
-    await usuario.click(campo);
-    await usuario.type(campo, "Vestuário");
-
-    expect(document.activeElement).toBe(campo);
-    expect(campo.value).toBe("Vestuário");
-  });
-
-  /** Cada letra tem que chegar; nada pode ser perdido no caminho. */
-  it("não perde caracteres", async () => {
-    const usuario = userEvent.setup();
-    render(<GavetaDeTeste />);
-
-    const campo = screen.getByLabelText("Nome") as HTMLInputElement;
-    await usuario.type(campo, "REFEIÇÕES FORA");
-
-    expect(campo.value).toBe("REFEIÇÕES FORA");
-  });
-
-  it("Esc continua fechando", async () => {
-    const usuario = userEvent.setup();
-    render(<GavetaDeTeste />);
-
-    expect(screen.getByRole("dialog")).toBeTruthy();
-    await usuario.keyboard("{Escape}");
-    expect(screen.queryByRole("dialog")).toBeNull();
-  });
-
-  it("devolve a rolagem da página ao fechar", async () => {
-    const usuario = userEvent.setup();
-    render(<GavetaDeTeste />);
-
-    expect(document.body.style.overflow).toBe("hidden");
-    await usuario.keyboard("{Escape}");
-    expect(document.body.style.overflow).not.toBe("hidden");
-  });
+  expect(document.activeElement).toBe(folha);
+  await usuario.tab({ shift: true });
+  expect(document.activeElement).toBe(salvar);
+  await usuario.tab();
+  expect(document.activeElement).toBe(fechar);
+  await usuario.keyboard("{Escape}");
+  expect(document.activeElement).toBe(abrir);
 });

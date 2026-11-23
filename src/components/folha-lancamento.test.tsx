@@ -78,3 +78,24 @@ describe("situação escolhida pelo usuário", () => {
     expect(screen.getByRole("button", { name: "A receber" }).getAttribute("aria-pressed")).toBe("true");
   });
 });
+
+describe("descrição ao completar uma pendência", () => {
+  it.each([
+    "Compra no mercado",
+    "Gasto rápido",
+    "Descrição importada com os dados da compra original. ".repeat(3).trim(),
+  ])("preserva a descrição importada %s", async (descricao) => {
+    const usuario = userEvent.setup();
+    const lancamento = { ...existente("despesa", "pago"), incompleto: true, importado: true, descricao };
+    render(<FolhaLancamento aberta aoFechar={vi.fn()} dados={dados} lancamento={lancamento} />);
+    expect((screen.getByLabelText("Descrição") as HTMLInputElement).value).toBe(descricao);
+    await usuario.click(screen.getByRole("button", { name: "Salvar lançamento" }));
+    expect(acoes.salvar).toHaveBeenCalledWith(expect.objectContaining({ descricao }));
+  });
+
+  it("mantém em branco a descrição provisória do Registro Fácil", () => {
+    const lancamento = { ...existente("despesa", "pago"), incompleto: true, descricao: "Gasto rápido" };
+    render(<FolhaLancamento aberta aoFechar={vi.fn()} dados={dados} lancamento={lancamento} />);
+    expect((screen.getByLabelText("Descrição") as HTMLInputElement).value).toBe("");
+  });
+});

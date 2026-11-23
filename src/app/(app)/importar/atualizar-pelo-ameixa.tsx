@@ -68,9 +68,8 @@ export function AtualizarPeloAmeixa({
   // Não é useTransition: as rodadas levam segundos e o Google, minutos —
   // dentro de uma transição, os menus ficavam mortos até o fim.
   const [aplicando, iniciar] = useOcupado();
-  const [excluir, setExcluir] = useState(true);
+  const [excluir, setExcluir] = useState(false);
   const [progresso, setProgresso] = useState<string | null>(null);
-  const [erro, setErro] = useState<string | null>(null);
   const [avisoAgenda, setAvisoAgenda] = useState<string | null>(null);
   const [feito, setFeito] = useState<{
     renomeados: number;
@@ -78,6 +77,7 @@ export function AtualizarPeloAmeixa({
     excluidos: number;
     criados: number;
     falhas: string[];
+    interrupcao: string | null;
   } | null>(null);
 
   const ex = resumo.exclusoes;
@@ -87,12 +87,13 @@ export function AtualizarPeloAmeixa({
     resumo.renomes.length > 0 || resumo.mudancas.length > 0 || vaiExcluir || en.quantidade > 0;
 
   function aplicar() {
-    setErro(null);
     iniciar(async () => {
       let renomeados = 0;
       let atualizados = 0;
       let excluidos = 0;
       let criados = 0;
+      let interrupcao: string | null = null;
+      let restantes = 0;
       const falhas = new Set<string>();
 
       // Em rodadas: cada chamada grava até 200 e o servidor recalcula o que
@@ -101,19 +102,20 @@ export function AtualizarPeloAmeixa({
       for (let rodada = 0; rodada < 200; rodada++) {
         let r;
         try {
-          r = await aplicarAtualizacao(compacta, excluir);
+          r = await aplicarAtualizacao(compacta, vaiExcluir ? ex.confirmacao : null);
         } catch {
-          setErro("A conexão caiu no meio. O que já foi gravado ficou; importe a planilha de novo para terminar.");
+          interrupcao = "A conexão caiu durante a aplicação. Importe a planilha de novo para conferir o que falta.";
           break;
         }
         if (!r.ok) {
-          setErro(r.erro);
+          interrupcao = r.erro;
           break;
         }
         renomeados += r.renomeados;
         atualizados += r.atualizados;
         excluidos += r.excluidos;
         criados += r.criados;
+        restantes = r.restantes;
         r.falhas.forEach((f) => falhas.add(f));
         setProgresso(
           r.restantes > 0
@@ -123,10 +125,13 @@ export function AtualizarPeloAmeixa({
         if (r.restantes === 0 || (r.atualizados === 0 && r.renomeados === 0)) break;
       }
 
+      if (restantes > 0 && !interrupcao) {
+        interrupcao = "Ainda há lançamentos a atualizar. Importe a planilha de novo para continuar.";
+      }
       setProgresso(null);
-      setFeito({ renomeados, atualizados, excluidos, criados, falhas: [...falhas] });
+      setFeito({ renomeados, atualizados, excluidos, criados, falhas: [...falhas], interrupcao });
       router.refresh();
-      void sincronizarAgenda();
+      if (renomeados || atualizados || excluidos || criados) void sincronizarAgenda();
     });
   }
 
@@ -145,18 +150,21 @@ export function AtualizarPeloAmeixa({
   }
 
   if (feito) {
+    const incompleta = !!feito.interrupcao || feito.falhas.length > 0;
+    const Icone = incompleta ? TriangleAlert : CircleCheck;
     return (
       <div className="flex flex-col" style={{ gap: 12 }}>
         <div className="flex items-start" style={{ ...caixa, gap: 10 }}>
-          <CircleCheck size={20} strokeWidth={1.5} style={{ color: "var(--ok)", flexShrink: 0 }} aria-hidden />
+          <Icone size={20} strokeWidth={1.5} style={{ color: incompleta ? "var(--bad)" : "var(--ok)", flexShrink: 0 }} aria-hidden />
           <div className="flex flex-col" style={{ gap: 4 }}>
-            <p style={{ fontSize: 15, fontWeight: 600 }}>Planilha aplicada</p>
+            <p style={{ fontSize: 15, fontWeight: 600 }}>{incompleta ? "Aplicação incompleta" : "Planilha aplicada"}</p>
             <p style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.5 }}>
               {feito.renomeados} {feito.renomeados === 1 ? "nome mudou" : "nomes mudaram"} ·{" "}
               {feito.atualizados} {feito.atualizados === 1 ? "lançamento atualizado" : "lançamentos atualizados"} ·{" "}
               {feito.criados} {feito.criados === 1 ? "criado" : "criados"} ·{" "}
               {feito.excluidos} {feito.excluidos === 1 ? "excluído" : "excluídos"}.
             </p>
+            {feito.interrupcao ? <p role="alert" style={{ fontSize: 13, color: "var(--bad)" }}>{feito.interrupcao}</p> : null}
             {avisoAgenda ? (
               <p role="status" style={{ fontSize: 12, color: "var(--mut)" }}>
                 {avisoAgenda}
@@ -190,9 +198,9 @@ export function AtualizarPeloAmeixa({
       <div>
         <h2 style={{ fontSize: 17 }}>Atualizar pela planilha do Ameixa</h2>
         <p style={{ fontSize: 13, color: "var(--mut)", marginTop: 4, lineHeight: 1.5 }}>
-          {nomeArquivo} foi gerada pelo app, então ela vale como a verdade: linhas com código
-          atualizam o que já existe, linhas sem código entram como lançamentos novos, e o que está
-          no app dentro do período da planilha mas não está nela sai. Confira antes de aplicar.
+          {nomeArquivo} foi gerada pelo Ameixa. As linhas com código
+          atualizam o que já existe e linhas sem código entram como lançamentos novos.
+          Para excluir os lançamentos listados na prévia, marque a opção de exclusão.
         </p>
       </div>
 
@@ -201,7 +209,7 @@ export function AtualizarPeloAmeixa({
           [resumo.renomes.length, resumo.renomes.length === 1 ? "nome muda" : "nomes mudam"],
           [resumo.mudancas.length, resumo.mudancas.length === 1 ? "lançamento muda" : "lançamentos mudam"],
           [en.quantidade, en.quantidade === 1 ? "entra no app" : "entram no app"],
-          [ex.quantidade, ex.quantidade === 1 ? "sai do app" : "saem do app"],
+          [ex.quantidade, ex.quantidade === 1 ? "pode ser excluído" : "podem ser excluídos"],
           [resumo.semMudanca, "sem mudança"],
           [resumo.problemas.length, resumo.problemas.length === 1 ? "problema" : "problemas"],
         ].map(([n, rotulo]) => (
@@ -238,7 +246,7 @@ export function AtualizarPeloAmeixa({
         <section style={{ ...caixa, borderColor: excluir ? "var(--bad)" : "var(--ln2)" }}>
           <h3 className="flex items-center" style={{ fontSize: 15, gap: 6, color: "var(--bad)" }}>
             <Trash2 size={16} strokeWidth={1.5} aria-hidden />
-            Lançamentos que saem do app
+            Lançamentos que você pode excluir
           </h3>
           <p style={{ fontSize: 13, color: "var(--mut)", marginTop: 4, lineHeight: 1.5 }}>
             Estão no app entre {ex.de ? dataBr(ex.de) : "—"} e {ex.ate ? dataBr(ex.ate) : "—"}, mas não
@@ -249,6 +257,7 @@ export function AtualizarPeloAmeixa({
             <input
               type="checkbox"
               checked={excluir}
+              disabled={aplicando}
               onChange={(e) => setExcluir(e.target.checked)}
               style={{ width: 18, height: 18, minHeight: 18 }}
             />
@@ -318,7 +327,9 @@ export function AtualizarPeloAmeixa({
       ) : null}
 
       {!temAlgo ? (
-        <p style={{ fontSize: 14, color: "var(--mut)" }}>Nada para atualizar: a planilha está igual ao app.</p>
+        <p style={{ fontSize: 14, color: "var(--mut)" }}>
+          {ex.quantidade ? "Marque a opção de exclusão para aplicar essa seleção." : "Nenhuma mudança pronta para aplicar."}
+        </p>
       ) : null}
 
       {progresso ? (
@@ -326,12 +337,6 @@ export function AtualizarPeloAmeixa({
           {progresso}
         </p>
       ) : null}
-      {erro ? (
-        <p role="alert" style={{ fontSize: 13, color: "var(--bad)" }}>
-          {erro}
-        </p>
-      ) : null}
-
       <div className="flex" style={{ gap: 8 }}>
         <Botao variante="contorno" onClick={aoVoltar} disabled={aplicando}>
           Voltar

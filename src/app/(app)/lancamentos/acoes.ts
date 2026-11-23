@@ -15,6 +15,9 @@ import { gerarSerie, type ConfigSerie } from "@/lib/serie";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import {
   dataQueVale,
+  DESCRICAO_REGISTRO_FACIL,
+  LIMITE_DESCRICAO_EDICAO,
+  LIMITE_DESCRICAO_NOVA,
   ROTULO_SITUACAO,
   situacaoAlvo,
   situacoesDoTipo,
@@ -30,7 +33,7 @@ const esquema = z.object({
   id: z.string().uuid().optional(),
   tipo: z.enum(["despesa", "receita", "aporte"]),
   valor: z.number().positive("O valor precisa ser maior que zero."),
-  descricao: z.string().trim().min(1, "Escreva uma descrição.").max(120),
+  descricao: z.string().trim().min(1, "Escreva uma descrição.").max(LIMITE_DESCRICAO_EDICAO),
   data_registro: z.string().regex(ISO, "Data inválida."),
   data_vencimento: z.string().regex(ISO).nullable().optional(),
   situacao: z.enum(["pago", "a_pagar", "recebido", "a_receber", "guardado"], { error: "Escolha a situação do lançamento." }),
@@ -70,6 +73,9 @@ const esquema = z.object({
       meses: z.number().int().min(1).max(240),
     }),
   ]),
+}).refine((d) => !!d.id || d.descricao.length <= LIMITE_DESCRICAO_NOVA, {
+  path: ["descricao"],
+  message: `A descrição precisa ter até ${LIMITE_DESCRICAO_NOVA} caracteres.`,
 });
 
 export type EntradaLancamento = z.input<typeof esquema>;
@@ -304,7 +310,7 @@ export async function salvarRapido(
     user_id: user.id,
     tipo,
     valor,
-    descricao: tipo === "despesa" ? "Gasto rápido" : "Entrada rápida",
+    descricao: DESCRICAO_REGISTRO_FACIL[tipo],
     data_registro: hoje,
     situacao: estado.data,
     conta_id: contaId,
@@ -578,7 +584,7 @@ export async function restaurarVencimentos(
 
 const itemEdicao = z.object({
   id: z.string().uuid(),
-  descricao: z.string().trim().min(1, "Toda linha precisa de uma descrição.").max(120),
+  descricao: z.string().trim().min(1, "Toda linha precisa de uma descrição.").max(LIMITE_DESCRICAO_EDICAO),
   valor: z
     .number()
     .positive("O valor precisa ser maior que zero.")

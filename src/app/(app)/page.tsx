@@ -18,7 +18,7 @@ import {
   estadoDoOrcamento,
   percentualDoOrcamento,
 } from "@/lib/tipos/orcamentos";
-import { hojeEmBrasilia, mesAno, moeda } from "@/lib/formato";
+import { hojeEmBrasilia, moeda } from "@/lib/formato";
 import { Dinheiro } from "@/components/dinheiro";
 import { BotaoPrivacidade } from "@/components/botao-privacidade";
 
@@ -38,7 +38,6 @@ export default async function Inicio({
   const hoje = hojeEmBrasilia();
   const ano = Number(p.ano) || hoje.getFullYear();
   const mes = p.mes !== undefined ? Number(p.mes) : hoje.getMonth();
-  const referencia = new Date(ano, mes, 1);
 
   const [perfil, resumo, ultimos, metas, orcamentos, panorama, pendencias] =
     await Promise.all([
@@ -85,7 +84,7 @@ export default async function Inicio({
               padding: "15px 14px",
             }}
           >
-            <p className="rotulo">Disponível · até {mesAno(referencia)}</p>
+            <p className="rotulo">Disponível hoje</p>
             <p className="tip-principal"
               style={{
                 fontSize: 44,

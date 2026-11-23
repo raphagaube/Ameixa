@@ -37,10 +37,12 @@ export function RegistroFacil({
   const [situacao, setSituacao] = useState<Situacao | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, iniciar] = useTransition();
+  const gravando = useRef(false);
 
   const valor = paraNumero(digitos);
 
   function teclar(t: string) {
+    if (gravando.current || salvando) return;
     setErro(null);
     if (t === "apagar") {
       setDigitos((d) => d.slice(0, -1));
@@ -60,6 +62,7 @@ export function RegistroFacil({
   }
 
   function completarDepois() {
+    if (gravando.current || salvando) return;
     setErro(null);
     if (valor <= 0) {
       setErro("Digite um valor primeiro.");
@@ -69,18 +72,24 @@ export function RegistroFacil({
       setErro("Escolha a situação do lançamento.");
       return;
     }
+    gravando.current = true;
     iniciar(async () => {
-      const r = await salvarRapido(valor, tipo, contaId, situacao);
-      if (r.ok) {
-        fecharLimpo();
-        router.refresh();
-      } else {
-        setErro(r.erro);
+      try {
+        const r = await salvarRapido(valor, tipo, contaId, situacao).catch(() => null);
+        if (r?.ok) {
+          fecharLimpo();
+          router.refresh();
+        } else {
+          setErro(r?.erro ?? "Não deu para confirmar o salvamento. Confira em Pendências antes de tentar novamente.");
+        }
+      } finally {
+        gravando.current = false;
       }
     });
   }
 
   function detalharAgora() {
+    if (gravando.current || salvando) return;
     setErro(null);
     const v = valor;
     const t = tipo;
@@ -134,7 +143,9 @@ export function RegistroFacil({
   return (
     <Folha
       aberta={aberta}
-      aoFechar={fecharLimpo}
+      aoFechar={() => {
+        if (!gravando.current && !salvando) fecharLimpo();
+      }}
       titulo="Registro fácil"
       alturaMaxima="calc(100dvh - 8px)"
       className="folha-registro-facil"
@@ -144,6 +155,7 @@ export function RegistroFacil({
           <select
             aria-label="Tipo de lançamento"
             value={tipo}
+            disabled={salvando}
             onChange={(e) => {
               const t = e.target.value as "despesa" | "receita";
               if (t !== tipo) { setTipo(t); setSituacao(null); }
@@ -155,6 +167,7 @@ export function RegistroFacil({
           <select
             aria-label="Situação"
             value={situacao ?? ""}
+            disabled={salvando}
             aria-invalid={erro === "Escolha a situação do lançamento." || undefined}
             onChange={(e) => {
               setSituacao(e.target.value as Situacao);
@@ -185,7 +198,7 @@ export function RegistroFacil({
           aria-label="Conta ou banco (opcional)"
           value={contaId ?? ""}
           onChange={(e) => setContaId(e.target.value || null)}
-          disabled={contas.length === 0}
+          disabled={salvando || contas.length === 0}
         >
           <option value="">{contas.length ? "Conta ou banco (opcional)" : "Sem bancos cadastrados"}</option>
           {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
@@ -197,6 +210,7 @@ export function RegistroFacil({
               key={t}
               type="button"
               onClick={() => teclar(t)}
+              disabled={salvando}
               aria-label={t === "apagar" ? "Apagar último número" : t}
               className="grid place-items-center"
               style={{

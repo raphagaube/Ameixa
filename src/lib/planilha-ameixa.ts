@@ -143,11 +143,9 @@ function abaInstrucoes(): XLSX.WorkSheet {
     [
       "• Na aba Categorias, a linha com Subcategoria em branco é a própria categoria. Nas linhas de subcategoria, a coluna Categoria é só referência.",
     ],
-    ["• Apagar uma linha da planilha não apaga nada no app."],
-    ["• Antes de gravar, o app mostra tudo o que vai mudar e pede confirmação."],
-    [
-      "• Guarde o arquivo original sem editar: importá-lo de novo volta os lançamentos e os nomes para como estavam.",
-    ],
+    ["• Você pode excluir os lançamentos listados na prévia se marcar a opção de exclusão."],
+    ["• Antes de gravar, o app mostra as mudanças e pede confirmação."],
+    ["• Guarde uma cópia do arquivo original para consulta. A exclusão pelo app é definitiva."],
     [],
     ["Importante"],
     ["• Preencha a aba Lançamentos, uma linha por lançamento, sem mudar os títulos da primeira linha."],

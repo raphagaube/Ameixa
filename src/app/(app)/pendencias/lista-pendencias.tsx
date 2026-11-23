@@ -6,18 +6,17 @@ import { excluirLancamento } from "@/app/(app)/lancamentos/acoes";
 import { useFormularioLancamento } from "@/components/casca-lancamentos";
 import { Botao } from "@/components/ui/botao";
 import { dataBr, moeda } from "@/lib/formato";
-import type { LancamentoNaLista } from "@/lib/tipos/lancamentos";
+import { usaDescricaoDoRegistroFacil, type LancamentoNaLista } from "@/lib/tipos/lancamentos";
 import { Dinheiro } from "@/components/dinheiro";
 import { CircleCheck } from "lucide-react";
 
-/** O que falta preencher num lançamento vindo do Registro Fácil. */
+/** O que falta preencher numa pendência. */
 function faltando(l: LancamentoNaLista): string[] {
   const f: string[] = [];
   if (!l.categoria_id) f.push("categoria");
   if (!l.conta_id) f.push("conta");
   if (!l.forma_pagamento) f.push("forma de pagamento");
-  if (l.descricao === "Gasto rápido" || l.descricao === "Entrada rápida")
-    f.push("descrição");
+  if (usaDescricaoDoRegistroFacil(l)) f.push("descrição");
   return f;
 }
 
@@ -25,14 +24,22 @@ export function ListaPendencias({ lista }: { lista: LancamentoNaLista[] }) {
   const router = useRouter();
   const { editar } = useFormularioLancamento();
   const [apagando, setApagando] = useState<string | null>(null);
+  const [erro, setErro] = useState<{ id: string; mensagem: string } | null>(null);
   const [emAcao, iniciar] = useTransition();
 
   function excluir(id: string) {
+    setErro(null);
     setApagando(id);
     iniciar(async () => {
-      await excluirLancamento(id, false);
-      setApagando(null);
-      router.refresh();
+      try {
+        const resultado = await excluirLancamento(id, false);
+        if (resultado.ok) router.refresh();
+        else setErro({ id, mensagem: resultado.erro });
+      } catch {
+        setErro({ id, mensagem: "Não foi possível excluir o lançamento. Tente novamente." });
+      } finally {
+        setApagando(null);
+      }
     });
   }
 
@@ -92,12 +99,18 @@ export function ListaPendencias({ lista }: { lista: LancamentoNaLista[] }) {
             <Botao
               variante="contorno"
               onClick={() => excluir(l.id)}
+              disabled={emAcao}
               carregando={emAcao && apagando === l.id}
               style={{ color: "var(--bad)", borderColor: "var(--bad)" }}
             >
               Excluir
             </Botao>
           </div>
+          {erro?.id === l.id ? (
+            <p role="alert" style={{ fontSize: 13, color: "var(--bad)", marginTop: 8 }}>
+              {erro.mensagem}
+            </p>
+          ) : null}
         </li>
       ))}
     </ul>

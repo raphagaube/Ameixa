@@ -82,23 +82,39 @@ describe("casamento com os lançamentos", () => {
 
   it("mesmo valor e mesma data é Confere", () => {
     const lancs: LancamentoParaCasar[] = [
-      { id: "L1", valor: 218.4, data: "2026-09-01", descricao: "Mercado", fitid: null },
+      { id: "L1", valor: 218.4, data: "2026-09-01", descricao: "Mercado", fitid: null, saida: true },
     ];
     const s = casar([movimentos[0]], lancs);
     expect(s[0].classificacao).toBe("confere");
     expect(s[0].lancamentoId).toBe("L1");
   });
 
+  it.each([true, false])("só sugere correspondência na mesma direção (saída: %s)", (saida) => {
+    const movimento = { ...movimentos[0], saida };
+    const direcaoOposta = {
+      id: "oposto", valor: movimento.valor, data: movimento.data,
+      descricao: "Direção oposta", fitid: null, saida: !saida,
+    };
+    const mesmaDirecao = { ...direcaoOposta, id: "correto", data: "2026-09-02", saida };
+
+    expect(casar([movimento], [direcaoOposta])[0]).toMatchObject({
+      classificacao: "novo", lancamentoId: null,
+    });
+    expect(casar([movimento], [direcaoOposta, mesmaDirecao])[0]).toMatchObject({
+      classificacao: "provavel", lancamentoId: "correto",
+    });
+  });
+
   it("mesmo valor com até 3 dias de distância é Provável", () => {
     const lancs: LancamentoParaCasar[] = [
-      { id: "L1", valor: 218.4, data: "2026-09-03", descricao: "Mercado", fitid: null },
+      { id: "L1", valor: 218.4, data: "2026-09-03", descricao: "Mercado", fitid: null, saida: true },
     ];
     expect(casar([movimentos[0]], lancs)[0].classificacao).toBe("provavel");
   });
 
   it("mais de 3 dias já não casa", () => {
     const lancs: LancamentoParaCasar[] = [
-      { id: "L1", valor: 218.4, data: "2026-09-06", descricao: "Mercado", fitid: null },
+      { id: "L1", valor: 218.4, data: "2026-09-06", descricao: "Mercado", fitid: null, saida: true },
     ];
     expect(casar([movimentos[0]], lancs)[0].classificacao).toBe("novo");
   });
@@ -110,7 +126,7 @@ describe("casamento com os lançamentos", () => {
   /** Regra 8: o fitid já gravado impede recriar qualquer coisa. */
   it("fitid já existente é Já conciliado", () => {
     const lancs: LancamentoParaCasar[] = [
-      { id: "L1", valor: 218.4, data: "2026-09-01", descricao: "Mercado", fitid: "ABC123" },
+      { id: "L1", valor: 218.4, data: "2026-09-01", descricao: "Mercado", fitid: "ABC123", saida: true },
     ];
     const s = casar([movimentos[0]], lancs);
     expect(s[0].classificacao).toBe("ja_conciliado");
@@ -123,8 +139,8 @@ describe("casamento com os lançamentos", () => {
    */
   it("reimportar o mesmo arquivo não cria nada", () => {
     const lancs: LancamentoParaCasar[] = [
-      { id: "L1", valor: 218.4, data: "2026-09-01", descricao: "Mercado", fitid: "ABC123" },
-      { id: "L2", valor: 5200, data: "2026-09-02", descricao: "Salário", fitid: "DEF456" },
+      { id: "L1", valor: 218.4, data: "2026-09-01", descricao: "Mercado", fitid: "ABC123", saida: true },
+      { id: "L2", valor: 5200, data: "2026-09-02", descricao: "Salário", fitid: "DEF456", saida: false },
     ];
     const s = casar(movimentos, lancs);
     expect(s.every((x) => x.classificacao === "ja_conciliado")).toBe(true);
@@ -137,7 +153,7 @@ describe("casamento com os lançamentos", () => {
       <STMTTRN><DTPOSTED>20260901<TRNAMT>-50.00<FITID>B</STMTTRN>
     `);
     const lancs: LancamentoParaCasar[] = [
-      { id: "L1", valor: 50, data: "2026-09-01", descricao: "Café", fitid: null },
+      { id: "L1", valor: 50, data: "2026-09-01", descricao: "Café", fitid: null, saida: true },
     ];
     const s = casar(dois, lancs);
     expect(s[0].lancamentoId).toBe("L1");
@@ -147,8 +163,8 @@ describe("casamento com os lançamentos", () => {
 
   it("prefere o lançamento de data mais próxima", () => {
     const lancs: LancamentoParaCasar[] = [
-      { id: "longe", valor: 218.4, data: "2026-09-03", descricao: "x", fitid: null },
-      { id: "perto", valor: 218.4, data: "2026-09-01", descricao: "x", fitid: null },
+      { id: "longe", valor: 218.4, data: "2026-09-03", descricao: "x", fitid: null, saida: true },
+      { id: "perto", valor: 218.4, data: "2026-09-01", descricao: "x", fitid: null, saida: true },
     ];
     expect(casar([movimentos[0]], lancs)[0].lancamentoId).toBe("perto");
   });
@@ -158,8 +174,8 @@ describe("bloco Só no app", () => {
   it("lista o que o extrato não trouxe", () => {
     const movimentos = lerOfx(ARQUIVO);
     const lancs: LancamentoParaCasar[] = [
-      { id: "L1", valor: 218.4, data: "2026-09-01", descricao: "Mercado", fitid: null },
-      { id: "L9", valor: 33, data: "2026-09-05", descricao: "Padaria", fitid: null },
+      { id: "L1", valor: 218.4, data: "2026-09-01", descricao: "Mercado", fitid: null, saida: true },
+      { id: "L9", valor: 33, data: "2026-09-05", descricao: "Padaria", fitid: null, saida: true },
     ];
     const s = casar(movimentos, lancs);
     const sobra = soNoApp(lancs, s);

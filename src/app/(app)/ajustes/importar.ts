@@ -155,9 +155,10 @@ export async function importarLancamentos(
     repetidos === "pular"
       ? paraGravar.filter((l) => !existentes.has(chaveDaLinha(l)))
       : paraGravar;
+  ignorados += paraGravar.length - aGravar.length;
 
   if (aGravar.length === 0) {
-    return { ok: true, criados: 0, ignorados: ignorados + repetidas.length, pendentes: 0 };
+    return { ok: true, criados: 0, ignorados, pendentes: 0 };
   }
 
   // Em blocos: milhares de linhas numa requisição só estouram o limite de
@@ -201,6 +202,6 @@ export async function importarLancamentos(
     ok: true,
     criados: gravados,
     ignorados,
-    pendentes: paraGravar.filter((l) => l.incompleto).length,
+    pendentes: aGravar.filter((l) => l.incompleto).length,
   };
 }

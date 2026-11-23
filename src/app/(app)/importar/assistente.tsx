@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { useOcupado } from "@/lib/use-ocupado";
 import { Botao } from "@/components/ui/botao";
 import { Campo } from "@/components/ui/campo";
+import { lerLancamentosDoBackup } from "@/lib/backup";
 import { lerCsv, type LinhaCru } from "@/lib/csv";
 import { dataBr, moeda } from "@/lib/formato";
 import {
@@ -54,6 +55,7 @@ export function Assistente({
   const [origem, setOrigem] = useState<Origem>("google");
   const [link, setLink] = useState("");
   const [nomeArquivo, setNomeArquivo] = useState("");
+  const [aportesNoBackup, setAportesNoBackup] = useState(0);
 
   const [brutas, setBrutas] = useState<LinhaCru[]>([]);
   const [mapa, setMapa] = useState<Mapeamento>({});
@@ -167,21 +169,19 @@ export function Assistente({
     if (!arquivo) return;
     setErro(null);
     try {
-      const json = JSON.parse(await arquivo.text());
-      const brutos = Array.isArray(json) ? json : (json.lancamentos ?? []);
-      const linhas: LinhaCru[] = (brutos as Record<string, unknown>[]).map((l) => ({
-        data: String(l.data_registro ?? "").slice(0, 10),
-        descricao: String(l.descricao ?? ""),
-        valor: String(l.valor ?? ""),
-        tipo: String(l.tipo ?? ""),
-        status: String(l.situacao ?? ""),
-        observacao: String(l.observacao ?? ""),
-        responsavel: String(l.responsavel ?? ""),
-      }));
-      if (linhas.length === 0) {
-        setErro("Esse backup não tem lançamentos.");
+      const backup = lerLancamentosDoBackup(JSON.parse(await arquivo.text()));
+      if (!backup) {
+        setErro("Esse arquivo não é um backup válido do Ameixa.");
         return;
       }
+      const { linhas, aportes } = backup;
+      if (linhas.length === 0) {
+        setErro(aportes > 0
+          ? "Este backup tem apenas aportes. O importador recupera receitas e despesas."
+          : "Este backup não tem receitas ou despesas para importar.");
+        return;
+      }
+      setAportesNoBackup(aportes);
       setNomeArquivo(arquivo.name);
       setBrutas(linhas);
       setMapa(palpitarMapeamento(Object.keys(linhas[0])));
@@ -234,12 +234,14 @@ export function Assistente({
 
       const r = await importarLancamentos(paraEnviar, quantoARepetidos);
       if (r.ok) {
-        setSucesso(
-          `${r.criados} lançamentos importados.` +
-            (r.pendentes > 0
-              ? ` ${r.pendentes} ficaram em Pendências, esperando categoria.`
-              : " Todos já com categoria."),
-        );
+        const mensagens = [`${r.criados} ${r.criados === 1 ? "lançamento importado" : "lançamentos importados"}.`];
+        if (r.ignorados > 0) mensagens.push(`${r.ignorados} ${r.ignorados === 1 ? "linha ignorada" : "linhas ignoradas"}.`);
+        if (r.pendentes > 0) {
+          mensagens.push(`${r.pendentes} ${r.pendentes === 1 ? "ficou" : "ficaram"} em Pendências, esperando categoria.`);
+        } else if (r.criados > 0) {
+          mensagens.push(r.criados === 1 ? "Já está com categoria." : "Todos já com categoria.");
+        }
+        setSucesso(mensagens.join(" "));
         setPasso(4);
         router.refresh();
       } else if ("repetidos" in r) {
@@ -405,6 +407,13 @@ export function Assistente({
         </p>
       ) : null}
 
+      {origem === "backup" && passo > 1 && aportesNoBackup > 0 ? (
+        <p role="status" style={{ fontSize: 13, color: "var(--mut)" }}>
+          {aportesNoBackup === 1 ? "1 aporte ficou" : `${aportesNoBackup} aportes ficaram`} no arquivo para consulta.
+          Esta importação recupera receitas e despesas.
+        </p>
+      ) : null}
+
       {conferindo ? (
         <p role="status" style={{ fontSize: 13, color: "var(--mut)" }}>
           Conferindo a planilha com o app…
@@ -433,7 +442,7 @@ export function Assistente({
               "backup",
               FileText,
               "Backup do Ameixa",
-              "Arquivo .json baixado em Backup dos meus dados",
+              "Recupere receitas e despesas a partir do arquivo JSON",
             )}
           </div>
 

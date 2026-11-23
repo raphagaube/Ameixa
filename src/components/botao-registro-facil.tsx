@@ -72,7 +72,11 @@ export function BotaoRegistroFacil({ onClick }: { onClick?: () => void }) {
 
   function aoPegar(e: React.PointerEvent<HTMLButtonElement>) {
     e.currentTarget.setPointerCapture(e.pointerId);
-    inicio.current = { x: e.clientX, y: e.clientY, deBaixo: pos.deBaixo };
+    inicio.current = {
+      x: e.clientX,
+      y: e.clientY,
+      deBaixo: prender(pos.deBaixo, window.innerHeight, ALTURA),
+    };
     moveu.current = false;
   }
 
@@ -124,12 +128,12 @@ export function BotaoRegistroFacil({ onClick }: { onClick?: () => void }) {
       // lateral, presente em toda tela.
       className="so-celular pointer-events-none fixed inset-x-0 z-50 flex justify-center"
       style={{
-        bottom: `calc(${deBaixo}px + env(safe-area-inset-bottom))`,
+        bottom: `min(calc(${deBaixo}px + env(safe-area-inset-bottom)), calc(100dvh - ${ALTURA + MARGEM}px - env(safe-area-inset-top)))`,
         transition: arrastando ? "none" : "bottom 140ms ease-out",
       }}
     >
       <div
-        className="pointer-events-auto flex w-full px-4"
+        className="flex w-full px-4"
         style={{
           maxWidth: "var(--largura)",
           justifyContent: pos.lado === "esquerda" ? "flex-start" : "flex-end",
@@ -149,7 +153,7 @@ export function BotaoRegistroFacil({ onClick }: { onClick?: () => void }) {
           data-ameixa-flutuante
           aria-haspopup="dialog"
           aria-label="Registro fácil — lançar um valor rápido. Arraste para mover o botão."
-          className="flex items-center gap-2 rounded-full shadow-lg"
+          className="pointer-events-auto flex items-center gap-2 rounded-full shadow-lg"
           style={{
             background: "var(--primary)",
             color: "var(--on-ac)",

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { excluirLancamentosEmLote } from "@/app/(app)/lancamentos/acoes";
+import { excluirLoteConfirmado } from "@/app/(app)/ajustes/exclusao";
 import { enfileirar } from "@/lib/agenda/sincronizar";
 import {
   casarNovas,
@@ -15,6 +15,7 @@ import {
   type Problema,
   type Renome,
 } from "@/lib/atualizacao-ameixa";
+import { TAMANHO_LOTE_EXCLUSAO } from "@/lib/exclusao-lancamentos";
 import type { PlanilhaDoAmeixa } from "@/lib/planilha-ameixa-leitura";
 import { expandirPlanilha, type PlanilhaCompacta } from "@/lib/planilha-compacta";
 import { criarClienteServidor, usuarioAtual } from "@/lib/supabase/servidor";
@@ -38,6 +39,11 @@ const esquema = z.object({
     )
     .max(3000),
   contas: z.array(z.tuple([z.number().int(), z.string().max(80), z.string().max(200)])).max(500),
+});
+
+const confirmacaoExclusao = z.object({
+  ids: z.array(z.string().uuid()).min(1),
+  corte: z.string().datetime().refine((v) => Date.parse(v) <= Date.now()),
 });
 
 type Cliente = Awaited<ReturnType<typeof criarClienteServidor>>;
@@ -247,6 +253,7 @@ export type ResumoAtualizacao =
         ate: string | null;
         quantidade: number;
         itens: Omit<ItemLista, "id">[];
+        confirmacao: z.infer<typeof confirmacaoExclusao> | null;
       };
     }
   | { ok: false; erro: string };
@@ -264,6 +271,7 @@ export async function analisarAtualizacao(entrada: PlanilhaCompacta): Promise<Re
   const plano = planejarAtualizacao(planilha, app);
   const casadas = await casarNovasComApp(supabase, planilha, plano.novas);
   if (!casadas) return falhaDeLeitura;
+  const corte = new Date().toISOString();
   const exclusoes = await exclusoesNoPeriodo(supabase, planilha, new Set(casadas.jaNoApp));
   if (!exclusoes) return falhaDeLeitura;
 
@@ -291,6 +299,7 @@ export async function analisarAtualizacao(entrada: PlanilhaCompacta): Promise<Re
       ate: exclusoes.ate,
       quantidade: exclusoes.itens.length,
       itens: exclusoes.itens.slice(0, 500).map(paraLista),
+        confirmacao: exclusoes.itens.length ? { ids: exclusoes.itens.map((i) => i.id), corte } : null,
     },
   };
 }
@@ -313,7 +322,7 @@ const ROTULO = { categoria: "A categoria", subcategoria: "A subcategoria", conta
 /**
  * Aplica uma rodada: todos os nomes e até POR_RODADA lançamentos. Na rodada
  * em que não sobra mais nada para atualizar, exclui o que está no período e
- * não está na planilha (só com `excluir` ligado) e cria as linhas novas.
+ * não está na planilha (só os IDs confirmados na prévia) e cria as linhas novas.
  *
  * O plano, as exclusões e as linhas novas são recalculados a cada chamada com
  * o banco na mão: não se confia no que veio do navegador. O que já foi gravado
@@ -323,10 +332,13 @@ const ROTULO = { categoria: "A categoria", subcategoria: "A subcategoria", conta
  */
 export async function aplicarAtualizacao(
   entrada: PlanilhaCompacta,
-  excluir: boolean,
+  confirmacao: z.infer<typeof confirmacaoExclusao> | null,
 ): Promise<ResultadoAtualizacao> {
   const planilha = ler(entrada);
   if (!planilha) return { ok: false, erro: "Não consegui entender essa planilha." };
+  const exclusaoConfirmada = confirmacaoExclusao.nullable().safeParse(confirmacao);
+  if (!exclusaoConfirmada.success) return { ok: false, erro: "Confirme a seleção em uma nova prévia." };
+  const excluir = exclusaoConfirmada.data;
 
   const supabase = await criarClienteServidor();
   const app = await carregarApp(supabase, planilha.lancamentos.map((l) => l.codigo));
@@ -388,7 +400,7 @@ export async function aplicarAtualizacao(
   // Exclusão e linhas novas só no fim, depois de todas as atualizações, e
   // recalculadas agora. Excluir vem antes de criar: o que acabou de ser
   // criado não tem código na planilha e não pode cair na exclusão. A exclusão
-  // em si passa pela mesma ação das telas, que limpa a agenda.
+  // em si passa pela ação de exclusão confirmada, que também cuida da agenda.
   let excluidos = 0;
   let criados = 0;
   if (restantes === 0) {
@@ -400,17 +412,30 @@ export async function aplicarAtualizacao(
         const ex = await exclusoesNoPeriodo(supabase, planilha, new Set(casadas.jaNoApp));
         if (!ex) {
           falhas.push("Não deu para conferir o que excluir; nada foi excluído.");
-        } else {
-          const ids = ex.itens.map((i) => i.id);
-          for (let k = 0; k < ids.length; k += 500) {
-            const r = await excluirLancamentosEmLote(ids.slice(k, k + 500));
+        } else if (ex.de && ex.ate) {
+          const confirmados = new Set(excluir.ids);
+          const ids = ex.itens.filter((i) => confirmados.has(i.id)).map((i) => i.id);
+          let alteradosDepoisDaPrevia = 0;
+          let avisoAgenda = false;
+          for (let k = 0; k < ids.length; k += TAMANHO_LOTE_EXCLUSAO) {
+            const r = await excluirLoteConfirmado(
+              { alcance: "periodo", de: ex.de, ate: ex.ate },
+              ids.slice(k, k + TAMANHO_LOTE_EXCLUSAO),
+              excluir.corte,
+            );
             if (r.ok) {
               excluidos += r.excluidos;
+              alteradosDepoisDaPrevia += r.ignorados;
+              avisoAgenda ||= r.avisoAgenda;
             } else {
               falhas.push(`Parei de excluir no meio: ${r.erro}`);
               break;
             }
           }
+          if (alteradosDepoisDaPrevia > 0) {
+            falhas.push(`Registros alterados após a prévia foram preservados (${alteradosDepoisDaPrevia}).`);
+          }
+          if (avisoAgenda) falhas.push("Alguns compromissos dos lançamentos excluídos ficaram sem atualização no Google Agenda.");
         }
       }
 

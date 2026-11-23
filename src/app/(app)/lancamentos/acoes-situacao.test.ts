@@ -35,6 +35,14 @@ describe("a gravação respeita a situação informada", () => {
     expect((await salvarLancamento({ ...entrada, id: "00000000-0000-4000-8000-000000000001" })).ok).toBe(true);
     expect(banco.gravados[0].situacao).toBe("a_pagar");
   });
+
+  it("aceita editar a descrição importada de 200 caracteres e mantém o limite de 120 na criação", async () => {
+    const descricao = "A".repeat(200);
+    expect((await salvarLancamento({ ...entrada, descricao })).ok).toBe(false);
+    expect(banco.acessos).toBe(0);
+    expect((await salvarLancamento({ ...entrada, descricao, id: "00000000-0000-4000-8000-000000000001" })).ok).toBe(true);
+    expect(banco.gravados[0].descricao).toBe(descricao);
+  });
   it("todas as parcelas antigas continuam a pagar", async () => {
     expect((await salvarLancamento({ ...entrada, repeticao: { repeticao: "parcelada", parcelaAtual: 1, parcelaTotal: 6 } })).ok).toBe(true);
     expect(banco.gravados).toHaveLength(6);

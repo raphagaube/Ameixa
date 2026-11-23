@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { montarBackup, TABELAS_DO_BACKUP, type PaginaDoBackup, type TabelaDoBackup } from "./backup";
+import { lerLancamentosDoBackup, montarBackup, TABELAS_DO_BACKUP, type PaginaDoBackup, type TabelaDoBackup } from "./backup";
+import { analisarLinhas, palpitarMapeamento } from "./importacao";
 
 /** Um servidor de mentira: mil linhas por página, como o de verdade. */
 function servidor(tamanhos: Partial<Record<TabelaDoBackup, number>>) {
@@ -81,5 +82,25 @@ describe("montarBackup", () => {
       if (t === "lancamentos") passos.push(`${lidas}/${total}`);
     });
     expect(passos).toEqual(["1000/2322", "2000/2322", "2322/2322"]);
+  });
+});
+
+describe("lerLancamentosDoBackup", () => {
+  it("separa aportes e preserva vencimento e pagamento das despesas", () => {
+    const resultado = lerLancamentosDoBackup({
+      lancamentos: [
+        { tipo: "aporte", descricao: "Reserva", valor: 100, data_registro: "2026-11-01" },
+        { tipo: "despesa", descricao: "Luz", valor: 80, data_registro: "2026-11-01", data_vencimento: "2026-11-05", situacao: "a_pagar", forma_pagamento: "Pix" },
+      ],
+    });
+    expect(resultado?.aportes).toBe(1);
+    expect(resultado?.linhas).toHaveLength(1);
+    const linhas = resultado?.linhas ?? [];
+    const previas = analisarLinhas(linhas, palpitarMapeamento(Object.keys(linhas[0])));
+    expect(previas[0]).toMatchObject({ tipo: "despesa", vencimento: "2026-11-05", forma: "Pix", situacao: "a_pagar", problema: null });
+  });
+
+  it("identifica um backup antigo composto apenas de aportes", () => {
+    expect(lerLancamentosDoBackup([{ tipo: " APORTE " }])).toEqual({ linhas: [], aportes: 1 });
   });
 });

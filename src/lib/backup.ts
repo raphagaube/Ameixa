@@ -1,4 +1,5 @@
 import { PAGINA } from "@/lib/supabase/paginas";
+import type { LinhaCru } from "@/lib/csv";
 
 /**
  * Montagem do backup, página a página.
@@ -45,6 +46,40 @@ export type PaginaDoBackup =
 export type ResultadoBackup =
   | { ok: true; dados: Record<string, unknown> }
   | { ok: false; erro: string };
+
+/** Separa os aportes, que o importador de receitas e despesas não pode recriar. */
+export function lerLancamentosDoBackup(backup: unknown): { linhas: LinhaCru[]; aportes: number } | null {
+  const lancamentos = Array.isArray(backup)
+    ? backup
+    : backup && typeof backup === "object" && "lancamentos" in backup
+      ? backup.lancamentos
+      : null;
+  if (!Array.isArray(lancamentos)) return null;
+
+  const linhas: LinhaCru[] = [];
+  let aportes = 0;
+  for (const entrada of lancamentos) {
+    if (!entrada || typeof entrada !== "object" || Array.isArray(entrada)) return null;
+    const l = entrada as Record<string, unknown>;
+    const tipo = String(l.tipo ?? "").trim().toLowerCase();
+    if (tipo === "aporte") {
+      aportes++;
+      continue;
+    }
+    linhas.push({
+      data: String(l.data_registro ?? "").slice(0, 10),
+      vencimento: String(l.data_vencimento ?? "").slice(0, 10),
+      descricao: String(l.descricao ?? ""),
+      valor: String(l.valor ?? ""),
+      tipo,
+      status: String(l.situacao ?? ""),
+      forma: String(l.forma_pagamento ?? ""),
+      observacao: String(l.observacao ?? ""),
+      responsavel: String(l.responsavel ?? ""),
+    });
+  }
+  return { linhas, aportes };
+}
 
 /**
  * Lê todas as tabelas até o fim e confere cada uma contra a contagem do

@@ -135,9 +135,8 @@ export function BaixarPlanilhas({ listas }: { listas: ListasPlanilha }) {
       </Botao>
 
       <p style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.5 }}>
-        A planilha com os seus lançamentos serve para conferir, guardar ou editar em outro lugar.
-        Importá-la de volta cria lançamentos novos — ela não altera os que já existem, e o
-        Ameixa avisa antes se encontrar repetidos.
+        Ao importar a planilha de volta, linhas com código atualizam os lançamentos existentes.
+        A prévia mostra o que muda, o que entra e quais lançamentos você pode excluir.
       </p>
 
       {recado ? (

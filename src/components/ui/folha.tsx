@@ -73,21 +73,43 @@ export function Folha({
   }, [aberta]);
 
   useEffect(() => {
-    if (!aberta) return;
+    const elemento = painel.current;
+    if (!aberta || !elemento) return;
+
+    const focoAnterior = document.activeElement;
 
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === "Escape") fechar.current();
+      if (e.key === "Escape") {
+        fechar.current();
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const focaveis = Array.from(elemento.querySelectorAll<HTMLElement>(
+        "a[href], button, input, select, textarea, [tabindex]",
+      )).filter((el) => el.tabIndex >= 0 && !el.matches(":disabled") && el.getClientRects().length > 0);
+      const primeiro = focaveis[0];
+      const ultimo = focaveis[focaveis.length - 1];
+      const atual = document.activeElement;
+      const foraDoPainel = !elemento.contains(atual);
+      if (!primeiro || foraDoPainel || (e.shiftKey ? atual === primeiro || atual === elemento : atual === ultimo)) {
+        e.preventDefault();
+        (e.shiftKey ? ultimo ?? elemento : primeiro ?? elemento).focus();
+      }
     };
     document.addEventListener("keydown", aoTeclar);
 
     const rolagemAnterior = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    painel.current?.focus();
+    elemento.focus({ preventScroll: true });
 
     return () => {
       document.removeEventListener("keydown", aoTeclar);
       document.body.style.overflow = rolagemAnterior;
+      if (focoAnterior instanceof HTMLElement && focoAnterior.isConnected) {
+        focoAnterior.focus({ preventScroll: true });
+      }
     };
   }, [aberta]);
 
@@ -98,6 +120,7 @@ export function Folha({
       <button
         type="button"
         aria-label="Fechar"
+        tabIndex={-1}
         onClick={aoFechar}
         className="absolute inset-0"
         style={{ background: "rgba(0,0,0,.45)", minHeight: 0 }}

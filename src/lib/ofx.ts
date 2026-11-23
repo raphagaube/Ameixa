@@ -80,6 +80,7 @@ export type LancamentoParaCasar = {
   data: string;
   descricao: string;
   fitid: string | null;
+  saida: boolean;
 };
 
 export type Sugestao = {
@@ -98,10 +99,9 @@ function diasEntre(a: string, b: string): number {
 export const TOLERANCIA_DIAS = 3;
 
 /**
- * Regra 8 do modelo de dados: casa por mesmo valor absoluto e data até 3
- * dias de distância, sem reaproveitar um lançamento já casado na mesma
- * importação. O `fitid` já existente marca como "já conciliado" e nada
- * é recriado.
+ * Casa por mesmo valor, mesma direção e no máximo 3 dias de distância.
+ * Cada lançamento só pode ser usado uma vez. O `fitid` já existente marca
+ * o movimento como "já conciliado".
  */
 export function casar(
   movimentos: MovimentoOfx[],
@@ -128,6 +128,7 @@ export function casar(
         (l) =>
           !usados.has(l.id) &&
           !l.fitid &&
+          l.saida === mov.saida &&
           Math.abs(l.valor - mov.valor) < 0.005 &&
           diasEntre(l.data, mov.data) <= TOLERANCIA_DIAS,
       )

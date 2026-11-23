@@ -2,9 +2,10 @@
 
 import { Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Botao } from "@/components/ui/botao";
 import { dataBr, moeda } from "@/lib/formato";
+import { useOcupado } from "@/lib/use-ocupado";
 import {
   ROTULO_CLASSIFICACAO,
   casar,
@@ -49,54 +50,66 @@ export function PainelConciliacao({ contas }: { contas: Conta[] }) {
   const [movimentos, setMovimentos] = useState<MovimentoOfx[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const [processando, iniciar] = useTransition();
+  const [processando, iniciar] = useOcupado();
 
-  async function aoEscolherArquivo(e: React.ChangeEvent<HTMLInputElement>) {
-    const arquivo = e.target.files?.[0];
-    if (!arquivo) return;
+  function limparSugestoes() {
     setErro(null);
     setAviso(null);
+    setSugestoes([]);
+    setSobra([]);
+    setAcoes({});
+  }
+
+  function aoEscolherArquivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.currentTarget.files?.[0];
+    if (!arquivo) return;
+    e.currentTarget.value = "";
+    limparSugestoes();
+    setNomeArquivo("");
+    setMovimentos([]);
 
     if (!contaId) {
       setErro("Escolha primeiro a conta do extrato.");
       return;
     }
 
-    const texto = await arquivo.text();
-    const movimentos = lerOfx(texto);
+    iniciar(async () => {
+      const texto = await arquivo.text().catch(() => null);
+      if (texto === null) {
+        setErro("Não deu para ler o arquivo. Escolha o extrato de novo.");
+        return;
+      }
 
-    if (movimentos.length === 0) {
-      setErro(
-        "Não encontrei movimentos nesse arquivo. Confira se é um OFX ou QFX do seu banco.",
-      );
-      return;
-    }
+      const lidos = lerOfx(texto);
+      if (lidos.length === 0) {
+        setErro("Não encontrei movimentos nesse arquivo. Confira se é um OFX ou QFX do seu banco.");
+        return;
+      }
 
-    setNomeArquivo(arquivo.name);
-    setMovimentos(movimentos);
-    recasar(movimentos, contaId);
+      setNomeArquivo(arquivo.name);
+      setMovimentos(lidos);
+      await recasar(lidos, contaId);
+    });
   }
 
   /** Refaz o casamento contra a conta escolhida. */
-  function recasar(movs: MovimentoOfx[], conta: string) {
-    if (movs.length === 0 || !conta) return;
+  async function recasar(movs: MovimentoOfx[], conta: string) {
     const datas = movs.map((m) => m.data).sort();
-    iniciar(async () => {
-      const lancs = await lancamentosParaCasar({
-        de: datas[0],
-        ate: datas[datas.length - 1],
-        contaId: conta,
-      });
+    const resultado = await lancamentosParaCasar({
+      de: datas[0],
+      ate: datas[datas.length - 1],
+      contaId: conta,
+    }).catch(() => null);
 
-      const s = casar(movs, lancs);
-      setSugestoes(s);
-      setSobra(soNoApp(lancs, s));
-      setAcoes(
-        Object.fromEntries(
-          s.map((x) => [x.movimento.fitid, acaoSugerida(x.classificacao)]),
-        ),
-      );
-    });
+    if (!resultado || !resultado.ok) {
+      setErro(resultado?.erro ?? "Não deu para consultar os lançamentos. Escolha o arquivo de novo.");
+      return;
+    }
+
+    const s = casar(movs, resultado.lancamentos);
+    setSugestoes(s);
+    setSobra(soNoApp(resultado.lancamentos, s));
+    setAcoes(Object.fromEntries(s.map((x) => [x.movimento.fitid, acaoSugerida(x.classificacao)])));
   }
 
   function aplicar() {
@@ -114,18 +127,19 @@ export function PainelConciliacao({ contas }: { contas: Conta[] }) {
           acao: acoes[s.movimento.fitid] ?? "ignorar",
           lancamentoId: s.lancamentoId,
         })),
-      });
+      }).catch(() => null);
 
-      if (r.ok) {
+      if (r?.ok) {
         setAviso(
           `Pronto: ${r.conciliados} conciliado${r.conciliados === 1 ? "" : "s"} e ${r.criados} criado${r.criados === 1 ? "" : "s"}.`,
         );
         setSugestoes([]);
         setSobra([]);
         setNomeArquivo("");
+        setMovimentos([]);
         router.refresh();
       } else {
-        setErro(r.erro);
+        setErro(r?.erro ?? "Não deu para confirmar o resultado da conciliação. Confira o extrato antes de tentar novamente.");
       }
     });
   }
@@ -176,12 +190,14 @@ export function PainelConciliacao({ contas }: { contas: Conta[] }) {
         <select
           id="conta-ofx"
           value={contaId}
+          disabled={processando}
           onChange={(e) => {
             const nova = e.target.value;
             setContaId(nova);
-            // Recalcula na hora: as sugestões são sempre da conta que está
-            // escolhida agora, nunca da que estava quando o arquivo entrou.
-            recasar(movimentos, nova);
+            if (movimentos.length > 0) {
+              limparSugestoes();
+              iniciar(() => recasar(movimentos, nova));
+            }
           }}
           style={estiloSelect}
         >
@@ -211,6 +227,7 @@ export function PainelConciliacao({ contas }: { contas: Conta[] }) {
         <input
           type="file"
           accept=".ofx,.qfx,text/plain"
+          disabled={processando}
           onChange={aoEscolherArquivo}
           style={{ display: "none" }}
         />

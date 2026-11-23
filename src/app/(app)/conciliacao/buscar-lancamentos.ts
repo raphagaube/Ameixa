@@ -11,6 +11,10 @@ const esquema = z.object({
   contaId: z.string().uuid(),
 });
 
+type ResultadoBusca =
+  | { ok: true; lancamentos: LancamentoParaCasar[] }
+  | { ok: false; erro: string };
+
 /**
  * Lançamentos da conta no intervalo do extrato, para o casamento.
  * A janela é alargada em 3 dias de cada lado, que é a tolerância do
@@ -18,9 +22,9 @@ const esquema = z.object({
  */
 export async function lancamentosParaCasar(
   entrada: z.input<typeof esquema>,
-): Promise<LancamentoParaCasar[]> {
+): Promise<ResultadoBusca> {
   const v = esquema.safeParse(entrada);
-  if (!v.success) return [];
+  if (!v.success) return { ok: false, erro: "A conta ou o período do extrato é inválido." };
 
   const folga = (iso: string, dias: number) => {
     const d = new Date(`${iso}T00:00:00`);
@@ -32,7 +36,7 @@ export async function lancamentosParaCasar(
   const data = await lerTudo((de, ate) =>
     supabase
       .from("lancamentos")
-      .select("id, valor, data_registro, descricao, fitid")
+      .select("id, tipo, valor, data_registro, descricao, fitid")
       .eq("conta_id", v.data.contaId)
       .neq("tipo", "aporte")
       .gte("data_registro", folga(v.data.de, -3))
@@ -41,11 +45,19 @@ export async function lancamentosParaCasar(
       .range(de, ate),
   );
 
-  return (data ?? []).map((l) => ({
-    id: l.id,
-    valor: Number(l.valor),
-    data: l.data_registro,
-    descricao: l.descricao,
-    fitid: l.fitid,
-  }));
+  if (!data) {
+    return { ok: false, erro: "Não deu para consultar os lançamentos. Escolha o arquivo de novo para tentar novamente." };
+  }
+
+  return {
+    ok: true,
+    lancamentos: data.map((l) => ({
+      id: l.id,
+      valor: Number(l.valor),
+      data: l.data_registro,
+      descricao: l.descricao,
+      fitid: l.fitid,
+      saida: l.tipo === "despesa",
+    })),
+  };
 }

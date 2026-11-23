@@ -13,6 +13,8 @@ import { IconeCategoria } from "@/components/icone-categoria";
 import { hojeEmBrasilia, paraIso } from "@/lib/formato";
 import type { DadosDeApoio } from "@/lib/tipos/apoio";
 import {
+  LIMITE_DESCRICAO_EDICAO,
+  LIMITE_DESCRICAO_NOVA,
   ROTULO_FREQUENCIA,
   ROTULO_UNIDADE,
   ROTULO_SITUACAO,
@@ -23,6 +25,7 @@ import {
   type TipoLancamento,
   type TipoRepeticao,
   situacoesDoTipo,
+  usaDescricaoDoRegistroFacil,
 } from "@/lib/tipos/lancamentos";
 import { escreverValor, lerValor } from "@/lib/valor";
 import { BotaoExcluir } from "@/components/ui/botao-excluir";
@@ -66,7 +69,7 @@ export function FolhaLancamento({
     escreverValor(lancamento?.valor ?? iniciais?.valor ?? 0),
   );
   const [descricao, setDescricao] = useState(
-    completando ? "" : (lancamento?.descricao ?? ""),
+    lancamento && !usaDescricaoDoRegistroFacil(lancamento) ? lancamento.descricao : "",
   );
   const [dataRegistro, setDataRegistro] = useState(
     lancamento?.data_registro ?? hoje,
@@ -282,7 +285,7 @@ export function FolhaLancamento({
           rotulo="Descrição"
           value={descricao}
           onChange={(e) => setDescricao(e.target.value)}
-          maxLength={120}
+          maxLength={editando ? LIMITE_DESCRICAO_EDICAO : LIMITE_DESCRICAO_NOVA}
           placeholder={ehAporte ? "Ex.: Reserva de emergência" : "Ex.: Mercado"}
         />
 

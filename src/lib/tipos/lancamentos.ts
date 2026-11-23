@@ -1,5 +1,13 @@
 export type TipoLancamento = "despesa" | "receita" | "aporte";
 
+export const DESCRICAO_REGISTRO_FACIL = {
+  despesa: "Gasto rápido",
+  receita: "Entrada rápida",
+} as const;
+
+export const LIMITE_DESCRICAO_NOVA = 120;
+export const LIMITE_DESCRICAO_EDICAO = 200;
+
 export type Situacao =
   | "pago"
   | "a_pagar"
@@ -68,11 +76,17 @@ export type Lancamento = {
 
 /** Como o lançamento aparece no extrato, já com nomes resolvidos. */
 export type LancamentoNaLista = Lancamento & {
+  importado?: boolean;
   categoria: { nome: string; cor: string; cor_texto: string; icone?: string | null } | null;
   subcategoria: { nome: string } | null;
   conta: { nome: string } | null;
   cartao: { nome: string } | null;
 };
+
+export function usaDescricaoDoRegistroFacil(l: LancamentoNaLista): boolean {
+  return l.incompleto && !l.importado && l.tipo !== "aporte" &&
+    l.descricao === DESCRICAO_REGISTRO_FACIL[l.tipo];
+}
 
 /**
  * A data que vale para o lançamento: o vencimento, quando existe.
